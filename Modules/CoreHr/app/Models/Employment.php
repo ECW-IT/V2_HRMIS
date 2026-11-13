@@ -13,6 +13,7 @@ use Modules\CoreHr\Database\Factories\EmploymentFactory;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Enums\EmploymentType;
 use Modules\CoreHr\Enums\ExitReason;
+use Modules\Organisation\Models\EmployeeCategory;
 
 class Employment extends Model
 {
@@ -35,6 +36,7 @@ class Employment extends Model
         'exit_reason',
         'exit_remarks',
         'previous_employment_id',
+        'employee_category_id',
     ];
 
     protected function casts(): array
@@ -69,6 +71,11 @@ class Employment extends Model
     public function previous(): BelongsTo
     {
         return $this->belongsTo(self::class, 'previous_employment_id');
+    }
+
+    public function employeeCategory(): BelongsTo
+    {
+        return $this->belongsTo(EmployeeCategory::class);
     }
 
     public function currentAssignment(): ?Assignment

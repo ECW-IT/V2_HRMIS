@@ -19,6 +19,7 @@ class BankBranchFactory extends Factory
             'bank_id' => Bank::factory(),
             'code' => (string) fake()->unique()->numerify('###'),
             'name' => fake()->city().' Branch',
+            'is_active' => true,
         ];
     }
 }

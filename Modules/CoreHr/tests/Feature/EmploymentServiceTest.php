@@ -17,6 +17,7 @@ use Modules\CoreHr\Services\EmploymentService;
 use Modules\Organisation\Exceptions\OrgUnitInUse;
 use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\OrgUnit;
+use Modules\Organisation\Services\EmployeeCategoryService;
 use Modules\Organisation\Services\OrgUnitService;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
@@ -48,6 +49,22 @@ class EmploymentServiceTest extends TestCase
         $this->assertNull($e->assignments()->sole()->effective_to);
         $this->assertSame(EventType::HIRE, $e->events()->sole()->type);
         $this->assertSame('2026-12-01', $e->events()->sole()->event_date->toDateString());
+    }
+
+    public function test_hire_stores_employee_category(): void
+    {
+        $c = $this->company();
+        $category = app(EmployeeCategoryService::class)->create(['code' => 'FAC', 'name' => 'Factory']);
+
+        $e = $this->svc->hire(
+            $this->person(),
+            $c,
+            $this->emp(['employee_category_id' => $category->id]),
+            $this->asg($c),
+        );
+
+        $this->assertSame($category->id, $e->employee_category_id);
+        $this->assertSame('Factory', $e->employeeCategory->name);
     }
 
     public function test_second_hire_in_company_gets_next_number(): void

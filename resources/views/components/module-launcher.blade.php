@@ -13,7 +13,7 @@
         ['icon' => '✅', 'label' => 'Approvals', 'route' => 'approvals.index'],
         ['icon' => '📊', 'label' => 'Reports', 'route' => null],
         ['icon' => '📜', 'label' => 'Audit', 'route' => null],
-        ['icon' => '⚙️', 'label' => 'Settings', 'route' => null],
+        ['icon' => '⚙️', 'label' => 'Settings', 'route' => 'settings.banks.index'],
     ];
 
     $gridClasses = $compact ? 'grid grid-cols-3 gap-3' : 'grid grid-cols-2 justify-items-start gap-x-6 gap-y-10 sm:grid-cols-4 md:grid-cols-5';

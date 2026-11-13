@@ -17,7 +17,15 @@ class BankBranch extends Model
         'bank_id',
         'code',
         'name',
+        'is_active',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'is_active' => 'boolean',
+        ];
+    }
 
     public function bank(): BelongsTo
     {

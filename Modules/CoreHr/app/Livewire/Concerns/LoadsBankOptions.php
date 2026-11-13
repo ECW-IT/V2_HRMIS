@@ -34,7 +34,11 @@ trait LoadsBankOptions
             'banks' => Bank::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'branches' => $bankId === null
                 ? collect()
-                : BankBranch::query()->where('bank_id', $bankId)->orderBy('name')->get(['id', 'name', 'code']),
+                : BankBranch::query()
+                    ->where('bank_id', $bankId)
+                    ->where('is_active', true)
+                    ->orderBy('name')
+                    ->get(['id', 'name', 'code']),
         ];
     }
 }

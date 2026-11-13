@@ -12,6 +12,9 @@ use Modules\CoreHr\Livewire\Actions\ExitEmployment;
 use Modules\CoreHr\Livewire\Actions\Reinstate;
 use Modules\CoreHr\Livewire\Actions\SisterTransfer;
 use Modules\CoreHr\Livewire\Actions\Suspend;
+use Modules\CoreHr\Livewire\BankBranchesIndex;
+use Modules\CoreHr\Livewire\BanksIndex;
+use Modules\CoreHr\Livewire\DocumentTypesIndex;
 use Modules\CoreHr\Livewire\EmployeeProfile;
 use Modules\CoreHr\Livewire\EmployeesIndex;
 use Modules\CoreHr\Livewire\HireWizard;
@@ -59,6 +62,9 @@ class CoreHrServiceProvider extends ModuleServiceProvider
 
         Livewire::component('corehr.readiness-dashboard', ReadinessDashboard::class);
         Livewire::component('corehr.readiness-home-tile', ReadinessHomeTile::class);
+        Livewire::component('corehr.banks-index', BanksIndex::class);
+        Livewire::component('corehr.bank-branches-index', BankBranchesIndex::class);
+        Livewire::component('corehr.document-types-index', DocumentTypesIndex::class);
         Livewire::component('corehr.employees-index', EmployeesIndex::class);
         Livewire::component('corehr.hire-wizard', HireWizard::class);
         Livewire::component('corehr.employee-profile', EmployeeProfile::class);

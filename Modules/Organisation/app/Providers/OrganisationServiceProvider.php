@@ -3,7 +3,9 @@
 namespace Modules\Organisation\Providers;
 
 use Livewire\Livewire;
+use Modules\Organisation\Livewire\BreakTypesIndex;
 use Modules\Organisation\Livewire\CompaniesIndex;
+use Modules\Organisation\Livewire\EmployeeCategoriesIndex;
 use Modules\Organisation\Livewire\GradesIndex;
 use Modules\Organisation\Livewire\JobsIndex;
 use Modules\Organisation\Livewire\LocationsIndex;
@@ -47,6 +49,8 @@ class OrganisationServiceProvider extends ModuleServiceProvider
         Livewire::component('organisation.locations-index', LocationsIndex::class);
         Livewire::component('organisation.org-tree', OrgTree::class);
         Livewire::component('organisation.jobs-index', JobsIndex::class);
+        Livewire::component('organisation.employee-categories-index', EmployeeCategoriesIndex::class);
+        Livewire::component('organisation.break-types-index', BreakTypesIndex::class);
         Livewire::component('organisation.grades-index', GradesIndex::class);
     }
 }

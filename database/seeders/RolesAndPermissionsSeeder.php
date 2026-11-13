@@ -31,6 +31,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'import.run',
             'access-control.view',
             'audit.view',
+            'settings.view',
+            'settings.manage',
         ];
 
         foreach ($permissions as $permission) {

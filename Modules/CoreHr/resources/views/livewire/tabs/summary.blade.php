@@ -24,6 +24,8 @@
         <dl class="grid grid-cols-3 gap-y-2 text-sm">
             <dt class="text-xs text-gray-500">Type</dt>
             <dd class="col-span-2 text-gray-700">{{ ucfirst(strtolower($employment->type->value)) }}</dd>
+            <dt class="text-xs text-gray-500">Employee category</dt>
+            <dd class="col-span-2 text-gray-700">{{ $employment->employeeCategory?->name ?? '—' }}</dd>
             <dt class="text-xs text-gray-500">Hire date</dt>
             <dd class="col-span-2 text-gray-700">{{ $employment->hire_date->format('Y-m-d') }}</dd>
             @if($employment->confirmed_on)

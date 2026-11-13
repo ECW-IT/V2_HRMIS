@@ -24,7 +24,7 @@ class Summary extends Component
         $this->authorize('employee.view');
 
         $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
-        $employment = $this->employment->load('person.contacts');
+        $employment = $this->employment->load(['person.contacts', 'employeeCategory']);
         $person = $employment->person;
 
         $mobile = $person->contacts

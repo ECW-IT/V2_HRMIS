@@ -11,6 +11,10 @@ use Modules\CoreHr\Database\Seeders\DocumentTypeSeeder;
 use Modules\CoreHr\Livewire\EmployeeProfile;
 use Modules\CoreHr\Livewire\Tabs\Personal;
 use Modules\CoreHr\Models\EmployeeDocument;
+use Modules\CoreHr\Models\PersonDependent;
+use Modules\CoreHr\Models\PersonEmergencyContact;
+use Modules\CoreHr\Models\PersonExperience;
+use Modules\CoreHr\Models\PersonQualification;
 use Modules\CoreHr\Services\BankAccountService;
 use Modules\CoreHr\Services\EmploymentRequestService;
 use Modules\CoreHr\Services\EmploymentService;
@@ -234,5 +238,111 @@ class EmployeeProfileTest extends TestCase
             ->assertSee('Saved.');
 
         $this->assertSame('Sunil', $e->person->fresh()->calling_name);
+    }
+
+    public function test_personal_tab_viewer_cannot_mutate_sub_records(): void
+    {
+        $e = $this->hired();
+        $user = User::factory()->forCompanies([$e->company])->withPermissions('employee.view')->create(['must_change_password' => false]);
+        $this->actingAs($user);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('openAddEmergency')
+            ->assertForbidden();
+    }
+
+    public function test_personal_tab_can_add_edit_and_remove_sub_records(): void
+    {
+        $e = $this->hired();
+        $this->loginAs('hr-manager', $e->company);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('openAddEmergency')
+            ->set('childName', 'Kamala')
+            ->set('childRelationship', 'Spouse')
+            ->set('childPhone', '0771234567')
+            ->set('childAddress', 'Colombo')
+            ->call('saveChild')
+            ->assertSee('Saved.');
+
+        $emergency = PersonEmergencyContact::query()->where('person_id', $e->person_id)->first();
+        $this->assertNotNull($emergency);
+        $this->assertSame('Kamala', $emergency->name);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('openEditEmergency', $emergency->id)
+            ->set('childPhone', '0779999999')
+            ->call('saveChild')
+            ->assertSee('Saved.');
+
+        $this->assertSame('0779999999', $emergency->fresh()->phone);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('openAddDependent')
+            ->set('childName', 'Nimal')
+            ->set('childRelationship', 'Child')
+            ->set('childDateOfBirth', '2015-04-01')
+            ->call('saveChild');
+
+        $dependent = PersonDependent::query()->where('person_id', $e->person_id)->first();
+        $this->assertNotNull($dependent);
+        $this->assertSame('Nimal', $dependent->name);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('openEditDependent', $dependent->id)
+            ->set('childRelationship', 'Son')
+            ->call('saveChild');
+
+        $this->assertSame('Son', $dependent->fresh()->relationship);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('openAddQualification')
+            ->set('childType', 'Degree')
+            ->set('childInstitute', 'University of Colombo')
+            ->set('childTitle', 'BSc')
+            ->set('childYear', '2018')
+            ->call('saveChild');
+
+        $qualification = PersonQualification::query()->where('person_id', $e->person_id)->first();
+        $this->assertNotNull($qualification);
+        $this->assertSame('BSc', $qualification->title);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('openEditQualification', $qualification->id)
+            ->set('childTitle', 'BSc Hons')
+            ->call('saveChild');
+
+        $this->assertSame('BSc Hons', $qualification->fresh()->title);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('openAddExperience')
+            ->set('childEmployer', 'Acme Ltd')
+            ->set('childJobTitle', 'Clerk')
+            ->set('childFromDate', '2019-01-01')
+            ->set('childToDate', '2021-12-31')
+            ->call('saveChild');
+
+        $experience = PersonExperience::query()->where('person_id', $e->person_id)->first();
+        $this->assertNotNull($experience);
+        $this->assertSame('Acme Ltd', $experience->employer);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('openEditExperience', $experience->id)
+            ->set('childJobTitle', 'Senior clerk')
+            ->call('saveChild');
+
+        $this->assertSame('Senior clerk', $experience->fresh()->job_title);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('removeChild', 'emergency', $emergency->id)
+            ->call('removeChild', 'dependent', $dependent->id)
+            ->call('removeChild', 'qualification', $qualification->id)
+            ->call('removeChild', 'experience', $experience->id)
+            ->assertSee('Removed.');
+
+        $this->assertDatabaseMissing('person_emergency_contacts', ['id' => $emergency->id]);
+        $this->assertDatabaseMissing('person_dependents', ['id' => $dependent->id]);
+        $this->assertDatabaseMissing('person_qualifications', ['id' => $qualification->id]);
+        $this->assertDatabaseMissing('person_experience', ['id' => $experience->id]);
     }
 }

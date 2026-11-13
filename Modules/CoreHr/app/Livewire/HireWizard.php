@@ -30,6 +30,7 @@ use Modules\CoreHr\Services\PersonService;
 use Modules\CoreHr\Support\EmployeesNav;
 use Modules\CoreHr\Support\Nic;
 use Modules\Organisation\Models\Company;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Job;
 use Modules\Organisation\Models\Location;
@@ -117,6 +118,8 @@ class HireWizard extends Component
     public bool $epfLiable = true;
 
     public string $epfNo = '';
+
+    public string|int|null $employeeCategoryId = null;
 
     public string|int|null $orgUnitId = null;
 
@@ -464,6 +467,12 @@ class HireWizard extends Component
                     'string',
                     'max:20',
                 ],
+                'employeeCategoryId' => [
+                    Rule::requiredIf(fn () => EmployeeCategory::query()->where('is_active', true)->exists()),
+                    'nullable',
+                    'integer',
+                    Rule::exists('employee_categories', 'id')->where('is_active', true),
+                ],
                 'orgUnitId' => ['required', 'integer', Rule::exists('org_units', 'id')->where('company_id', (int) $this->companyId)],
                 'jobId' => ['required', 'integer', Rule::exists('hr_jobs', 'id')],
                 'gradeId' => ['required', 'integer', Rule::exists('grades', 'id')],
@@ -566,6 +575,9 @@ class HireWizard extends Component
             'confirmation_due_date' => $this->type === EmploymentType::PROBATION->value && $this->confirmationDueDate !== ''
                 ? $this->confirmationDueDate
                 : null,
+            'employee_category_id' => $this->employeeCategoryId === null || $this->employeeCategoryId === ''
+                ? null
+                : (int) $this->employeeCategoryId,
         ];
     }
 
@@ -650,6 +662,7 @@ class HireWizard extends Component
             'types' => EmploymentType::cases(),
             'genders' => Gender::cases(),
             'maritalStatuses' => MaritalStatus::cases(),
+            'employeeCategories' => EmployeeCategory::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
             'deviceGroups' => Device::query()->whereNotNull('device_group')->distinct()->orderBy('device_group')->pluck('device_group'),
             'selectedManager' => $this->selectedManager(),
             'managerResults' => $this->managerResults($companyId),
@@ -685,6 +698,7 @@ class HireWizard extends Component
             'Hire date' => $this->hireDate,
             'Confirmation due' => $this->confirmationDueDate !== '' ? $this->confirmationDueDate : '—',
             'EPF' => $this->employmentData()['epf_liable'] ? 'Liable · '.($this->epfNo !== '' ? $this->epfNo : '—') : 'Not liable',
+            'Employee category' => $name(EmployeeCategory::class, $this->employeeCategoryId),
             'Department / section' => $name(OrgUnit::class, $this->orgUnitId),
             'Job' => $name(Job::class, $this->jobId),
             'Grade' => $name(Grade::class, $this->gradeId),

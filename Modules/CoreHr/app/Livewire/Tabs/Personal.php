@@ -2,6 +2,7 @@
 
 namespace Modules\CoreHr\Livewire\Tabs;
 
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Livewire\Component;
@@ -9,12 +10,19 @@ use Modules\CoreHr\Enums\ContactType;
 use Modules\CoreHr\Enums\MaritalStatus;
 use Modules\CoreHr\Livewire\Concerns\SubmitsEmploymentRequests;
 use Modules\CoreHr\Models\Employment;
+use Modules\CoreHr\Models\Person;
+use Modules\CoreHr\Models\PersonDependent;
+use Modules\CoreHr\Models\PersonEmergencyContact;
+use Modules\CoreHr\Models\PersonExperience;
+use Modules\CoreHr\Models\PersonQualification;
 
 class Personal extends Component
 {
     use SubmitsEmploymentRequests;
 
     private const ADDRESS_TYPES = ['PERMANENT', 'CURRENT'];
+
+    private const CHILD_KINDS = ['emergency', 'dependent', 'qualification', 'experience'];
 
     public Employment $employment;
 
@@ -42,6 +50,38 @@ class Personal extends Component
     public string $newContactValue = '';
 
     public bool $newContactPrimary = false;
+
+    public bool $showChildForm = false;
+
+    public string $childKind = '';
+
+    public ?int $editingChildId = null;
+
+    public string $childName = '';
+
+    public string $childRelationship = '';
+
+    public string $childPhone = '';
+
+    public string $childAddress = '';
+
+    public string $childDateOfBirth = '';
+
+    public string $childType = '';
+
+    public string $childInstitute = '';
+
+    public string $childTitle = '';
+
+    public string $childYear = '';
+
+    public string $childEmployer = '';
+
+    public string $childJobTitle = '';
+
+    public string $childFromDate = '';
+
+    public string $childToDate = '';
 
     public function mount(Employment $employment): void
     {
@@ -134,6 +174,263 @@ class Personal extends Component
                 $this->fillFromPerson();
             }
         }
+    }
+
+    public function openAddEmergency(): void
+    {
+        $this->openAdd('emergency');
+    }
+
+    public function openAddDependent(): void
+    {
+        $this->openAdd('dependent');
+    }
+
+    public function openAddQualification(): void
+    {
+        $this->openAdd('qualification');
+    }
+
+    public function openAddExperience(): void
+    {
+        $this->openAdd('experience');
+    }
+
+    public function openEditEmergency(int $id): void
+    {
+        $this->authorize('employee.update');
+        $row = $this->findChild('emergency', $id);
+        $this->resetChildForm();
+        $this->childKind = 'emergency';
+        $this->editingChildId = $row->id;
+        $this->childName = $row->name;
+        $this->childRelationship = $row->relationship;
+        $this->childPhone = $row->phone;
+        $this->childAddress = (string) $row->address;
+        $this->showChildForm = true;
+    }
+
+    public function openEditDependent(int $id): void
+    {
+        $this->authorize('employee.update');
+        $row = $this->findChild('dependent', $id);
+        $this->resetChildForm();
+        $this->childKind = 'dependent';
+        $this->editingChildId = $row->id;
+        $this->childName = $row->name;
+        $this->childRelationship = $row->relationship;
+        $this->childDateOfBirth = $row->date_of_birth?->format('Y-m-d') ?? '';
+        $this->showChildForm = true;
+    }
+
+    public function openEditQualification(int $id): void
+    {
+        $this->authorize('employee.update');
+        $row = $this->findChild('qualification', $id);
+        $this->resetChildForm();
+        $this->childKind = 'qualification';
+        $this->editingChildId = $row->id;
+        $this->childType = $row->type;
+        $this->childInstitute = $row->institute;
+        $this->childTitle = $row->title;
+        $this->childYear = $row->year !== null ? (string) $row->year : '';
+        $this->showChildForm = true;
+    }
+
+    public function openEditExperience(int $id): void
+    {
+        $this->authorize('employee.update');
+        $row = $this->findChild('experience', $id);
+        $this->resetChildForm();
+        $this->childKind = 'experience';
+        $this->editingChildId = $row->id;
+        $this->childEmployer = $row->employer;
+        $this->childJobTitle = $row->job_title;
+        $this->childFromDate = $row->from_date->format('Y-m-d');
+        $this->childToDate = $row->to_date?->format('Y-m-d') ?? '';
+        $this->showChildForm = true;
+    }
+
+    public function closeChildForm(): void
+    {
+        $this->showChildForm = false;
+        $this->resetChildForm();
+    }
+
+    public function saveChild(): void
+    {
+        $this->authorize('employee.update');
+
+        if (! in_array($this->childKind, self::CHILD_KINDS, true)) {
+            return;
+        }
+
+        $payload = match ($this->childKind) {
+            'emergency' => $this->validatedEmergency(),
+            'dependent' => $this->validatedDependent(),
+            'qualification' => $this->validatedQualification(),
+            'experience' => $this->validatedExperience(),
+        };
+
+        if ($this->editingChildId === null) {
+            $this->person()->{$this->relationName($this->childKind)}()->create($payload);
+            $this->message = 'Saved.';
+        } else {
+            $this->findChild($this->childKind, $this->editingChildId)->update($payload);
+            $this->message = 'Saved.';
+        }
+
+        $this->errorMessage = '';
+        $this->closeChildForm();
+    }
+
+    public function removeChild(string $kind, int $id): void
+    {
+        $this->authorize('employee.update');
+
+        if (! in_array($kind, self::CHILD_KINDS, true)) {
+            return;
+        }
+
+        $this->findChild($kind, $id)->delete();
+        $this->message = 'Removed.';
+        $this->errorMessage = '';
+    }
+
+    private function openAdd(string $kind): void
+    {
+        $this->authorize('employee.update');
+        $this->resetChildForm();
+        $this->childKind = $kind;
+        $this->editingChildId = null;
+        $this->showChildForm = true;
+    }
+
+    private function resetChildForm(): void
+    {
+        $this->resetValidation();
+        $this->childKind = '';
+        $this->editingChildId = null;
+        $this->childName = '';
+        $this->childRelationship = '';
+        $this->childPhone = '';
+        $this->childAddress = '';
+        $this->childDateOfBirth = '';
+        $this->childType = '';
+        $this->childInstitute = '';
+        $this->childTitle = '';
+        $this->childYear = '';
+        $this->childEmployer = '';
+        $this->childJobTitle = '';
+        $this->childFromDate = '';
+        $this->childToDate = '';
+    }
+
+    /** @return array{name: string, relationship: string, phone: string, address: ?string} */
+    private function validatedEmergency(): array
+    {
+        $validated = $this->validate([
+            'childName' => ['required', 'string', 'max:150'],
+            'childRelationship' => ['required', 'string', 'max:50'],
+            'childPhone' => ['required', 'string', 'max:20'],
+            'childAddress' => ['nullable', 'string', 'max:255'],
+        ]);
+
+        return [
+            'name' => $validated['childName'],
+            'relationship' => $validated['childRelationship'],
+            'phone' => $validated['childPhone'],
+            'address' => ($validated['childAddress'] ?? '') !== '' ? $validated['childAddress'] : null,
+        ];
+    }
+
+    /** @return array{name: string, relationship: string, date_of_birth: ?string} */
+    private function validatedDependent(): array
+    {
+        $validated = $this->validate([
+            'childName' => ['required', 'string', 'max:150'],
+            'childRelationship' => ['required', 'string', 'max:50'],
+            'childDateOfBirth' => $this->childDateOfBirth === ''
+                ? ['nullable']
+                : ['date'],
+        ]);
+
+        return [
+            'name' => $validated['childName'],
+            'relationship' => $validated['childRelationship'],
+            'date_of_birth' => $this->childDateOfBirth === '' ? null : $validated['childDateOfBirth'],
+        ];
+    }
+
+    /** @return array{type: string, institute: string, title: string, year: ?int} */
+    private function validatedQualification(): array
+    {
+        $rules = [
+            'childType' => ['required', 'string', 'max:50'],
+            'childInstitute' => ['required', 'string', 'max:150'],
+            'childTitle' => ['required', 'string', 'max:150'],
+            'childYear' => $this->childYear === ''
+                ? ['nullable']
+                : ['integer', 'min:1900', 'max:2100'],
+        ];
+
+        $validated = $this->validate($rules);
+
+        return [
+            'type' => $validated['childType'],
+            'institute' => $validated['childInstitute'],
+            'title' => $validated['childTitle'],
+            'year' => $this->childYear === '' ? null : (int) $validated['childYear'],
+        ];
+    }
+
+    /** @return array{employer: string, job_title: string, from_date: string, to_date: ?string} */
+    private function validatedExperience(): array
+    {
+        $validated = $this->validate([
+            'childEmployer' => ['required', 'string', 'max:150'],
+            'childJobTitle' => ['required', 'string', 'max:150'],
+            'childFromDate' => ['required', 'date'],
+            'childToDate' => $this->childToDate === ''
+                ? ['nullable']
+                : ['date', 'after_or_equal:childFromDate'],
+        ]);
+
+        return [
+            'employer' => $validated['childEmployer'],
+            'job_title' => $validated['childJobTitle'],
+            'from_date' => $validated['childFromDate'],
+            'to_date' => $this->childToDate === '' ? null : $validated['childToDate'],
+        ];
+    }
+
+    private function person(): Person
+    {
+        return $this->employment->person()->firstOrFail();
+    }
+
+    private function findChild(string $kind, int $id): Model
+    {
+        $class = match ($kind) {
+            'emergency' => PersonEmergencyContact::class,
+            'dependent' => PersonDependent::class,
+            'qualification' => PersonQualification::class,
+            'experience' => PersonExperience::class,
+        };
+
+        return $class::query()
+            ->where('person_id', $this->employment->person_id)
+            ->findOrFail($id);
+    }
+
+    private function relationName(string $kind): string
+    {
+        return match ($kind) {
+            'emergency' => 'emergencyContacts',
+            'dependent' => 'dependents',
+            'qualification' => 'qualifications',
+            'experience' => 'experience',
+        };
     }
 
     private function fillFromPerson(): void

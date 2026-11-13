@@ -26,6 +26,16 @@ final class OrganisationNav
                 'active' => $active === 'jobs',
             ],
             [
+                'label' => 'Employee categories',
+                'route' => route('org.categories.index'),
+                'active' => $active === 'categories',
+            ],
+            [
+                'label' => 'Break types',
+                'route' => route('org.break-types.index'),
+                'active' => $active === 'break-types',
+            ],
+            [
                 'label' => 'Grades',
                 'route' => route('org.grades.index'),
                 'active' => $active === 'grades',
