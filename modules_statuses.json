@@ -1,0 +1,8 @@
+{
+    "Organisation": true,
+    "AccessControl": true,
+    "CoreHr": true,
+    "Workflow": true,
+    "Attendance": true,
+    "LegacyImport": true
+}

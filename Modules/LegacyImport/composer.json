@@ -1,0 +1,30 @@
+{
+    "name": "nwidart/legacyimport",
+    "description": "",
+    "authors": [
+        {
+            "name": "Nicolas Widart",
+            "email": "n.widart@gmail.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\LegacyImport\\": "app/",
+            "Modules\\LegacyImport\\Database\\Factories\\": "database/factories/",
+            "Modules\\LegacyImport\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Modules\\LegacyImport\\Tests\\": "tests/"
+        }
+    }
+}

@@ -1,0 +1,17 @@
+<?php
+
+namespace Modules\CoreHr\Enums;
+
+enum EventType: string
+{
+    case HIRE = 'HIRE';
+    case REJOIN = 'REJOIN';
+    case CONFIRMATION = 'CONFIRMATION';
+    case ASSIGNMENT_CHANGE = 'ASSIGNMENT_CHANGE';
+    case TYPE_CHANGE = 'TYPE_CHANGE';
+    case SUSPENSION = 'SUSPENSION';
+    case REINSTATEMENT = 'REINSTATEMENT';
+    case EXIT = 'EXIT';
+    case SISTER_COMPANY_TRANSFER_OUT = 'SISTER_COMPANY_TRANSFER_OUT';
+    case SISTER_COMPANY_TRANSFER_IN = 'SISTER_COMPANY_TRANSFER_IN';
+}

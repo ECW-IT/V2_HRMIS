@@ -1,0 +1,11 @@
+{
+    "name": "CoreHr",
+    "alias": "corehr",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\CoreHr\\Providers\\CoreHrServiceProvider"
+    ],
+    "files": []
+}

@@ -1,0 +1,11 @@
+{
+    "name": "LegacyImport",
+    "alias": "legacyimport",
+    "description": "",
+    "keywords": [],
+    "priority": 0,
+    "providers": [
+        "Modules\\LegacyImport\\Providers\\LegacyImportServiceProvider"
+    ],
+    "files": []
+}

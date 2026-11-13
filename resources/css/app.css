@@ -1,0 +1,73 @@
+@import 'tailwindcss';
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+
+@source '../views';
+@source '../../Modules/**/resources/views/**/*.blade.php';
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+
+@theme {
+    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+
+    /* ERP layout sizing */
+    --spacing-navbar:       2.5rem;
+    --spacing-subnav:       2.25rem;
+
+    /* HRMIS brand palette (aligned with legacy ECW HRM feel) */
+    --color-erp-navbar:     #0f2744;
+    --color-erp-row-hover:  #eef6fc;
+    --color-erp-accent:     #0088cc;
+    --color-erp-accent-soft:#e6f5fc;
+    --color-erp-cyan:       #00aaff;
+
+    /* Global popup / border tokens */
+    --radius-popup:   0.25rem;   /* 4px — all dropdowns, menus */
+    --color-erp-border: #d1d5db; /* gray-300 — ~70% lighter than black */
+}
+
+@layer base {
+    /* Make every border-class use the light border colour by default */
+    *, ::before, ::after {
+        border-color: var(--color-erp-border);
+    }
+
+    [x-cloak] {
+        display: none !important;
+    }
+}
+
+@layer utilities {
+    /* Popup container: consistent radius from global token */
+    .popup {
+        border-radius: var(--radius-popup);
+    }
+
+    /* Compact table density: ~28px rows, 13px text */
+    .table-compact td,
+    .table-compact th {
+        padding-top: 0.125rem;
+        padding-bottom: 0.125rem;
+        padding-left: 0.5rem;
+        padding-right: 0.5rem;
+        line-height: 1.75rem;
+        font-size: 0.8125rem;
+    }
+
+    .cell-editable {
+        cursor: pointer;
+    }
+
+    .cell-editable:hover {
+        background-color: var(--color-erp-row-hover);
+    }
+
+    .cell-input {
+        width: 100%;
+        border: none;
+        outline: none;
+        background: #fff;
+        font-size: 0.8125rem;
+        padding: 0;
+        line-height: 1.75rem;
+    }
+}
+     
