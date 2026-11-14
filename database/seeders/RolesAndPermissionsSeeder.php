@@ -27,6 +27,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee.document.manage',
             'attendance.device.manage',
             'attendance.punch.view',
+            'calendar.manage',
             'approval.act',
             'import.run',
             'access-control.view',

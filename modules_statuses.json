@@ -4,5 +4,6 @@
     "CoreHr": true,
     "Workflow": true,
     "Attendance": true,
-    "LegacyImport": true
+    "LegacyImport": true,
+    "Calendar": true
 }
