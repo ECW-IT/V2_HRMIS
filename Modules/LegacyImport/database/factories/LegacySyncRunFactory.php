@@ -4,6 +4,7 @@ namespace Modules\LegacyImport\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Modules\LegacyImport\Models\LegacySyncRun;
+use Modules\Organisation\Models\Company;
 
 /**
  * @extends Factory<LegacySyncRun>
@@ -17,6 +18,7 @@ class LegacySyncRunFactory extends Factory
         $from = now()->startOfDay();
 
         return [
+            'company_id' => Company::factory(),
             'from_at' => $from,
             'to_at' => now(),
             'file_path' => '',

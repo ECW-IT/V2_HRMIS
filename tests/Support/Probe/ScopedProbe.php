@@ -22,7 +22,15 @@ class ScopedProbe extends Model
         'company_id',
         'name',
         'account_no',
+        'occurred_at',
     ];
+
+    protected function casts(): array
+    {
+        return [
+            'occurred_at' => 'datetime',
+        ];
+    }
 
     protected static function newFactory(): ScopedProbeFactory
     {

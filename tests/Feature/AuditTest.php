@@ -109,4 +109,16 @@ class AuditTest extends TestCase
         $this->actingAs(User::factory()->allCompanies()->withPermissions('audit.view')->create(['must_change_password' => false]))
             ->get(route('access-control.audit.index'))->assertOk();
     }
+
+    public function test_datetime_values_keep_their_time(): void
+    {
+        $p = ScopedProbe::factory()->create([
+            'occurred_at' => '2026-12-01 00:00:00',
+        ]);
+        $p->update(['occurred_at' => '2026-12-01 14:30:45']);
+
+        $log = AuditLog::where('auditable_type', ScopedProbe::class)->where('event', 'UPDATED')->sole();
+        $this->assertSame('2026-12-01', $log->old_values['occurred_at']);
+        $this->assertSame('2026-12-01 14:30:45', $log->new_values['occurred_at']);
+    }
 }

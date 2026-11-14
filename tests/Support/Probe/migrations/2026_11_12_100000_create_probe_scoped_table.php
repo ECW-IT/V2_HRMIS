@@ -13,6 +13,7 @@ return new class extends Migration
             $table->foreignId('company_id')->constrained()->restrictOnDelete();
             $table->string('name');
             $table->string('account_no')->nullable();
+            $table->dateTime('occurred_at')->nullable();
             $table->timestamps();
         });
     }

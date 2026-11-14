@@ -19,6 +19,7 @@
         <table class="table-compact min-w-full text-left">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
+                    <th class="px-3 py-2">Company</th>
                     <th class="px-3 py-2">Window</th>
                     <th class="px-3 py-2">Hires</th>
                     <th class="px-3 py-2">Exits</th>
@@ -30,6 +31,7 @@
             <tbody>
                 @forelse ($runs as $run)
                     <tr @class(['border-t', 'bg-amber-50' => $run->applied_at === null])>
+                        <td class="px-3 py-2 text-sm">{{ $run->company?->code ?? '—' }}</td>
                         <td class="px-3 py-2 text-sm">
                             {{ $run->from_at?->format('Y-m-d H:i') }}
                             →
@@ -61,7 +63,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="6" class="px-3 py-6 text-center text-sm text-slate-500">No sync runs yet.</td>
+                        <td colspan="7" class="px-3 py-6 text-center text-sm text-slate-500">No sync runs yet.</td>
                     </tr>
                 @endforelse
             </tbody>

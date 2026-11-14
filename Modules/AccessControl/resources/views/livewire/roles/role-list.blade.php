@@ -4,13 +4,15 @@
             <h1 class="text-lg font-semibold text-slate-800">Roles</h1>
             <p class="text-sm text-slate-500">Create roles and open the permission matrix to assign access.</p>
         </div>
-        <button
-            type="button"
-            wire:click="openCreate"
-            class="rounded bg-[var(--color-erp-accent)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-        >
-            New role
-        </button>
+        @if ($canManage)
+            <button
+                type="button"
+                wire:click="openCreate"
+                class="rounded bg-[var(--color-erp-accent)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+            >
+                New role
+            </button>
+        @endif
     </div>
 
     @error('delete')
@@ -53,17 +55,19 @@
                             >
                                 Permissions
                             </a>
-                            <button type="button" wire:click="openEdit({{ $role->id }})" class="text-slate-700 hover:underline">
-                                Edit
-                            </button>
-                            <button
-                                type="button"
-                                wire:click="delete({{ $role->id }})"
-                                wire:confirm="Delete this role?"
-                                class="text-red-600 hover:underline"
-                            >
-                                Delete
-                            </button>
+                            @if ($canManage)
+                                <button type="button" wire:click="openEdit({{ $role->id }})" class="text-slate-700 hover:underline">
+                                    Edit
+                                </button>
+                                <button
+                                    type="button"
+                                    wire:click="delete({{ $role->id }})"
+                                    wire:confirm="Delete this role?"
+                                    class="text-red-600 hover:underline"
+                                >
+                                    Delete
+                                </button>
+                            @endif
                         </td>
                     </tr>
                 @empty

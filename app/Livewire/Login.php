@@ -38,7 +38,7 @@ class Login extends Component
             RateLimiter::hit($throttleKey, 60);
 
             throw ValidationException::withMessages([
-                'email' => 'Your account is inactive.',
+                'email' => __('These credentials do not match our records.'),
             ]);
         }
 

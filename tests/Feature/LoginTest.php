@@ -27,10 +27,14 @@ class LoginTest extends TestCase
         $this->assertGuest();
     }
 
-    public function test_inactive_user_is_refused(): void
+    public function test_inactive_user_gets_the_generic_message(): void
     {
         $u = User::factory()->inactive()->create(['password' => Hash::make('secret-pass-1')]);
-        Livewire::test(Login::class)->set('email', $u->email)->set('password', 'secret-pass-1')->call('login')->assertHasErrors('email');
+        Livewire::test(Login::class)
+            ->set('email', $u->email)
+            ->set('password', 'secret-pass-1')
+            ->call('login')
+            ->assertHasErrors(['email' => 'These credentials do not match our records.']);
         $this->assertGuest();
     }
 

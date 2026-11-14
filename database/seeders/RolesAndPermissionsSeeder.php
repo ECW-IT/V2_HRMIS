@@ -30,6 +30,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'approval.act',
             'import.run',
             'access-control.view',
+            'access-control.manage',
             'audit.view',
             'settings.view',
             'settings.manage',
@@ -45,6 +46,7 @@ class RolesAndPermissionsSeeder extends Seeder
         $hrManager = Role::findOrCreate('hr-manager');
         $hrManager->syncPermissions(array_values(array_diff($permissions, [
             'access-control.view',
+            'access-control.manage',
             'import.run',
         ])));
 

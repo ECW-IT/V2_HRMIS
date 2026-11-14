@@ -4,13 +4,15 @@
             <h1 class="text-lg font-semibold text-gray-800">Users</h1>
             <p class="text-sm text-gray-500">Create users and limit them to companies.</p>
         </div>
-        <button
-            type="button"
-            wire:click="openCreate"
-            class="rounded bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
-        >
-            New user
-        </button>
+        @if ($canManage)
+            <button
+                type="button"
+                wire:click="openCreate"
+                class="rounded bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-500"
+            >
+                New user
+            </button>
+        @endif
     </div>
 
     <input
@@ -43,9 +45,11 @@
                         </td>
                         <td class="px-3 py-2">{{ $user->is_active ? 'Active' : 'Inactive' }}</td>
                         <td class="px-3 py-2 text-right">
-                            <button type="button" wire:click="openEdit({{ $user->id }})" class="text-indigo-600 hover:underline">
-                                Edit
-                            </button>
+                            @if ($canManage)
+                                <button type="button" wire:click="openEdit({{ $user->id }})" class="text-indigo-600 hover:underline">
+                                    Edit
+                                </button>
+                            @endif
                         </td>
                     </tr>
                 @empty

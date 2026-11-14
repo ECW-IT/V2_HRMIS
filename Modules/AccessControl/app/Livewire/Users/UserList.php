@@ -2,7 +2,11 @@
 
 namespace Modules\AccessControl\Livewire\Users;
 
+use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\Audit\AuditLogger;
+use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
@@ -75,7 +79,7 @@ class UserList extends Component
 
     public function save(): void
     {
-        $this->authorize('access-control.view');
+        $this->authorize('access-control.manage');
 
         $rules = [
             'formName' => ['required', 'string', 'max:255'],
@@ -106,8 +110,17 @@ class UserList extends Component
                 $data['password'] = $this->formPassword;
                 $data['must_change_password'] = true;
                 $user = User::query()->create($data);
+                $oldRoles = [];
+                $oldCompanies = [];
             } else {
-                $user = User::query()->findOrFail($this->editingId);
+                $user = User::query()->with(['roles', 'companies'])->findOrFail($this->editingId);
+                $this->guardSelfAccess($user);
+
+                $oldRoles = $user->roles->pluck('name')->all();
+                $oldCompanies = $user->all_companies
+                    ? ['*']
+                    : $user->companies->pluck('code')->all();
+
                 if ($this->formPassword !== '') {
                     $data['password'] = $this->formPassword;
                     $data['must_change_password'] = true;
@@ -117,6 +130,15 @@ class UserList extends Component
 
             $user->syncRoles($this->formRoles);
             $user->companies()->sync($this->formAllCompanies ? [] : $this->formCompanyIds);
+
+            $user->load(['roles', 'companies']);
+            $newRoles = $user->roles->pluck('name')->all();
+            $newCompanies = $user->all_companies
+                ? ['*']
+                : $user->companies->pluck('code')->all();
+
+            $this->writeListAudit($user, 'roles', $oldRoles, $newRoles);
+            $this->writeListAudit($user, 'companies', $oldCompanies, $newCompanies);
         });
 
         $this->closeForm();
@@ -141,6 +163,7 @@ class UserList extends Component
             'users' => $users,
             'roles' => Role::query()->orderBy('name')->pluck('name'),
             'companies' => Company::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'canManage' => Auth::user()?->can('access-control.manage') ?? false,
             'moduleNav' => $this->moduleNav('users'),
         ])->layout('components.layouts.module', [
             'moduleName' => 'Access control',
@@ -176,5 +199,49 @@ class UserList extends Component
                 'active' => $active === 'audit',
             ],
         ];
+    }
+
+    private function guardSelfAccess(User $user): void
+    {
+        if ((int) $user->id !== (int) Auth::id()) {
+            return;
+        }
+
+        if (! $this->formIsActive) {
+            throw new AuthorizationException('You cannot remove your own access.');
+        }
+
+        if ($user->hasRole('super-admin') && ! in_array('super-admin', $this->formRoles, true)) {
+            throw new AuthorizationException('You cannot remove your own access.');
+        }
+    }
+
+    /**
+     * @param  list<string>  $old
+     * @param  list<string>  $new
+     */
+    private function writeListAudit(User $user, string $key, array $old, array $new): void
+    {
+        $oldSorted = $old;
+        $newSorted = $new;
+        sort($oldSorted);
+        sort($newSorted);
+
+        if ($oldSorted === $newSorted) {
+            return;
+        }
+
+        AuditLog::query()->create([
+            'user_id' => Auth::id(),
+            'company_id' => null,
+            'auditable_type' => User::class,
+            'auditable_id' => $user->id,
+            'event' => 'UPDATED',
+            'old_values' => [$key => array_values($oldSorted)],
+            'new_values' => [$key => array_values($newSorted)],
+            'reason' => AuditLogger::currentReason(),
+            'ip' => request()->ip(),
+            'created_at' => now(),
+        ]);
     }
 }

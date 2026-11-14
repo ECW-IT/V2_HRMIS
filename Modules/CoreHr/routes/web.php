@@ -10,7 +10,7 @@ use Modules\CoreHr\Livewire\EmployeesIndex;
 use Modules\CoreHr\Livewire\HireWizard;
 use Modules\CoreHr\Livewire\ReadinessDashboard;
 
-Route::middleware(['auth', 'can:employee.document.view'])
+Route::middleware(['auth', 'password.changed', 'can:employee.document.view'])
     ->get('/documents/{document}', DocumentDownloadController::class)
     ->name('documents.download');
 

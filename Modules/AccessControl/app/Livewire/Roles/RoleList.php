@@ -3,6 +3,7 @@
 namespace Modules\AccessControl\Livewire\Roles;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Livewire\Component;
@@ -20,7 +21,7 @@ class RoleList extends Component
 
     public function openCreate(): void
     {
-        $this->authorize('access-control.view');
+        $this->authorize('access-control.manage');
         $this->editingId = null;
         $this->formName = '';
         $this->showForm = true;
@@ -28,7 +29,7 @@ class RoleList extends Component
 
     public function openEdit(int $roleId): void
     {
-        $this->authorize('access-control.view');
+        $this->authorize('access-control.manage');
         $role = Role::query()->findOrFail($roleId);
         $this->editingId = $role->id;
         $this->formName = $role->name;
@@ -44,7 +45,7 @@ class RoleList extends Component
 
     public function save(): void
     {
-        $this->authorize('access-control.view');
+        $this->authorize('access-control.manage');
 
         $validated = $this->validate([
             'formName' => [
@@ -73,7 +74,7 @@ class RoleList extends Component
 
     public function delete(int $roleId): void
     {
-        $this->authorize('access-control.view');
+        $this->authorize('access-control.manage');
 
         $role = Role::query()->findOrFail($roleId);
         $userCount = User::role($role->name)->count();
@@ -102,6 +103,7 @@ class RoleList extends Component
 
         return view('accesscontrol::livewire.roles.role-list', [
             'roles' => $roles,
+            'canManage' => Auth::user()?->can('access-control.manage') ?? false,
         ])->layout('components.layouts.module', [
             'moduleName' => 'Access control',
             'title' => 'Roles',

@@ -96,4 +96,12 @@ class EnrolmentServiceTest extends TestCase
         app(EmploymentService::class)->exit($e, '2026-10-31', ExitReason::RESIGNATION);
         $this->assertSame('2026-10-31', $enrol->fresh()->valid_to->toDateString());
     }
+
+    public function test_end_date_cannot_be_before_the_start(): void
+    {
+        $e = $this->hired('2026-01-01');
+        $enrol = $this->svc->enrol($e, 'NIT', 116, '2026-06-01');
+        $this->expectException(\InvalidArgumentException::class);
+        $this->svc->end($enrol, '2026-05-01');
+    }
 }

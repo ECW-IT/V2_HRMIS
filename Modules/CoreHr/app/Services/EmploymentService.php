@@ -4,6 +4,8 @@ namespace Modules\CoreHr\Services;
 
 use App\Support\Effective\EffectiveDating;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\QueryException;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Modules\Attendance\Services\EnrolmentService;
 use Modules\CoreHr\Enums\EmploymentStatus;
@@ -160,6 +162,9 @@ final class EmploymentService
 
         return DB::transaction(function () use ($e, $on, $remarks) {
             $onDate = $this->dateString($on);
+            if ($onDate < $this->dateString($e->hire_date)) {
+                throw new OutsideEmploymentPeriod('Suspension date is before the hire date.');
+            }
             $e->update(['status' => EmploymentStatus::SUSPENDED]);
             $this->recordEvent($e, EventType::SUSPENSION, $onDate, ['remarks' => $remarks]);
 
@@ -361,21 +366,29 @@ final class EmploymentService
                 );
             }
 
-            $record = Employment::query()->create([
-                'person_id' => $person->id,
-                'company_id' => $company->id,
-                'employee_no' => $employeeNo,
-                'legacy_employee_no' => $employment['legacy_employee_no'] ?? null,
-                'type' => $type,
-                'status' => EmploymentStatus::ACTIVE,
-                'hire_date' => $hireDate,
-                'confirmation_due_date' => $confirmationDue,
-                'confirmed_on' => $employment['confirmed_on'] ?? null,
-                'epf_liable' => $epfLiable,
-                'epf_no' => $epfNo,
-                'previous_employment_id' => $previousEmploymentId,
-                'employee_category_id' => $employment['employee_category_id'] ?? null,
-            ]);
+            try {
+                $record = Employment::query()->create([
+                    'person_id' => $person->id,
+                    'company_id' => $company->id,
+                    'employee_no' => $employeeNo,
+                    'legacy_employee_no' => $employment['legacy_employee_no'] ?? null,
+                    'type' => $type,
+                    'status' => EmploymentStatus::ACTIVE,
+                    'hire_date' => $hireDate,
+                    'confirmation_due_date' => $confirmationDue,
+                    'confirmed_on' => $employment['confirmed_on'] ?? null,
+                    'epf_liable' => $epfLiable,
+                    'epf_no' => $epfNo,
+                    'previous_employment_id' => $previousEmploymentId,
+                    'employee_category_id' => $employment['employee_category_id'] ?? null,
+                ]);
+            } catch (QueryException $e) {
+                if ($this->isActivePersonUniqueViolation($e)) {
+                    throw new ActiveEmploymentExists('This person is already employed in another company.');
+                }
+
+                throw $e;
+            }
 
             $assignmentModel = new Assignment([
                 'employment_id' => $record->id,
@@ -452,8 +465,14 @@ final class EmploymentService
             'details' => $details,
             'related_employment_id' => $relatedEmploymentId,
             'approval_request_id' => $approvalRequestId,
-            'created_by' => null,
+            'created_by' => Auth::id(),
         ]);
+    }
+
+    private function isActivePersonUniqueViolation(QueryException $e): bool
+    {
+        return ($e->errorInfo[1] ?? null) === 1062
+            && str_contains($e->getMessage(), 'employments_active_person_id_unique');
     }
 
     private function dateString(mixed $value): string

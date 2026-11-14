@@ -219,4 +219,47 @@ class ApprovalServiceTest extends TestCase
         $log = AuditLog::where('auditable_type', ScopedProbe::class)->where('event', 'UPDATED')->sole();
         $this->assertSame("Approved request #{$req->id}", $log->reason);
     }
+
+    public function test_stale_copy_of_a_decided_request_cannot_be_approved_again(): void
+    {
+        $this->steps([['ROLE', 'hr-manager']]);
+        $req = $this->submitBy($this->user('hr-officer'));
+        $stale = ApprovalRequest::find($req->id);
+        $this->assertSame(ApprovalStatus::PENDING, $stale->status);
+
+        $this->svc->approve($req, $this->user('hr-manager'));
+
+        try {
+            $this->svc->approve($stale, $this->user('hr-manager'));
+            $this->fail();
+        } catch (RequestAlreadyDecided) {
+        }
+
+        $this->assertSame(1, ProbeApprovalHandler::$calls);
+        $this->assertSame(1, $req->actions()->count());
+    }
+
+    public function test_stale_copy_of_a_decided_request_cannot_be_rejected_or_cancelled(): void
+    {
+        $this->steps([['ROLE', 'hr-manager']]);
+        $officer = $this->user('hr-officer');
+        $req = $this->submitBy($officer);
+        $stale = ApprovalRequest::find($req->id);
+
+        $this->svc->approve($req, $this->user('hr-manager'));
+
+        try {
+            $this->svc->reject($stale, $this->user('hr-manager'), 'Too late');
+            $this->fail();
+        } catch (RequestAlreadyDecided) {
+        }
+
+        try {
+            $this->svc->cancel($stale, $officer);
+            $this->fail();
+        } catch (NotAllowedToAct) {
+        }
+
+        $this->assertSame(ApprovalStatus::APPROVED, $req->fresh()->status);
+    }
 }

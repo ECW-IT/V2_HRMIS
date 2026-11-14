@@ -265,4 +265,38 @@ class EmploymentServiceTest extends TestCase
         app(OrgUnitService::class)->deactivate($unit);
         $this->assertFalse($unit->fresh()->is_active);
     }
+
+    public function test_hiring_a_person_active_in_a_company_the_user_cannot_see_gives_a_clear_error(): void
+    {
+        $a = $this->company();
+        $b = $this->company();
+        $p = $this->person();
+        $this->hired('2026-01-01', $b, p: $p);
+
+        $this->loginAs('hr-manager', $a);
+
+        $this->expectException(ActiveEmploymentExists::class);
+        $this->expectExceptionMessage('This person is already employed in another company.');
+        $this->svc->hire($p, $a, $this->emp(['hire_date' => '2026-12-01']), $this->asg($a));
+    }
+
+    public function test_events_record_who_created_them(): void
+    {
+        $c = $this->company();
+        $user = $this->loginAs('hr-manager', $c);
+        $e = $this->hired('2026-01-01', $c);
+        $this->assertSame($user->id, $e->events()->where('type', EventType::HIRE)->sole()->created_by);
+
+        auth()->logout();
+        $c2 = $this->company();
+        $consoleHire = $this->svc->hire($this->person(), $c2, $this->emp(['hire_date' => '2026-01-01']), $this->asg($c2));
+        $this->assertNull($consoleHire->events()->where('type', EventType::HIRE)->sole()->created_by);
+    }
+
+    public function test_suspend_before_hire_date_is_refused(): void
+    {
+        $e = $this->hired('2026-06-01');
+        $this->expectException(OutsideEmploymentPeriod::class);
+        $this->svc->suspend($e, '2026-05-01', 'Too early');
+    }
 }

@@ -64,7 +64,12 @@ final class EnrolmentService
 
     public function end(BiometricEnrolment $enrolment, \DateTimeInterface|string $on): BiometricEnrolment
     {
-        $enrolment->update(['valid_to' => $this->dateString($on)]);
+        $onDate = $this->dateString($on);
+        if ($onDate < $this->dateString($enrolment->valid_from)) {
+            throw new \InvalidArgumentException('End date cannot be before the start date.');
+        }
+
+        $enrolment->update(['valid_to' => $onDate]);
 
         return $enrolment->fresh();
     }

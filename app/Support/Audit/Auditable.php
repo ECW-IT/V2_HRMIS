@@ -138,7 +138,17 @@ trait Auditable
         }
 
         if ($value instanceof \DateTimeInterface) {
-            return $value->format('Y-m-d');
+            if ($value->format('H:i:s') === '00:00:00') {
+                return $value->format('Y-m-d');
+            }
+
+            return $value->format('Y-m-d H:i:s');
+        }
+
+        if (is_string($value) && preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $value) === 1) {
+            return str_ends_with($value, ' 00:00:00')
+                ? substr($value, 0, 10)
+                : $value;
         }
 
         return $value;

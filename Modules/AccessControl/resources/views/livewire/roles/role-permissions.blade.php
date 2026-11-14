@@ -11,13 +11,15 @@
 
     <div class="mb-4 flex items-center justify-between gap-3">
         <h2 class="text-lg font-semibold text-slate-800">Permissions</h2>
-        <button
-            type="button"
-            wire:click="save"
-            class="rounded bg-[var(--color-erp-accent)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
-        >
-            Save permissions
-        </button>
+        @if ($canManage)
+            <button
+                type="button"
+                wire:click="save"
+                class="rounded bg-[var(--color-erp-accent)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+            >
+                Save permissions
+            </button>
+        @endif
     </div>
 
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">

@@ -15,6 +15,9 @@ class Device extends Model
     /** @use HasFactory<DeviceFactory> */
     use Auditable, HasFactory;
 
+    /** @var list<string> */
+    protected array $auditExcluded = ['api_token_hash', 'last_seen_at'];
+
     protected $fillable = [
         'serial_no',
         'name',

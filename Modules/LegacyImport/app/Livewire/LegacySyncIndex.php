@@ -3,12 +3,14 @@
 namespace Modules\LegacyImport\Livewire;
 
 use App\Models\User;
+use App\Support\Company\CompanyContext;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Livewire\Component;
 use Modules\LegacyImport\Models\LegacySyncRun;
 use Modules\LegacyImport\Services\LegacySyncExporter;
+use Modules\Organisation\Models\Company;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LegacySyncIndex extends Component
@@ -23,7 +25,16 @@ class LegacySyncIndex extends Component
     public function runNow(LegacySyncExporter $exporter): void
     {
         $this->authorizeAccess();
-        $run = $exporter->run();
+
+        $companyId = CompanyContext::id();
+        if ($companyId === null) {
+            $this->message = 'Select a company first.';
+
+            return;
+        }
+
+        $company = Company::query()->findOrFail($companyId);
+        $run = $exporter->run($company);
         $this->message = $run->file_path === ''
             ? 'Run recorded with nothing to report.'
             : "Export ready: {$run->new_hires} hires, {$run->exits} exits, {$run->changes} changes.";
@@ -65,7 +76,7 @@ class LegacySyncIndex extends Component
         $this->authorizeAccess();
 
         $runs = LegacySyncRun::query()
-            ->with('appliedByUser')
+            ->with(['appliedByUser', 'company'])
             ->orderByDesc('id')
             ->get();
 

@@ -3,6 +3,7 @@
 namespace Modules\LegacyImport\Models;
 
 use App\Models\User;
+use App\Support\Company\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,11 +12,12 @@ use Modules\LegacyImport\Database\Factories\LegacySyncRunFactory;
 class LegacySyncRun extends Model
 {
     /** @use HasFactory<LegacySyncRunFactory> */
-    use HasFactory;
+    use BelongsToCompany, HasFactory;
 
     public $timestamps = false;
 
     protected $fillable = [
+        'company_id',
         'from_at',
         'to_at',
         'file_path',

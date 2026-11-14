@@ -20,6 +20,7 @@ class RolePermissionsTest extends TestCase
         parent::setUp();
 
         Permission::findOrCreate('access-control.view');
+        Permission::findOrCreate('access-control.manage');
         Permission::findOrCreate('org.view');
         Permission::findOrCreate('employee.view');
     }
@@ -40,7 +41,7 @@ class RolePermissionsTest extends TestCase
 
     public function test_can_create_a_role(): void
     {
-        $user = User::factory()->allCompanies()->withPermissions('access-control.view')->create([
+        $user = User::factory()->allCompanies()->withPermissions('access-control.view', 'access-control.manage')->create([
             'must_change_password' => false,
         ]);
 
@@ -56,7 +57,7 @@ class RolePermissionsTest extends TestCase
 
     public function test_can_sync_permissions_on_a_role(): void
     {
-        $user = User::factory()->allCompanies()->withPermissions('access-control.view')->create([
+        $user = User::factory()->allCompanies()->withPermissions('access-control.view', 'access-control.manage')->create([
             'must_change_password' => false,
         ]);
 
@@ -76,7 +77,7 @@ class RolePermissionsTest extends TestCase
 
     public function test_cannot_delete_role_that_still_has_users(): void
     {
-        $user = User::factory()->allCompanies()->withPermissions('access-control.view')->create([
+        $user = User::factory()->allCompanies()->withPermissions('access-control.view', 'access-control.manage')->create([
             'must_change_password' => false,
         ]);
 

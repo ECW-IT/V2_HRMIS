@@ -5,6 +5,7 @@ namespace Modules\LegacyImport\Services;
 use App\Models\AuditLog;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\Attendance\Models\BiometricEnrolment;
@@ -16,6 +17,7 @@ use Modules\CoreHr\Services\BankAccountService;
 use Modules\LegacyImport\Exports\LegacySyncExport;
 use Modules\LegacyImport\Models\LegacySyncRun;
 use Modules\Organisation\Enums\OrgUnitType;
+use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Job;
 use Modules\Organisation\Models\Location;
@@ -52,21 +54,24 @@ final class LegacySyncExporter
 
     public function __construct(private readonly BankAccountService $banks) {}
 
-    /** Builds the export for (from, to]. Returns the run. */
-    public function run(?\DateTimeInterface $since = null): LegacySyncRun
+    /** Builds the export for (from, to] for one company. Returns the run. */
+    public function run(Company $company, ?\DateTimeInterface $since = null): LegacySyncRun
     {
         $to = CarbonImmutable::now(config('app.timezone'));
 
         if ($since !== null) {
             $from = CarbonImmutable::instance($since)->timezone(config('app.timezone'));
         } else {
-            $previous = LegacySyncRun::query()->orderByDesc('id')->first();
+            $previous = LegacySyncRun::query()
+                ->where('company_id', $company->id)
+                ->orderByDesc('id')
+                ->first();
             $from = $previous !== null
                 ? CarbonImmutable::parse($previous->to_at)->timezone(config('app.timezone'))
                 : $to->startOfDay();
         }
 
-        $rows = $this->collect($from, $to);
+        $rows = $this->collect($company, $from, $to);
 
         $hireCount = $rows['hires']->count();
         $exitCount = $rows['exits']->count();
@@ -74,13 +79,14 @@ final class LegacySyncExporter
         $filePath = '';
 
         if ($hireCount + $exitCount + $changeCount > 0) {
-            $relative = 'legacy-sync/legacy-sync-'.$to->format('Ymd-His').'.xlsx';
+            $relative = 'legacy-sync/legacy-sync-'.$company->code.'-'.$to->format('Ymd-His').'.xlsx';
             Storage::disk('private')->makeDirectory('legacy-sync');
             Excel::store(new LegacySyncExport($rows), $relative, 'private');
             $filePath = $relative;
         }
 
         return LegacySyncRun::query()->create([
+            'company_id' => $company->id,
             'from_at' => $from,
             'to_at' => $to,
             'file_path' => $filePath,
@@ -96,10 +102,14 @@ final class LegacySyncExporter
     /**
      * @return array{hires: Collection<int, array<string, mixed>>, exits: Collection<int, array<string, mixed>>, changes: Collection<int, array<string, mixed>>}
      */
-    public function collect(\DateTimeInterface $from, \DateTimeInterface $to): array
+    public function collect(Company $company, \DateTimeInterface $from, \DateTimeInterface $to): array
     {
         $fromAt = CarbonImmutable::instance($from);
         $toAt = CarbonImmutable::instance($to);
+
+        $employmentIds = Employment::query()
+            ->where('company_id', $company->id)
+            ->pluck('id');
 
         $events = EmploymentEvent::query()
             ->with([
@@ -107,6 +117,7 @@ final class LegacySyncExporter
                 'employment.company',
                 'relatedEmployment',
             ])
+            ->whereIn('employment_id', $employmentIds)
             ->where('created_at', '>', $fromAt)
             ->where('created_at', '<=', $toAt)
             ->orderBy('created_at')
@@ -128,7 +139,7 @@ final class LegacySyncExporter
             }
         }
 
-        foreach ($this->bankChangeRows($fromAt, $toAt) as $row) {
+        foreach ($this->bankChangeRows($company, $fromAt, $toAt) as $row) {
             $changes->push($row);
         }
 
@@ -163,11 +174,14 @@ final class LegacySyncExporter
 
         $oldEmployeeNo = null;
         if (in_array($event->type, [EventType::REJOIN, EventType::SISTER_COMPANY_TRANSFER_IN], true)) {
-            $previous = $event->relatedEmployment
-                ?? ($e->previous_employment_id !== null
-                    ? Employment::withoutGlobalScopes()->find($e->previous_employment_id)
-                    : null);
-            $oldEmployeeNo = $previous?->employee_no;
+            $previous = $event->relatedEmployment;
+            if ($previous !== null) {
+                $oldEmployeeNo = $previous->employee_no;
+            } elseif ($e->previous_employment_id !== null) {
+                $oldEmployeeNo = DB::table('employments')
+                    ->where('id', $e->previous_employment_id)
+                    ->value('employee_no');
+            }
         }
 
         return [
@@ -236,7 +250,7 @@ final class LegacySyncExporter
     /**
      * @return list<array<string, mixed>>
      */
-    private function bankChangeRows(CarbonImmutable $from, CarbonImmutable $to): array
+    private function bankChangeRows(Company $company, CarbonImmutable $from, CarbonImmutable $to): array
     {
         $audits = AuditLog::query()
             ->where('auditable_type', EmployeeBankAccount::class)
@@ -264,7 +278,10 @@ final class LegacySyncExporter
                 continue;
             }
 
-            $e = Employment::withoutGlobalScopes()->with(['person', 'company'])->find($account->employment_id);
+            $e = Employment::query()
+                ->with(['person', 'company'])
+                ->where('company_id', $company->id)
+                ->find($account->employment_id);
             if ($e === null) {
                 continue;
             }
@@ -324,7 +341,7 @@ final class LegacySyncExporter
             'job_id' => (string) (Job::query()->find($id)?->name ?? $id),
             'grade_id' => (string) (Grade::query()->find($id)?->name ?? $id),
             'location_id' => (string) (Location::query()->find($id)?->name ?? $id),
-            'manager_employment_id' => (string) (Employment::withoutGlobalScopes()->find($id)?->employee_no ?? $id),
+            'manager_employment_id' => (string) (DB::table('employments')->where('id', $id)->value('employee_no') ?? $id),
             default => (string) $id,
         };
     }

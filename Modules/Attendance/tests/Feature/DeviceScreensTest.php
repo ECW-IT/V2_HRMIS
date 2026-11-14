@@ -2,6 +2,7 @@
 
 namespace Modules\Attendance\Tests\Feature;
 
+use App\Models\AuditLog;
 use App\Models\User;
 use App\Support\Company\CompanyContext;
 use Carbon\Carbon;
@@ -9,6 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Modules\Attendance\Livewire\DevicesIndex;
 use Modules\Attendance\Livewire\UnresolvedPunches;
+use Modules\Attendance\Models\Device;
 use Modules\Attendance\Services\DeviceService;
 use Modules\Attendance\Services\PunchIngestService;
 use Modules\Organisation\Models\Location;
@@ -139,5 +141,27 @@ class DeviceScreensTest extends TestCase
             ->test(UnresolvedPunches::class)
             ->assertSee($inA->employee_no)
             ->assertDontSee($inB->employee_no);
+    }
+
+    public function test_token_hash_is_never_written_to_the_audit_log(): void
+    {
+        $location = Location::factory()->create();
+        [$device] = app(DeviceService::class)->register([
+            'serial_no' => 'GED7243600417',
+            'name' => 'Nittambuwa',
+            'location_id' => $location->id,
+            'device_group' => 'NIT',
+        ]);
+        app(DeviceService::class)->rotateToken($device);
+
+        $logs = AuditLog::query()
+            ->where('auditable_type', Device::class)
+            ->get();
+
+        $this->assertNotEmpty($logs);
+        foreach ($logs as $log) {
+            $this->assertArrayNotHasKey('api_token_hash', $log->old_values ?? []);
+            $this->assertArrayNotHasKey('api_token_hash', $log->new_values ?? []);
+        }
     }
 }

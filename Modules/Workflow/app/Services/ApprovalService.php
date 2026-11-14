@@ -87,6 +87,14 @@ final class ApprovalService
         return DB::transaction(function () use ($request, $by, $remarks) {
             $request = ApprovalRequest::query()->whereKey($request->id)->lockForUpdate()->firstOrFail();
 
+            if ($request->status !== ApprovalStatus::PENDING) {
+                throw new RequestAlreadyDecided('This request has already been decided.');
+            }
+
+            if (! $this->canAct($request, $by)) {
+                throw new NotAllowedToAct('You are not allowed to act on this request.');
+            }
+
             $request->actions()->create([
                 'step' => $request->current_step,
                 'user_id' => $by->id,
@@ -130,6 +138,14 @@ final class ApprovalService
         return DB::transaction(function () use ($request, $by, $remarks) {
             $request = ApprovalRequest::query()->whereKey($request->id)->lockForUpdate()->firstOrFail();
 
+            if ($request->status !== ApprovalStatus::PENDING) {
+                throw new RequestAlreadyDecided('This request has already been decided.');
+            }
+
+            if (! $this->canAct($request, $by)) {
+                throw new NotAllowedToAct('You are not allowed to act on this request.');
+            }
+
             $request->actions()->create([
                 'step' => $request->current_step,
                 'user_id' => $by->id,
@@ -149,16 +165,20 @@ final class ApprovalService
 
     public function cancel(ApprovalRequest $request, User $by): ApprovalRequest
     {
-        if ($request->status !== ApprovalStatus::PENDING || (int) $request->requested_by !== (int) $by->id) {
-            throw new NotAllowedToAct('Only the requester can cancel a pending request.');
-        }
+        return DB::transaction(function () use ($request, $by) {
+            $request = ApprovalRequest::query()->whereKey($request->id)->lockForUpdate()->firstOrFail();
 
-        $request->update([
-            'status' => ApprovalStatus::CANCELLED,
-            'decided_at' => now(),
-        ]);
+            if ($request->status !== ApprovalStatus::PENDING || (int) $request->requested_by !== (int) $by->id) {
+                throw new NotAllowedToAct('Only the requester can cancel a pending request.');
+            }
 
-        return $request->fresh();
+            $request->update([
+                'status' => ApprovalStatus::CANCELLED,
+                'decided_at' => now(),
+            ]);
+
+            return $request->fresh();
+        });
     }
 
     public function canAct(ApprovalRequest $request, User $user): bool
