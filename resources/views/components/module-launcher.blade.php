@@ -8,6 +8,7 @@
         ['icon' => '🏢', 'label' => 'Organisation', 'route' => 'org.locations.index'],
         ['icon' => '👥', 'label' => 'Employees', 'route' => 'employees.index'],
         ['icon' => '🪪', 'label' => 'Attendance', 'route' => null],
+        ['icon' => '🗓️', 'label' => 'Calendar', 'route' => 'calendar.holidays.index'],
         ['icon' => '📅', 'label' => 'Leave', 'route' => null],
         ['icon' => '💰', 'label' => 'Payroll', 'route' => null],
         ['icon' => '✅', 'label' => 'Approvals', 'route' => 'approvals.index'],
