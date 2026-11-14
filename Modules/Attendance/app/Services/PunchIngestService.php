@@ -6,9 +6,11 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Modules\Attendance\Enums\PunchResolution;
 use Modules\Attendance\Enums\RejectionReason;
+use Modules\Attendance\Jobs\RecomputeTimecards;
 use Modules\Attendance\Models\Device;
 use Modules\Attendance\Models\PunchRejection;
 use Modules\Attendance\Support\IngestResult;
+use Modules\Attendance\Timecards\WorkDate;
 
 final class PunchIngestService
 {
@@ -119,6 +121,18 @@ final class PunchIngestService
 
         foreach (array_chunk($toInsert, 500) as $chunk) {
             DB::table('punches')->insertOrIgnore($chunk);
+        }
+
+        $pairs = [];
+        foreach ($toInsert as $row) {
+            if ($row['resolution'] !== PunchResolution::RESOLVED->value || $row['employment_id'] === null) {
+                continue;
+            }
+            $workDate = WorkDate::of(CarbonImmutable::parse($row['punched_at'], config('app.timezone')));
+            $pairs[$row['employment_id'].'|'.$workDate] = [(int) $row['employment_id'], $workDate];
+        }
+        if ($pairs !== []) {
+            RecomputeTimecards::dispatch(array_values($pairs));
         }
 
         $inserted = count($toInsert);

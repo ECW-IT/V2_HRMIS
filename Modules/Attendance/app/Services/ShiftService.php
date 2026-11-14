@@ -5,9 +5,12 @@ namespace Modules\Attendance\Services;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 use Modules\Attendance\Exceptions\InvalidShift;
+use Modules\Attendance\Exceptions\TimecardLocked;
 use Modules\Attendance\Models\EmploymentTimeProfile;
 use Modules\Attendance\Models\Shift;
 use Modules\Attendance\Models\ShiftBreak;
+use Modules\Attendance\Models\Timecard;
+use Modules\Calendar\Enums\PeriodStatus;
 use Modules\CoreHr\Enums\EmploymentStatus;
 
 final class ShiftService
@@ -71,7 +74,23 @@ final class ShiftService
                 $this->syncBreaks($shift, $breaks);
             }
 
-            return $shift->fresh(['breaks']);
+            $fresh = $shift->fresh(['breaks']);
+
+            $timecards = Timecard::withoutGlobalScopes()
+                ->where('shift_id', $shift->id)
+                ->whereHas('payPeriod', fn ($q) => $q->withoutGlobalScopes()->where('status', PeriodStatus::OPEN))
+                ->get();
+
+            $svc = app(TimecardService::class);
+            foreach ($timecards as $timecard) {
+                try {
+                    $svc->compute((int) $timecard->employment_id, $timecard->work_date->toDateString());
+                } catch (TimecardLocked) {
+                    // skip
+                }
+            }
+
+            return $fresh;
         });
     }
 

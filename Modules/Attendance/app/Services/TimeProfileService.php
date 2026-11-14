@@ -69,6 +69,14 @@ final class TimeProfileService
         /** @var EmploymentTimeProfile $saved */
         $saved = EffectiveDating::insert($profile);
 
+        // Recompute open dates when changing an existing profile (not the first assignment).
+        if ($previous !== null) {
+            $today = Carbon::now(config('app.timezone'))->toDateString();
+            if ($from <= $today) {
+                app(TimecardService::class)->computeRange((int) $e->company_id, $from, $today, [$e->id]);
+            }
+        }
+
         return $saved->fresh(['shift']);
     }
 

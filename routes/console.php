@@ -10,4 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('calendar:ensure-periods')->dailyAt('00:10');
 Schedule::command('attendance:resolve-pending')->dailyAt('01:00');
+Schedule::command('attendance:compute-timecards')->dailyAt('02:00');
 Schedule::command('hrmis:export:legacy-sync')->dailyAt('18:00');

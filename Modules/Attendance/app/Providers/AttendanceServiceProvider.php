@@ -3,6 +3,7 @@
 namespace Modules\Attendance\Providers;
 
 use Livewire\Livewire;
+use Modules\Attendance\Console\ComputeTimecards;
 use Modules\Attendance\Console\ResolvePendingPunches;
 use Modules\Attendance\Http\Middleware\AuthenticateDevice;
 use Modules\Attendance\Livewire\DevicesIndex;
@@ -21,6 +22,7 @@ class AttendanceServiceProvider extends ModuleServiceProvider
 
     protected array $commands = [
         ResolvePendingPunches::class,
+        ComputeTimecards::class,
     ];
 
     protected array $providers = [
