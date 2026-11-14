@@ -107,6 +107,9 @@
             @case('attendance')
                 <livewire:corehr.tabs.attendance :employment="$employment" :key="'attendance-'.$employment->id" />
                 @break
+            @case('leave')
+                <livewire:leave.employee-leave :employment="$employment" :key="'leave-'.$employment->id" />
+                @break
             @case('time')
                 <livewire:attendance.tabs.time-profile :employment="$employment" :key="'time-'.$employment->id" />
                 @break

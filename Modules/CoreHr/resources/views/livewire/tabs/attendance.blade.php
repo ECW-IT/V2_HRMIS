@@ -46,4 +46,8 @@
         </div>
         @livewire('attendance.employee-punches', ['employmentId' => $employment->id, 'month' => $month], key('punches-'.$employment->id.'-'.$month))
     </div>
+
+    @can('timecard.view')
+        <livewire:attendance.employee-timecards :employment="$employment" :month="$month" :embedded="true" :key="'timecards-'.$employment->id.'-'.$month" />
+    @endcan
 </div>

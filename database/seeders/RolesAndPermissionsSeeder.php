@@ -27,6 +27,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee.document.manage',
             'attendance.device.manage',
             'attendance.punch.view',
+            'timecard.view',
             'attendance.adjust',
             'attendance.adjust.direct',
             'ot.approve',
@@ -73,6 +74,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee.document.view',
             'employee.document.manage',
             'attendance.punch.view',
+            'timecard.view',
             'attendance.adjust',
             'leave.view',
             'leave.request',
@@ -85,6 +87,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee.bank.view',
             'employee.bank.manage',
             'attendance.punch.view',
+            'timecard.view',
             'period.manage',
             'leave.view',
         ]);
@@ -94,6 +97,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'org.view',
             'employee.view',
             'attendance.punch.view',
+            'timecard.view',
             'audit.view',
             'leave.view',
         ]);
@@ -104,6 +108,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'approval.act',
             'employee.view',
             'attendance.punch.view',
+            'timecard.view',
         ]);
     }
 }

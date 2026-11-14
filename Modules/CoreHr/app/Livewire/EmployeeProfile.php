@@ -28,6 +28,11 @@ class EmployeeProfile extends Component
     {
         $this->authorize('employee.view');
         $this->employment = $employment;
+
+        $requested = request()->query('tab');
+        if (is_string($requested) && array_key_exists($requested, $this->availableTabs())) {
+            $this->tab = $requested;
+        }
     }
 
     public function selectTab(string $tab): void
@@ -77,6 +82,9 @@ class EmployeeProfile extends Component
         }
         if ($user->can('attendance.punch.view')) {
             $tabs['attendance'] = 'Attendance';
+        }
+        if ($user->can('leave.view')) {
+            $tabs['leave'] = 'Leave';
         }
 
         $tabs['time'] = 'Time';

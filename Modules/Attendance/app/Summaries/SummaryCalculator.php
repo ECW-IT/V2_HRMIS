@@ -24,8 +24,11 @@ final class SummaryCalculator
         private readonly TimeProfileService $profiles,
     ) {}
 
-    /** Computes the figures from stored timecards, approved leave, expected days and overrides. Saves nothing. */
-    public function for(Employment $e, PayPeriod $p): SummaryFigures
+    /**
+     * Computes the figures from stored timecards, approved leave, expected days and overrides. Saves nothing.
+     * Pass $applyOverrides false for the pre-override figure shown in a summary tooltip.
+     */
+    public function for(Employment $e, PayPeriod $p, bool $applyOverrides = true): SummaryFigures
     {
         [$from, $to] = $this->window($e, $p);
         $gradeId = (int) ($e->assignmentOn($to)?->grade_id ?? 0);
@@ -87,19 +90,21 @@ final class SummaryCalculator
         }
 
         $hasOverride = false;
-        $overrides = SummaryOverride::query()
-            ->where('pay_period_id', $p->id)
-            ->where('employment_id', $e->id)
-            ->whereNull('cancelled_at')
-            ->get();
+        if ($applyOverrides) {
+            $overrides = SummaryOverride::query()
+                ->where('pay_period_id', $p->id)
+                ->where('employment_id', $e->id)
+                ->whereNull('cancelled_at')
+                ->get();
 
-        foreach ($overrides as $override) {
-            $hasOverride = true;
-            if ($override->field === OverrideField::NOPAY_DAYS) {
-                $nopay = (float) $override->value;
-            }
-            if ($override->field === OverrideField::LATE_MINUTES_CHARGEABLE) {
-                $lateChargeable = (int) $override->value;
+            foreach ($overrides as $override) {
+                $hasOverride = true;
+                if ($override->field === OverrideField::NOPAY_DAYS) {
+                    $nopay = (float) $override->value;
+                }
+                if ($override->field === OverrideField::LATE_MINUTES_CHARGEABLE) {
+                    $lateChargeable = (int) $override->value;
+                }
             }
         }
 

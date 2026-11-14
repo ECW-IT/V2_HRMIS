@@ -6,7 +6,10 @@ use Livewire\Livewire;
 use Modules\Attendance\Contracts\LeaveDayProvider;
 use Modules\Leave\Approvals\LeaveRequestHandler;
 use Modules\Leave\Enums\LeaveStatus;
+use Modules\Leave\Livewire\EmployeeLeave;
+use Modules\Leave\Livewire\LeaveCalendar;
 use Modules\Leave\Livewire\LeavePoliciesIndex;
+use Modules\Leave\Livewire\LeaveRequests;
 use Modules\Leave\Livewire\LeaveTypesIndex;
 use Modules\Leave\Models\LeaveRequest;
 use Modules\Leave\Services\LeaveService;
@@ -57,5 +60,8 @@ class LeaveServiceProvider extends ModuleServiceProvider
 
         Livewire::component('leave.types-index', LeaveTypesIndex::class);
         Livewire::component('leave.policies-index', LeavePoliciesIndex::class);
+        Livewire::component('leave.requests', LeaveRequests::class);
+        Livewire::component('leave.calendar', LeaveCalendar::class);
+        Livewire::component('leave.employee-leave', EmployeeLeave::class);
     }
 }
