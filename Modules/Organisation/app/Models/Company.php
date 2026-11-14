@@ -22,6 +22,7 @@ class Company extends Model
         'etf_employer_no',
         'tin',
         'is_active',
+        'monthly_late_grace_minutes',
     ];
 
     protected function casts(): array
@@ -30,6 +31,7 @@ class Company extends Model
             'employee_no_padding' => 'integer',
             'next_employee_seq' => 'integer',
             'is_active' => 'boolean',
+            'monthly_late_grace_minutes' => 'integer',
         ];
     }
 

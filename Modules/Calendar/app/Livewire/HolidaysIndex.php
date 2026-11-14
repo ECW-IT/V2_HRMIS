@@ -280,6 +280,7 @@ class HolidaysIndex extends Component
     {
         $this->authorize('org.view');
 
+        CompanyContext::ensureSoleSelected();
         $companyId = CompanyContext::id();
         $holidays = collect();
 

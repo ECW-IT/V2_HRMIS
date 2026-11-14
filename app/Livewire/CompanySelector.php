@@ -13,6 +13,7 @@ class CompanySelector extends Component
 
     public function mount(): void
     {
+        CompanyContext::ensureSoleSelected();
         $this->selectedCompanyId = CompanyContext::id();
     }
 
@@ -20,11 +21,17 @@ class CompanySelector extends Component
     {
         $companyId = $value === '' || $value === null ? null : (int) $value;
         CompanyContext::set($companyId);
-        $this->redirect(request()->header('Referer') ?: route('home'), navigate: false);
+        $this->selectedCompanyId = $companyId;
+        $this->js('window.location.reload()');
     }
 
     public function render(): View
     {
+        CompanyContext::ensureSoleSelected();
+        if ($this->selectedCompanyId === null) {
+            $this->selectedCompanyId = CompanyContext::id();
+        }
+
         $ids = CompanyContext::permittedIds();
         $companies = Company::query()
             ->whereIn('id', $ids)

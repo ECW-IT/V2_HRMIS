@@ -15,6 +15,16 @@ final class CalendarNav
                 'route' => route('calendar.holidays.index'),
                 'active' => $active === 'holidays',
             ],
+            [
+                'label' => 'Pay periods',
+                'route' => route('calendar.periods.index'),
+                'active' => $active === 'periods',
+            ],
+            [
+                'label' => 'Expected days',
+                'route' => route('calendar.expected-days.index'),
+                'active' => $active === 'expected-days',
+            ],
         ];
     }
 }

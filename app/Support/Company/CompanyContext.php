@@ -51,4 +51,17 @@ final class CompanyContext
 
         session(['company_id' => $companyId]);
     }
+
+    /** When nothing is selected and the user may see exactly one company, select it. */
+    public static function ensureSoleSelected(): void
+    {
+        if (self::id() !== null) {
+            return;
+        }
+
+        $ids = self::permittedIds();
+        if (count($ids) === 1) {
+            self::set($ids[0]);
+        }
+    }
 }

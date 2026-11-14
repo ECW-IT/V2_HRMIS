@@ -28,6 +28,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'attendance.device.manage',
             'attendance.punch.view',
             'calendar.manage',
+            'period.manage',
+            'period.close',
             'approval.act',
             'import.run',
             'access-control.view',
@@ -69,6 +71,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee.bank.view',
             'employee.bank.manage',
             'attendance.punch.view',
+            'period.manage',
         ]);
 
         $auditor = Role::findOrCreate('auditor');

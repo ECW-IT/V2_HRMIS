@@ -119,7 +119,7 @@ final class HolidayService
 
     public function isDateLocked(int $companyId, \DateTimeInterface|string $date): bool
     {
-        return false;
+        return app(PayPeriodService::class)->isDateLocked($companyId, $date);
     }
 
     private function normalizeDate(\DateTimeInterface|string $date): string

@@ -22,7 +22,7 @@
 
     @if ($companyId === null)
         <div class="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-            Select a company first.
+            Select a company first (use the company dropdown in the top bar).
         </div>
     @else
         @if ($formError !== '')

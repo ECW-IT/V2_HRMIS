@@ -8,5 +8,6 @@ Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
 })->purpose('Display an inspiring quote');
 
+Schedule::command('calendar:ensure-periods')->dailyAt('00:10');
 Schedule::command('attendance:resolve-pending')->dailyAt('01:00');
 Schedule::command('hrmis:export:legacy-sync')->dailyAt('18:00');
