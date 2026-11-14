@@ -4,9 +4,13 @@ namespace Modules\Workflow\Services;
 
 use App\Models\User;
 use App\Support\Audit\AuditLogger;
+use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Modules\CoreHr\Enums\EmploymentStatus;
+use Modules\CoreHr\Models\Employment;
 use Modules\Organisation\Models\Company;
+use Modules\Organisation\Models\OrgUnit;
 use Modules\Workflow\Contracts\AppliesApproval;
 use Modules\Workflow\Enums\ApprovalActionType;
 use Modules\Workflow\Enums\ApprovalStatus;
@@ -36,6 +40,7 @@ final class ApprovalService
         ApprovalActionType $action,
         array $payload,
         User $by,
+        ?int $employmentId = null,
     ): ApprovalRequest {
         $definition = ApprovalDefinition::query()->where('code', $definitionCode)->first();
 
@@ -43,12 +48,13 @@ final class ApprovalService
             throw new \InvalidArgumentException('Unknown or inactive approval definition.');
         }
 
-        return DB::transaction(function () use ($definition, $companyId, $subjectType, $subjectId, $action, $payload, $by) {
+        return DB::transaction(function () use ($definition, $companyId, $subjectType, $subjectId, $action, $payload, $by, $employmentId) {
             $steps = $definition->steps()->orderBy('sequence')->get();
 
             $request = ApprovalRequest::query()->create([
                 'approval_definition_id' => $definition->id,
                 'company_id' => $companyId,
+                'employment_id' => $employmentId,
                 'subject_type' => $subjectType,
                 'subject_id' => $subjectId,
                 'action' => $action,
@@ -70,7 +76,7 @@ final class ApprovalService
                 return $request->fresh();
             }
 
-            return $request->fresh();
+            return $this->advancePastUnresolvableManagerSteps($request->fresh());
         });
     }
 
@@ -108,7 +114,7 @@ final class ApprovalService
             if ($request->current_step < $maxStep) {
                 $request->update(['current_step' => $request->current_step + 1]);
 
-                return $request->fresh();
+                return $this->advancePastUnresolvableManagerSteps($request->fresh());
             }
 
             $this->applyHandler($request);
@@ -207,7 +213,7 @@ final class ApprovalService
             return false;
         }
 
-        return $this->userMatchesStep($user, $step);
+        return $this->userMatchesStep($user, $step, $request);
     }
 
     /** PENDING requests the user can act on now, within their company scope. */
@@ -223,6 +229,104 @@ final class ApprovalService
             ->get()
             ->filter(fn (ApprovalRequest $request) => $this->canAct($request, $user))
             ->values();
+    }
+
+    private function advancePastUnresolvableManagerSteps(ApprovalRequest $request): ApprovalRequest
+    {
+        while ($request->status === ApprovalStatus::PENDING) {
+            $step = $request->definition->steps()
+                ->where('sequence', $request->current_step)
+                ->first();
+
+            if ($step === null || $step->approver_type !== ApproverType::MANAGER) {
+                break;
+            }
+
+            if ($this->resolveManagerApproverUserId($request) !== null) {
+                break;
+            }
+
+            $request->actions()->create([
+                'step' => $request->current_step,
+                'user_id' => null,
+                'decision' => Decision::APPROVED,
+                'remarks' => 'No manager with a user account — step skipped',
+                'acted_at' => now(),
+            ]);
+
+            $maxStep = $request->definition->steps()->max('sequence') ?? 0;
+
+            if ($request->current_step < $maxStep) {
+                $request->update(['current_step' => $request->current_step + 1]);
+                $request = $request->fresh();
+
+                continue;
+            }
+
+            $this->applyHandler($request);
+            $request->update([
+                'status' => ApprovalStatus::APPROVED,
+                'decided_at' => now(),
+            ]);
+
+            break;
+        }
+
+        return $request->fresh();
+    }
+
+    private function resolveManagerApproverUserId(ApprovalRequest $request): ?int
+    {
+        if ($request->employment_id === null) {
+            return null;
+        }
+
+        $employment = Employment::query()->find($request->employment_id);
+        if ($employment === null) {
+            return null;
+        }
+
+        $today = Carbon::now(config('app.timezone'))->toDateString();
+        $assignment = $employment->assignmentOn($today);
+
+        $candidates = [];
+        if ($assignment?->manager_employment_id) {
+            $candidates[] = (int) $assignment->manager_employment_id;
+        }
+
+        $orgUnitId = $assignment?->org_unit_id;
+        while ($orgUnitId !== null) {
+            $unit = OrgUnit::query()->find($orgUnitId);
+            if ($unit === null) {
+                break;
+            }
+            if ($unit->head_employment_id) {
+                $candidates[] = (int) $unit->head_employment_id;
+            }
+            $orgUnitId = $unit->parent_id;
+        }
+
+        foreach (array_unique($candidates) as $managerEmploymentId) {
+            if ($managerEmploymentId === (int) $employment->id) {
+                continue;
+            }
+
+            $manager = Employment::query()->find($managerEmploymentId);
+            if ($manager === null || $manager->status !== EmploymentStatus::ACTIVE) {
+                continue;
+            }
+
+            $user = User::query()
+                ->where('person_id', $manager->person_id)
+                ->where('is_active', true)
+                ->first();
+
+            if ($user !== null) {
+                return (int) $user->id;
+            }
+        }
+
+        return null;
     }
 
     private function applyHandler(ApprovalRequest $request): void
@@ -242,12 +346,12 @@ final class ApprovalService
         });
     }
 
-    private function userMatchesStep(User $user, ApprovalDefinitionStep $step): bool
+    private function userMatchesStep(User $user, ApprovalDefinitionStep $step, ApprovalRequest $request): bool
     {
         return match ($step->approver_type) {
             ApproverType::ROLE => $user->hasRole((string) $step->approver_ref),
             ApproverType::USER => (string) $user->id === (string) $step->approver_ref,
-            ApproverType::MANAGER => false,
+            ApproverType::MANAGER => $this->resolveManagerApproverUserId($request) === (int) $user->id,
         };
     }
 

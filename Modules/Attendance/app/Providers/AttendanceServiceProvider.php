@@ -6,6 +6,7 @@ use Livewire\Livewire;
 use Modules\Attendance\Approvals\AttendanceAdjustmentHandler;
 use Modules\Attendance\Console\ComputeTimecards;
 use Modules\Attendance\Console\ResolvePendingPunches;
+use Modules\Attendance\Contracts\LeaveDayProvider;
 use Modules\Attendance\Enums\AdjustmentStatus;
 use Modules\Attendance\Http\Middleware\AuthenticateDevice;
 use Modules\Attendance\Livewire\DevicesIndex;
@@ -16,6 +17,7 @@ use Modules\Attendance\Livewire\TimeProfilesBulk;
 use Modules\Attendance\Livewire\UnresolvedPunches;
 use Modules\Attendance\Models\AttendanceAdjustment;
 use Modules\Attendance\Services\AdjustmentService;
+use Modules\Attendance\Support\NullLeaveDayProvider;
 use Modules\Workflow\Enums\ApprovalStatus;
 use Modules\Workflow\Models\ApprovalRequest;
 use Modules\Workflow\Services\ApprovalService;
@@ -36,6 +38,13 @@ class AttendanceServiceProvider extends ModuleServiceProvider
         EventServiceProvider::class,
         RouteServiceProvider::class,
     ];
+
+    public function register(): void
+    {
+        parent::register();
+
+        $this->app->bind(LeaveDayProvider::class, NullLeaveDayProvider::class);
+    }
 
     public function boot(): void
     {

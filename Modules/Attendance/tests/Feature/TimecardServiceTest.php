@@ -155,7 +155,7 @@ class TimecardServiceTest extends TestCase
         $this->punch($e, '2026-12-01 08:10:00');
         $this->punch($e, '2026-12-01 17:00:00');
         $t = $svc->compute($e, '2026-12-01');
-        $t->forceFill(['late_waived' => true, 'leave_days' => 0.5])->save();
+        $t->forceFill(['late_waived' => true])->save();
 
         $this->punch($e, '2026-12-01 17:20:00');
         $again = $svc->compute($e, '2026-12-01');
@@ -163,7 +163,6 @@ class TimecardServiceTest extends TestCase
         $this->assertSame($t->id, $again->id);
         $this->assertSame('17:20:00', $again->last_out->format('H:i:s'));
         $this->assertTrue($again->late_waived);
-        $this->assertSame('0.50', $again->leave_days);
         $this->assertSame(1, Timecard::where('employment_id', $e->id)->count());
     }
 

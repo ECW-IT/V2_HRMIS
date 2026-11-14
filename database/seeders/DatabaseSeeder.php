@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Modules\Attendance\Database\Seeders\ShiftSeeder;
 use Modules\CoreHr\Database\Seeders\BankSeeder;
 use Modules\CoreHr\Database\Seeders\DocumentTypeSeeder;
+use Modules\Leave\Database\Seeders\LeaveSeeder;
 use Modules\Organisation\Database\Seeders\StaffWorkCategorySeeder;
 
 class DatabaseSeeder extends Seeder
@@ -21,6 +22,7 @@ class DatabaseSeeder extends Seeder
             DocumentTypeSeeder::class,
             BankSeeder::class,
             ShiftSeeder::class,
+            LeaveSeeder::class,
         ]);
     }
 }

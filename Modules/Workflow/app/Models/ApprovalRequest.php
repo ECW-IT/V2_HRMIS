@@ -21,6 +21,7 @@ class ApprovalRequest extends Model
     protected $fillable = [
         'approval_definition_id',
         'company_id',
+        'employment_id',
         'subject_type',
         'subject_id',
         'action',

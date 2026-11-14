@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Modules\Attendance\Contracts\LeaveDayProvider;
 use Modules\Attendance\Enums\AdjustmentType;
 use Modules\Attendance\Enums\AttendanceMode;
 use Modules\Attendance\Enums\DayType;
@@ -146,6 +147,8 @@ final class TimecardService
                 'is_holiday' => $isHoliday,
                 'exception' => TimecardException::NO_PROFILE,
                 'computed_at' => now(),
+                'leave_type_id' => null,
+                'leave_days' => 0,
             ];
         } else {
             $shift = $profile->shift;
@@ -183,8 +186,14 @@ final class TimecardService
                 'is_holiday' => $isHoliday,
                 'exception' => $result->exception,
                 'computed_at' => now(),
+                'leave_type_id' => null,
+                'leave_days' => 0,
             ];
         }
+
+        $leave = app(LeaveDayProvider::class)->forDay((int) $employment->id, $day);
+        $engine['leave_type_id'] = $leave['leave_type_id'] ?? null;
+        $engine['leave_days'] = $leave['days'] ?? 0;
 
         if ($existing !== null) {
             $oldOt = (int) $existing->ot_morning_minutes + (int) $existing->ot_evening_minutes;

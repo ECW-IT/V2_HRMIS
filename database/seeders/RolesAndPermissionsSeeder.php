@@ -31,6 +31,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'attendance.adjust.direct',
             'ot.approve',
             'late.waive',
+            'leave.view',
+            'leave.request',
+            'leave.manage',
             'shift.manage',
             'calendar.manage',
             'period.manage',
@@ -68,6 +71,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee.document.manage',
             'attendance.punch.view',
             'attendance.adjust',
+            'leave.view',
+            'leave.request',
         ]);
 
         $payrollOfficer = Role::findOrCreate('payroll-officer');
@@ -78,6 +83,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee.bank.manage',
             'attendance.punch.view',
             'period.manage',
+            'leave.view',
         ]);
 
         $auditor = Role::findOrCreate('auditor');
@@ -86,6 +92,15 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee.view',
             'attendance.punch.view',
             'audit.view',
+            'leave.view',
+        ]);
+
+        $lineManager = Role::findOrCreate('line-manager');
+        $lineManager->syncPermissions([
+            'leave.view',
+            'approval.act',
+            'employee.view',
+            'attendance.punch.view',
         ]);
     }
 }

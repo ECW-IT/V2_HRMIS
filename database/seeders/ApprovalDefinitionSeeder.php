@@ -11,9 +11,35 @@ class ApprovalDefinitionSeeder extends Seeder
     public function run(): void
     {
         $definitions = [
-            ['code' => 'EMPLOYEE_CHANGE', 'name' => 'Employee data change'],
-            ['code' => 'EMPLOYEE_EXIT', 'name' => 'Employee exit or transfer'],
-            ['code' => 'ATTENDANCE_ADJUSTMENT', 'name' => 'Attendance adjustment'],
+            [
+                'code' => 'EMPLOYEE_CHANGE',
+                'name' => 'Employee data change',
+                'steps' => [
+                    ['sequence' => 1, 'approver_type' => ApproverType::ROLE, 'approver_ref' => 'hr-manager'],
+                ],
+            ],
+            [
+                'code' => 'EMPLOYEE_EXIT',
+                'name' => 'Employee exit or transfer',
+                'steps' => [
+                    ['sequence' => 1, 'approver_type' => ApproverType::ROLE, 'approver_ref' => 'hr-manager'],
+                ],
+            ],
+            [
+                'code' => 'ATTENDANCE_ADJUSTMENT',
+                'name' => 'Attendance adjustment',
+                'steps' => [
+                    ['sequence' => 1, 'approver_type' => ApproverType::ROLE, 'approver_ref' => 'hr-manager'],
+                ],
+            ],
+            [
+                'code' => 'LEAVE_REQUEST',
+                'name' => 'Leave request',
+                'steps' => [
+                    ['sequence' => 1, 'approver_type' => ApproverType::MANAGER, 'approver_ref' => null],
+                    ['sequence' => 2, 'approver_type' => ApproverType::ROLE, 'approver_ref' => 'hr-manager'],
+                ],
+            ],
         ];
 
         foreach ($definitions as $row) {
@@ -23,11 +49,13 @@ class ApprovalDefinitionSeeder extends Seeder
             );
 
             $definition->steps()->delete();
-            $definition->steps()->create([
-                'sequence' => 1,
-                'approver_type' => ApproverType::ROLE,
-                'approver_ref' => 'hr-manager',
-            ]);
+            foreach ($row['steps'] as $step) {
+                $definition->steps()->create([
+                    'sequence' => $step['sequence'],
+                    'approver_type' => $step['approver_type'],
+                    'approver_ref' => $step['approver_ref'],
+                ]);
+            }
         }
     }
 }
