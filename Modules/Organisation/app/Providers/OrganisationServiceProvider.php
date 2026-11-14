@@ -10,6 +10,7 @@ use Modules\Organisation\Livewire\GradesIndex;
 use Modules\Organisation\Livewire\JobsIndex;
 use Modules\Organisation\Livewire\LocationsIndex;
 use Modules\Organisation\Livewire\OrgTree;
+use Modules\Organisation\Livewire\StaffWorkCategoriesIndex;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class OrganisationServiceProvider extends ModuleServiceProvider
@@ -50,6 +51,7 @@ class OrganisationServiceProvider extends ModuleServiceProvider
         Livewire::component('organisation.org-tree', OrgTree::class);
         Livewire::component('organisation.jobs-index', JobsIndex::class);
         Livewire::component('organisation.employee-categories-index', EmployeeCategoriesIndex::class);
+        Livewire::component('organisation.staff-work-categories-index', StaffWorkCategoriesIndex::class);
         Livewire::component('organisation.break-types-index', BreakTypesIndex::class);
         Livewire::component('organisation.grades-index', GradesIndex::class);
     }

@@ -259,6 +259,16 @@
                     @error('employeeCategoryId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Office / shop category</label>
+                    <select wire:model="staffWorkCategoryId" class="{{ $input }} @error('staffWorkCategoryId') border-red-400 @enderror">
+                        <option value="">Select</option>
+                        @foreach($staffWorkCategories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }} ({{ $category->code }})</option>
+                        @endforeach
+                    </select>
+                    @error('staffWorkCategoryId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Department / section <span class="text-red-500">*</span></label>
                     <select wire:model="orgUnitId" class="{{ $input }} @error('orgUnitId') border-red-400 @enderror">
                         <option value="">Select</option>

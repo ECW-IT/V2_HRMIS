@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use Modules\CoreHr\Database\Seeders\BankSeeder;
 use Modules\CoreHr\Database\Seeders\DocumentTypeSeeder;
+use Modules\Organisation\Database\Seeders\StaffWorkCategorySeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -14,6 +15,7 @@ class DatabaseSeeder extends Seeder
             RolesAndPermissionsSeeder::class,
             AdminUserSeeder::class,
             OrganisationSeeder::class,
+            StaffWorkCategorySeeder::class,
             ApprovalDefinitionSeeder::class,
             DocumentTypeSeeder::class,
             BankSeeder::class,

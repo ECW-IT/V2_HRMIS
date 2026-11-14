@@ -8,6 +8,7 @@ use Modules\Organisation\Livewire\GradesIndex;
 use Modules\Organisation\Livewire\JobsIndex;
 use Modules\Organisation\Livewire\LocationsIndex;
 use Modules\Organisation\Livewire\OrgTree;
+use Modules\Organisation\Livewire\StaffWorkCategoriesIndex;
 
 Route::middleware(['auth', 'password.changed', 'can:org.view'])
     ->prefix('organisation')
@@ -21,6 +22,7 @@ Route::middleware(['auth', 'password.changed', 'can:org.view'])
         Route::get('/units', OrgTree::class)->name('units.index');
         Route::get('/jobs', JobsIndex::class)->name('jobs.index');
         Route::get('/categories', EmployeeCategoriesIndex::class)->name('categories.index');
+        Route::get('/staff-work-categories', StaffWorkCategoriesIndex::class)->name('staff-work-categories.index');
         Route::get('/break-types', BreakTypesIndex::class)->name('break-types.index');
         Route::get('/grades', GradesIndex::class)->name('grades.index');
     });

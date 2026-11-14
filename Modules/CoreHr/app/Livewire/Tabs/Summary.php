@@ -9,14 +9,38 @@ use Modules\CoreHr\Enums\ContactType;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Readiness\ReadinessService;
 use Modules\CoreHr\Support\AssignmentLookup;
+use Modules\Organisation\Models\StaffWorkCategory;
+use Modules\Organisation\Services\StaffWorkCategoryService;
 
 class Summary extends Component
 {
     public Employment $employment;
 
+    public string|int|null $staffWorkCategoryId = null;
+
+    public string $staffWorkMessage = '';
+
     public function mount(Employment $employment): void
     {
         $this->employment = $employment;
+        $this->staffWorkCategoryId = $employment->staff_work_category_id;
+    }
+
+    public function saveStaffWorkCategory(StaffWorkCategoryService $service): void
+    {
+        $this->authorize('employee.update');
+
+        $this->validate([
+            'staffWorkCategoryId' => ['nullable', 'integer', 'exists:staff_work_categories,id'],
+        ]);
+
+        $category = $this->staffWorkCategoryId === null || $this->staffWorkCategoryId === ''
+            ? null
+            : StaffWorkCategory::query()->findOrFail((int) $this->staffWorkCategoryId);
+
+        $this->employment = $service->assign($this->employment, $category);
+        $this->staffWorkCategoryId = $this->employment->staff_work_category_id;
+        $this->staffWorkMessage = 'Office / shop category updated.';
     }
 
     public function render(ReadinessService $readiness): View
@@ -24,7 +48,7 @@ class Summary extends Component
         $this->authorize('employee.view');
 
         $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
-        $employment = $this->employment->load(['person.contacts', 'employeeCategory']);
+        $employment = $this->employment->load(['person.contacts', 'employeeCategory', 'staffWorkCategory']);
         $person = $employment->person;
 
         $mobile = $person->contacts
@@ -46,6 +70,15 @@ class Summary extends Component
                 ->where('id', '!=', $employment->id)
                 ->orderByDesc('hire_date')
                 ->get(),
+            'staffWorkCategories' => StaffWorkCategory::query()
+                ->where(function ($query) use ($employment) {
+                    $query->where('is_active', true);
+                    if ($employment->staff_work_category_id !== null) {
+                        $query->orWhere('id', $employment->staff_work_category_id);
+                    }
+                })
+                ->orderBy('name')
+                ->get(['id', 'code', 'name']),
         ]);
     }
 }

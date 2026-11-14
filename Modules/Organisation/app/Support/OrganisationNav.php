@@ -31,6 +31,11 @@ final class OrganisationNav
                 'active' => $active === 'categories',
             ],
             [
+                'label' => 'Office / shop categories',
+                'route' => route('org.staff-work-categories.index'),
+                'active' => $active === 'staff-work-categories',
+            ],
+            [
                 'label' => 'Break types',
                 'route' => route('org.break-types.index'),
                 'active' => $active === 'break-types',

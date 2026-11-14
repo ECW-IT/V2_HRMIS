@@ -33,7 +33,7 @@ final class EmploymentService
         private readonly EnrolmentService $enrolments,
     ) {}
 
-    /** $employment keys: type, hire_date, epf_liable?, epf_no?, legacy_employee_no?, employee_no? (import only), employee_category_id?.
+    /** $employment keys: type, hire_date, epf_liable?, epf_no?, legacy_employee_no?, employee_no? (import only), employee_category_id?, staff_work_category_id?.
      *  $assignment keys: org_unit_id, job_id, grade_id, location_id, manager_employment_id? */
     public function hire(Person $person, Company $company, array $employment, array $assignment): Employment
     {
@@ -381,6 +381,7 @@ final class EmploymentService
                     'epf_no' => $epfNo,
                     'previous_employment_id' => $previousEmploymentId,
                     'employee_category_id' => $employment['employee_category_id'] ?? null,
+                    'staff_work_category_id' => $employment['staff_work_category_id'] ?? null,
                 ]);
             } catch (QueryException $e) {
                 if ($this->isActivePersonUniqueViolation($e)) {

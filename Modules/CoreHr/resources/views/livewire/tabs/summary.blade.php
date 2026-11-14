@@ -26,6 +26,26 @@
             <dd class="col-span-2 text-gray-700">{{ ucfirst(strtolower($employment->type->value)) }}</dd>
             <dt class="text-xs text-gray-500">Employee category</dt>
             <dd class="col-span-2 text-gray-700">{{ $employment->employeeCategory?->name ?? '—' }}</dd>
+            <dt class="text-xs text-gray-500">Office / shop category</dt>
+            <dd class="col-span-2 text-gray-700">
+                @can('employee.update')
+                    <div class="flex flex-wrap items-center gap-2">
+                        <select wire:model="staffWorkCategoryId" class="rounded border border-gray-300 px-2 py-1 text-sm">
+                            <option value="">None</option>
+                            @foreach ($staffWorkCategories as $category)
+                                <option value="{{ $category->id }}">{{ $category->name }} ({{ $category->code }})</option>
+                            @endforeach
+                        </select>
+                        <button type="button" wire:click="saveStaffWorkCategory" class="text-xs text-[var(--color-erp-accent)] hover:underline">Save</button>
+                    </div>
+                    @error('staffWorkCategoryId') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    @if ($staffWorkMessage !== '')
+                        <p class="mt-1 text-xs text-emerald-600">{{ $staffWorkMessage }}</p>
+                    @endif
+                @else
+                    {{ $employment->staffWorkCategory?->name ?? '—' }}
+                @endcan
+            </dd>
             <dt class="text-xs text-gray-500">Hire date</dt>
             <dd class="col-span-2 text-gray-700">{{ $employment->hire_date->format('Y-m-d') }}</dd>
             @if($employment->confirmed_on)

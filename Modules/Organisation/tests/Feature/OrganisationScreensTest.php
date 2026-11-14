@@ -44,6 +44,7 @@ class OrganisationScreensTest extends TestCase
             'org.units.index',
             'org.jobs.index',
             'org.categories.index',
+            'org.staff-work-categories.index',
             'org.break-types.index',
             'org.grades.index',
         ];
