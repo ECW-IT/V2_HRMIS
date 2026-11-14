@@ -7,6 +7,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Modules\Attendance\Models\EmploymentTimeProfile;
 use Modules\Attendance\Services\EnrolmentService;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Enums\EmploymentType;
@@ -212,6 +213,7 @@ final class EmploymentService
             ]);
 
             EffectiveDating::close(Assignment::class, $e->id, $onDate);
+            EffectiveDating::close(EmploymentTimeProfile::class, $e->id, $onDate);
             $this->enrolments->endAllFor($e, $onDate);
             $this->recordEvent($e, EventType::EXIT, $onDate);
 

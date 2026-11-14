@@ -308,6 +308,39 @@
                     </select>
                     @error('locationId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Shift <span class="text-red-500">*</span></label>
+                    <select wire:model="shiftId" class="{{ $input }} @error('shiftId') border-red-400 @enderror">
+                        <option value="">Select</option>
+                        @foreach($shifts as $shift)
+                            <option value="{{ $shift->id }}">{{ $shift->code }} — {{ $shift->name }}</option>
+                        @endforeach
+                    </select>
+                    @error('shiftId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Attendance mode <span class="text-red-500">*</span></label>
+                    <select wire:model="attendanceMode" class="{{ $input }} @error('attendanceMode') border-red-400 @enderror">
+                        @foreach($attendanceModes as $mode)
+                            <option value="{{ $mode->value }}">{{ $mode->value }}</option>
+                        @endforeach
+                    </select>
+                    @error('attendanceMode')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">OT mode <span class="text-red-500">*</span></label>
+                    <select wire:model="otMode" class="{{ $input }} @error('otMode') border-red-400 @enderror">
+                        @foreach($otModes as $mode)
+                            <option value="{{ $mode->value }}">{{ $mode->value }}</option>
+                        @endforeach
+                    </select>
+                    @error('otMode')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div class="flex items-end">
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input wire:model="lateDeduction" type="checkbox" class="rounded border" /> Late deduction applies
+                    </label>
+                </div>
                 <div class="md:col-span-2">
                     @include('corehr::partials.manager-picker')
                 </div>

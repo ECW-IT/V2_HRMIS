@@ -43,7 +43,7 @@ class ReadinessChecksTest extends TestCase
 
     private function ready(Company $c, string $hire = '2026-01-01', array $emp = []): Employment
     {
-        $e = $this->hired($hire, $c, $emp);
+        $e = $this->profiled($hire, $c, [], $emp);
 
         app(BankAccountService::class)->set($e, $this->account(['effective_from' => $hire]));
         app(EnrolmentService::class)->enrol($e, 'NIT', self::$deviceUserId++, $hire);
@@ -231,7 +231,7 @@ class ReadinessChecksTest extends TestCase
         $c = $this->company();
         $this->ready($c);
         $summary = app(ReadinessService::class)->summary($c, '2026-11-01');
-        $this->assertSame(['HR001', 'HR002', 'HR003', 'HR004', 'HR005', 'HR006', 'HR007', 'HR008', 'HR009', 'HR010', 'HR011'], array_keys($summary));
+        $this->assertSame(['HR001', 'HR002', 'HR003', 'HR004', 'HR005', 'HR006', 'HR007', 'HR008', 'HR009', 'HR010', 'HR011', 'HR012'], array_keys($summary));
         $this->assertSame(0, array_sum(array_column($summary, 'count')));
     }
 

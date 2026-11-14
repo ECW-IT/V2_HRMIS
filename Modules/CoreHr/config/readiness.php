@@ -11,6 +11,7 @@ use Modules\CoreHr\Readiness\Checks\Hr008ProbationOverdue;
 use Modules\CoreHr\Readiness\Checks\Hr009MandatoryDocumentMissing;
 use Modules\CoreHr\Readiness\Checks\Hr010DocumentExpiring;
 use Modules\CoreHr\Readiness\Checks\Hr011NoMobile;
+use Modules\CoreHr\Readiness\Checks\Hr012NoTimeProfile;
 
 return [
     'checks' => [
@@ -25,5 +26,6 @@ return [
         Hr009MandatoryDocumentMissing::class,
         Hr010DocumentExpiring::class,
         Hr011NoMobile::class,
+        Hr012NoTimeProfile::class,
     ],
 ];

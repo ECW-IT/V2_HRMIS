@@ -79,6 +79,7 @@ class EmployeeProfile extends Component
             $tabs['attendance'] = 'Attendance';
         }
 
+        $tabs['time'] = 'Time';
         $tabs['readiness'] = 'Readiness';
 
         if ($user->can('audit.view')) {

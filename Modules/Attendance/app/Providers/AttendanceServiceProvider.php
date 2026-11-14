@@ -7,6 +7,9 @@ use Modules\Attendance\Console\ResolvePendingPunches;
 use Modules\Attendance\Http\Middleware\AuthenticateDevice;
 use Modules\Attendance\Livewire\DevicesIndex;
 use Modules\Attendance\Livewire\EmployeePunches;
+use Modules\Attendance\Livewire\ShiftsIndex;
+use Modules\Attendance\Livewire\Tabs\TimeProfile;
+use Modules\Attendance\Livewire\TimeProfilesBulk;
 use Modules\Attendance\Livewire\UnresolvedPunches;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
@@ -34,5 +37,8 @@ class AttendanceServiceProvider extends ModuleServiceProvider
         Livewire::component('attendance.devices-index', DevicesIndex::class);
         Livewire::component('attendance.unresolved-punches', UnresolvedPunches::class);
         Livewire::component('attendance.employee-punches', EmployeePunches::class);
+        Livewire::component('attendance.shifts-index', ShiftsIndex::class);
+        Livewire::component('attendance.time-profiles-bulk', TimeProfilesBulk::class);
+        Livewire::component('attendance.tabs.time-profile', TimeProfile::class);
     }
 }

@@ -4,6 +4,11 @@ namespace Tests\Support;
 
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
+use Modules\Attendance\Enums\AttendanceMode;
+use Modules\Attendance\Enums\OtMode;
+use Modules\Attendance\Models\Shift;
+use Modules\Attendance\Models\ShiftBreak;
+use Modules\Attendance\Services\TimeProfileService;
 use Modules\CoreHr\Models\Bank;
 use Modules\CoreHr\Models\BankBranch;
 use Modules\CoreHr\Models\Employment;
@@ -119,5 +124,53 @@ trait HrFixtures
             'account_no' => '0012345678',
             'account_name' => 'N Perera',
         ], $overrides);
+    }
+
+    /** Factory shift D0800 values unless overridden: 08:00 / 17:00 / 08:06 / 10:00 / 12:30 / 15:00, with an unpaid Dinner break 20:00–20:30. */
+    protected function shift(array $o = []): Shift
+    {
+        $breaks = $o['breaks'] ?? [['name' => 'Dinner', 'start_time' => '20:00', 'end_time' => '20:30', 'is_paid' => false]];
+        unset($o['breaks']);
+
+        $shift = Shift::factory()->create(array_merge([
+            'code' => 'D0800'.fake()->unique()->numerify('##'),
+            'name' => 'Day 08:00–17:00',
+            'start_time' => '08:00:00',
+            'end_time' => '17:00:00',
+            'late_from' => '08:06:00',
+            'morning_cutoff' => '10:00:00',
+            'half_day_from' => '12:30:00',
+            'early_leave_from' => '15:00:00',
+            'is_active' => true,
+        ], $o));
+
+        foreach ($breaks as $break) {
+            ShiftBreak::query()->create([
+                'shift_id' => $shift->id,
+                'name' => $break['name'],
+                'start_time' => $break['start_time'],
+                'end_time' => $break['end_time'],
+                'is_paid' => (bool) ($break['is_paid'] ?? false),
+            ]);
+        }
+
+        return $shift->fresh(['breaks']);
+    }
+
+    /** hired() + time profile from the hire date. $profile keys override: shift_id, attendance_mode, ot_mode, late_deduction (defaults: new shift(), PUNCH, NONE, false). */
+    protected function profiled(string $hireDate = '2026-01-01', ?Company $c = null, array $profile = [], array $emp = []): Employment
+    {
+        $e = $this->hired($hireDate, $c, $emp);
+        $shiftId = $profile['shift_id'] ?? $this->shift()->id;
+
+        app(TimeProfileService::class)->set($e, [
+            'effective_from' => $hireDate,
+            'shift_id' => $shiftId,
+            'attendance_mode' => $profile['attendance_mode'] ?? AttendanceMode::PUNCH,
+            'ot_mode' => $profile['ot_mode'] ?? OtMode::NONE,
+            'late_deduction' => $profile['late_deduction'] ?? false,
+        ]);
+
+        return $e->fresh();
     }
 }

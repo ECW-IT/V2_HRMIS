@@ -7,7 +7,7 @@
         ['icon' => '🔐', 'label' => 'Access control', 'route' => 'access-control.users.index'],
         ['icon' => '🏢', 'label' => 'Organisation', 'route' => 'org.locations.index'],
         ['icon' => '👥', 'label' => 'Employees', 'route' => 'employees.index'],
-        ['icon' => '🪪', 'label' => 'Attendance', 'route' => null],
+        ['icon' => '🪪', 'label' => 'Attendance', 'route' => 'attendance.shifts.index'],
         ['icon' => '🗓️', 'label' => 'Calendar', 'route' => 'calendar.holidays.index'],
         ['icon' => '📅', 'label' => 'Leave', 'route' => null],
         ['icon' => '💰', 'label' => 'Payroll', 'route' => null],

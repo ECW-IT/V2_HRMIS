@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\Attendance\Database\Seeders\ShiftSeeder;
 use Modules\CoreHr\Database\Seeders\BankSeeder;
 use Modules\CoreHr\Database\Seeders\DocumentTypeSeeder;
 use Modules\Organisation\Database\Seeders\StaffWorkCategorySeeder;
@@ -19,6 +20,7 @@ class DatabaseSeeder extends Seeder
             ApprovalDefinitionSeeder::class,
             DocumentTypeSeeder::class,
             BankSeeder::class,
+            ShiftSeeder::class,
         ]);
     }
 }

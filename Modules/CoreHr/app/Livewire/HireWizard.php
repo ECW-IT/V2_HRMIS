@@ -11,8 +11,12 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Livewire\Component;
+use Modules\Attendance\Enums\AttendanceMode;
+use Modules\Attendance\Enums\OtMode;
 use Modules\Attendance\Models\Device;
+use Modules\Attendance\Models\Shift;
 use Modules\Attendance\Services\EnrolmentService;
+use Modules\Attendance\Services\TimeProfileService;
 use Modules\CoreHr\Enums\ContactType;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Enums\EmploymentType;
@@ -132,6 +136,14 @@ class HireWizard extends Component
 
     public string|int|null $locationId = null;
 
+    public string|int|null $shiftId = null;
+
+    public string $attendanceMode = 'PUNCH';
+
+    public string $otMode = 'NONE';
+
+    public bool $lateDeduction = false;
+
     // Step 4: bank and fingerprint
     public bool $isCash = false;
 
@@ -202,6 +214,7 @@ class HireWizard extends Component
         EmploymentService $employments,
         BankAccountService $banks,
         EnrolmentService $enrolments,
+        TimeProfileService $timeProfiles,
     ): void {
         $this->authorize('employee.create');
         $this->domainError = '';
@@ -211,7 +224,7 @@ class HireWizard extends Component
         }
 
         try {
-            $employment = DB::transaction(function () use ($persons, $employments, $banks, $enrolments) {
+            $employment = DB::transaction(function () use ($persons, $employments, $banks, $enrolments, $timeProfiles) {
                 $personData = $this->personData();
 
                 if ($this->existingPersonId !== null) {
@@ -240,6 +253,14 @@ class HireWizard extends Component
                     : $employments->hire($person, $company, $employmentData, $assignment);
 
                 $banks->set($employment, $this->bankData());
+
+                $timeProfiles->set($employment, [
+                    'effective_from' => $this->hireDate,
+                    'shift_id' => (int) $this->shiftId,
+                    'attendance_mode' => $this->attendanceMode,
+                    'ot_mode' => $this->otMode,
+                    'late_deduction' => $this->lateDeduction,
+                ]);
 
                 if (trim($this->deviceGroup) !== '') {
                     $enrolments->enrol($employment, trim($this->deviceGroup), (int) $this->deviceUserId, $this->hireDate);
@@ -485,6 +506,10 @@ class HireWizard extends Component
                 'jobId' => ['required', 'integer', Rule::exists('hr_jobs', 'id')],
                 'gradeId' => ['required', 'integer', Rule::exists('grades', 'id')],
                 'locationId' => ['required', 'integer', Rule::exists('locations', 'id')],
+                'shiftId' => ['required', 'integer', Rule::exists('shifts', 'id')->where('is_active', true)],
+                'attendanceMode' => ['required', Rule::enum(AttendanceMode::class)],
+                'otMode' => ['required', Rule::enum(OtMode::class)],
+                'lateDeduction' => ['boolean'],
             ],
             4 => [
                 'isCash' => ['boolean'],
@@ -675,6 +700,9 @@ class HireWizard extends Component
             'maritalStatuses' => MaritalStatus::cases(),
             'employeeCategories' => EmployeeCategory::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
             'staffWorkCategories' => StaffWorkCategory::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
+            'shifts' => Shift::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
+            'attendanceModes' => AttendanceMode::cases(),
+            'otModes' => OtMode::cases(),
             'deviceGroups' => Device::query()->whereNotNull('device_group')->distinct()->orderBy('device_group')->pluck('device_group'),
             'selectedManager' => $this->selectedManager(),
             'managerResults' => $this->managerResults($companyId),

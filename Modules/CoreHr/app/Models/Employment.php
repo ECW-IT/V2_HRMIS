@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Modules\Attendance\Models\EmploymentTimeProfile;
 use Modules\CoreHr\Database\Factories\EmploymentFactory;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Enums\EmploymentType;
@@ -63,6 +64,11 @@ class Employment extends Model
     public function assignments(): HasMany
     {
         return $this->hasMany(Assignment::class);
+    }
+
+    public function timeProfiles(): HasMany
+    {
+        return $this->hasMany(EmploymentTimeProfile::class);
     }
 
     public function events(): HasMany

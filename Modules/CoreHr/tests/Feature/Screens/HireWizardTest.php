@@ -32,6 +32,8 @@ class HireWizardTest extends TestCase
             ->set('firstName', 'Nimal')->set('lastName', 'Perera')->set('nameWithInitials', 'N. Perera')->set('mobile', '0771234567')
             ->set('addressLine1', '12 Main St')->set('city', 'Nittambuwa')->call('next');
 
+        $shift = $this->shift();
+
         foreach (array_merge([
             'type' => 'PERMANENT',
             'hireDate' => '2026-12-01',
@@ -40,6 +42,7 @@ class HireWizardTest extends TestCase
             'jobId' => $a['job_id'],
             'gradeId' => $a['grade_id'],
             'locationId' => $a['location_id'],
+            'shiftId' => $shift->id,
         ], $employment) as $property => $value) {
             $component->set($property, $value);
         }
@@ -69,7 +72,8 @@ class HireWizardTest extends TestCase
             ->set('firstName', 'Nimal')->set('lastName', 'Perera')->set('nameWithInitials', 'N. Perera')->set('mobile', '0771234567')
             ->set('addressLine1', '12 Main St')->set('city', 'Nittambuwa')->call('next')
             ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('epfNo', '900')
-            ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])->call('next')
+            ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])
+            ->set('shiftId', $this->shift()->id)->call('next')
             ->set('bankId', $bank->id)->set('bankBranchId', $branch->id)->set('accountNo', '0012345678')->set('deviceGroup', 'NIT')->set('deviceUserId', 116)->call('next')
             ->assertSet('step', 5)->assertSee('The employee number will be issued when you save.')->call('hire')
             ->assertHasNoErrors()->assertRedirect();
@@ -125,7 +129,8 @@ class HireWizardTest extends TestCase
         Livewire::test(HireWizard::class)->set('companyId', $c->id)->set('nic', $p->nic)->call('next')
             ->set('mobile', '0771234567')->set('addressLine1', '1 Lane')->set('city', 'Gampaha')->call('next')
             ->set('type', 'PERMANENT')->set('hireDate', '2026-11-20')->set('epfNo', '4321')
-            ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])->call('next')
+            ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])
+            ->set('shiftId', $this->shift()->id)->call('next')
             ->set('isCash', true)->call('next')
             ->call('hire')->assertHasNoErrors()->assertRedirect();
 
