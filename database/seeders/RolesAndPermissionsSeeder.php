@@ -27,6 +27,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee.document.manage',
             'attendance.device.manage',
             'attendance.punch.view',
+            'attendance.adjust',
+            'attendance.adjust.direct',
             'shift.manage',
             'calendar.manage',
             'period.manage',
@@ -63,6 +65,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'employee.document.view',
             'employee.document.manage',
             'attendance.punch.view',
+            'attendance.adjust',
         ]);
 
         $payrollOfficer = Role::findOrCreate('payroll-officer');

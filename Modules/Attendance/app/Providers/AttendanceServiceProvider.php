@@ -3,8 +3,10 @@
 namespace Modules\Attendance\Providers;
 
 use Livewire\Livewire;
+use Modules\Attendance\Approvals\AttendanceAdjustmentHandler;
 use Modules\Attendance\Console\ComputeTimecards;
 use Modules\Attendance\Console\ResolvePendingPunches;
+use Modules\Attendance\Enums\AdjustmentStatus;
 use Modules\Attendance\Http\Middleware\AuthenticateDevice;
 use Modules\Attendance\Livewire\DevicesIndex;
 use Modules\Attendance\Livewire\EmployeePunches;
@@ -12,6 +14,11 @@ use Modules\Attendance\Livewire\ShiftsIndex;
 use Modules\Attendance\Livewire\Tabs\TimeProfile;
 use Modules\Attendance\Livewire\TimeProfilesBulk;
 use Modules\Attendance\Livewire\UnresolvedPunches;
+use Modules\Attendance\Models\AttendanceAdjustment;
+use Modules\Attendance\Services\AdjustmentService;
+use Modules\Workflow\Enums\ApprovalStatus;
+use Modules\Workflow\Models\ApprovalRequest;
+use Modules\Workflow\Services\ApprovalService;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class AttendanceServiceProvider extends ModuleServiceProvider
@@ -35,6 +42,23 @@ class AttendanceServiceProvider extends ModuleServiceProvider
         parent::boot();
 
         $this->app['router']->aliasMiddleware('device.auth', AuthenticateDevice::class);
+
+        ApprovalService::registerHandler('ATTENDANCE_ADJUSTMENT', AttendanceAdjustmentHandler::class);
+
+        ApprovalRequest::updated(function (ApprovalRequest $request): void {
+            if ($request->subject_type !== AttendanceAdjustment::class || ! $request->wasChanged('status')) {
+                return;
+            }
+
+            if ($request->status !== ApprovalStatus::REJECTED) {
+                return;
+            }
+
+            $adjustment = AttendanceAdjustment::withoutGlobalScopes()->find($request->subject_id);
+            if ($adjustment !== null && $adjustment->status === AdjustmentStatus::PENDING) {
+                app(AdjustmentService::class)->markRejected($adjustment);
+            }
+        });
 
         Livewire::component('attendance.devices-index', DevicesIndex::class);
         Livewire::component('attendance.unresolved-punches', UnresolvedPunches::class);

@@ -13,6 +13,7 @@ class ApprovalDefinitionSeeder extends Seeder
         $definitions = [
             ['code' => 'EMPLOYEE_CHANGE', 'name' => 'Employee data change'],
             ['code' => 'EMPLOYEE_EXIT', 'name' => 'Employee exit or transfer'],
+            ['code' => 'ATTENDANCE_ADJUSTMENT', 'name' => 'Attendance adjustment'],
         ];
 
         foreach ($definitions as $row) {

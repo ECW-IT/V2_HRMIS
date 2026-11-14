@@ -6,6 +6,7 @@ use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Log;
+use Modules\Attendance\Enums\AdjustmentType;
 use Modules\Attendance\Enums\AttendanceMode;
 use Modules\Attendance\Enums\DayType;
 use Modules\Attendance\Enums\PunchResolution;
@@ -35,15 +36,33 @@ final class TimecardService
     {
         [$from, $to] = WorkDate::window($workDate);
 
-        return Punch::query()
+        $adjustments = app(AdjustmentService::class)->approvedFor($employmentId, $workDate);
+        $voidedPunchIds = $adjustments
+            ->where('type', AdjustmentType::VOID_PUNCH)
+            ->pluck('punch_id')
+            ->filter()
+            ->all();
+
+        $times = Punch::query()
             ->where('employment_id', $employmentId)
             ->where('resolution', PunchResolution::RESOLVED)
             ->where('punched_at', '>=', $from->format('Y-m-d H:i:s'))
             ->where('punched_at', '<', $to->format('Y-m-d H:i:s'))
+            ->when($voidedPunchIds !== [], fn ($q) => $q->whereNotIn('id', $voidedPunchIds))
             ->orderBy('punched_at')
             ->get()
             ->map(fn (Punch $p) => CarbonImmutable::parse($p->punched_at, config('app.timezone')))
             ->all();
+
+        foreach ($adjustments->where('type', AdjustmentType::ADD_PUNCH) as $add) {
+            if ($add->punched_at !== null) {
+                $times[] = CarbonImmutable::parse($add->punched_at, config('app.timezone'));
+            }
+        }
+
+        usort($times, fn (CarbonImmutable $a, CarbonImmutable $b) => $a <=> $b);
+
+        return array_values($times);
     }
 
     public function isLocked(int $companyId, \DateTimeInterface|string $workDate): bool
