@@ -38,6 +38,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'calendar.manage',
             'period.manage',
             'period.close',
+            'period.override',
+            'period.reopen',
             'approval.act',
             'import.run',
             'access-control.view',
@@ -59,6 +61,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'access-control.view',
             'access-control.manage',
             'import.run',
+            'period.reopen',
         ])));
 
         $hrOfficer = Role::findOrCreate('hr-officer');
