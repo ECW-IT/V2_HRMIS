@@ -9,11 +9,13 @@ use Illuminate\Support\Facades\Log;
 use Modules\Attendance\Enums\AdjustmentType;
 use Modules\Attendance\Enums\AttendanceMode;
 use Modules\Attendance\Enums\DayType;
+use Modules\Attendance\Enums\DecisionLogKind;
 use Modules\Attendance\Enums\PunchResolution;
 use Modules\Attendance\Enums\TimecardException;
 use Modules\Attendance\Exceptions\TimecardLocked;
 use Modules\Attendance\Models\Punch;
 use Modules\Attendance\Models\Timecard;
+use Modules\Attendance\Models\TimecardDecisionLog;
 use Modules\Attendance\Timecards\DayCalculator;
 use Modules\Attendance\Timecards\WorkDate;
 use Modules\Calendar\Enums\PeriodStatus;
@@ -187,6 +189,7 @@ final class TimecardService
         if ($existing !== null) {
             $oldOt = (int) $existing->ot_morning_minutes + (int) $existing->ot_evening_minutes;
             $newOt = (int) $engine['ot_morning_minutes'] + (int) $engine['ot_evening_minutes'];
+            $previousApproved = $existing->ot_approved_minutes;
             $existing->fill($engine);
             if ($oldOt !== $newOt) {
                 $existing->ot_approved_minutes = null;
@@ -194,6 +197,20 @@ final class TimecardService
                 $existing->ot_decided_at = null;
             }
             $existing->save();
+
+            if ($oldOt !== $newOt && $previousApproved !== null) {
+                TimecardDecisionLog::query()->create([
+                    'timecard_id' => $existing->id,
+                    'employment_id' => $existing->employment_id,
+                    'work_date' => $day,
+                    'kind' => DecisionLogKind::OT_CLEARED->value,
+                    'old_value' => $previousApproved,
+                    'new_value' => null,
+                    'reason' => 'Computed OT changed',
+                    'user_id' => null,
+                    'created_at' => now(),
+                ]);
+            }
 
             return $existing->fresh(['payPeriod']);
         }

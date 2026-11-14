@@ -29,6 +29,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'attendance.punch.view',
             'attendance.adjust',
             'attendance.adjust.direct',
+            'ot.approve',
+            'late.waive',
             'shift.manage',
             'calendar.manage',
             'period.manage',
