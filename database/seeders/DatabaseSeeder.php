@@ -8,6 +8,7 @@ use Modules\CoreHr\Database\Seeders\BankSeeder;
 use Modules\CoreHr\Database\Seeders\DocumentTypeSeeder;
 use Modules\Leave\Database\Seeders\LeaveSeeder;
 use Modules\Organisation\Database\Seeders\StaffWorkCategorySeeder;
+use Modules\Payroll\Database\Seeders\LoanTypeSeeder;
 use Modules\Payroll\Database\Seeders\PayComponentSeeder;
 use Modules\Payroll\Database\Seeders\PayRuleSeeder;
 
@@ -27,6 +28,7 @@ class DatabaseSeeder extends Seeder
             LeaveSeeder::class,
             PayComponentSeeder::class,
             PayRuleSeeder::class,
+            LoanTypeSeeder::class,
         ]);
     }
 }
