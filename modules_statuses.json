@@ -6,5 +6,6 @@
     "Attendance": true,
     "LegacyImport": true,
     "Calendar": true,
-    "Leave": true
+    "Leave": true,
+    "Payroll": true
 }
