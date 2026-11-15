@@ -1,7 +1,6 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Modules\Organisation\Livewire\BreakTypesIndex;
 use Modules\Organisation\Livewire\CompaniesIndex;
 use Modules\Organisation\Livewire\EmployeeCategoriesIndex;
 use Modules\Organisation\Livewire\GradesIndex;
@@ -23,6 +22,5 @@ Route::middleware(['auth', 'password.changed', 'can:org.view'])
         Route::get('/jobs', JobsIndex::class)->name('jobs.index');
         Route::get('/categories', EmployeeCategoriesIndex::class)->name('categories.index');
         Route::get('/staff-work-categories', StaffWorkCategoriesIndex::class)->name('staff-work-categories.index');
-        Route::get('/break-types', BreakTypesIndex::class)->name('break-types.index');
         Route::get('/grades', GradesIndex::class)->name('grades.index');
     });

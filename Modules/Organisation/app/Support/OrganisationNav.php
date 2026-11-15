@@ -36,11 +36,6 @@ final class OrganisationNav
                 'active' => $active === 'staff-work-categories',
             ],
             [
-                'label' => 'Break types',
-                'route' => route('org.break-types.index'),
-                'active' => $active === 'break-types',
-            ],
-            [
                 'label' => 'Grades',
                 'route' => route('org.grades.index'),
                 'active' => $active === 'grades',
