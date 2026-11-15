@@ -72,8 +72,12 @@ class MyApprovals extends Component
             ? ApprovalRequest::query()->with(['definition', 'company', 'requester'])->find($this->selectedId)
             : null;
 
+        $hideCompensationPayload = $selected !== null
+            && $selected->definition?->code === 'COMPENSATION_CHANGE'
+            && ! $user->can('compensation.view');
+
         $current = [];
-        if ($selected !== null && $selected->subject_type && $selected->subject_id) {
+        if ($selected !== null && ! $hideCompensationPayload && $selected->subject_type && $selected->subject_id) {
             $subject = $selected->subject_type::query()->find($selected->subject_id);
             if ($subject !== null) {
                 foreach (array_keys($selected->payload ?? []) as $key) {
@@ -87,6 +91,7 @@ class MyApprovals extends Component
             'mine' => $mine,
             'selected' => $selected,
             'currentValues' => $current,
+            'hideCompensationPayload' => $hideCompensationPayload,
         ])->layout('components.layouts.app', [
             'title' => 'My approvals',
         ]);

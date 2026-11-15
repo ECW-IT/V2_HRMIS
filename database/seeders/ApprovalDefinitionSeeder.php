@@ -40,6 +40,13 @@ class ApprovalDefinitionSeeder extends Seeder
                     ['sequence' => 2, 'approver_type' => ApproverType::ROLE, 'approver_ref' => 'hr-manager'],
                 ],
             ],
+            [
+                'code' => 'COMPENSATION_CHANGE',
+                'name' => 'Compensation change',
+                'steps' => [
+                    ['sequence' => 1, 'approver_type' => ApproverType::ROLE, 'approver_ref' => 'hr-manager'],
+                ],
+            ],
         ];
 
         foreach ($definitions as $row) {

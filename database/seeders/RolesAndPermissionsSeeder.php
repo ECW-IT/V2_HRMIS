@@ -50,6 +50,9 @@ class RolesAndPermissionsSeeder extends Seeder
             'settings.manage',
             'payroll.view',
             'payroll.config',
+            'compensation.view',
+            'compensation.manage',
+            'compensation.apply-directly',
         ];
 
         foreach ($permissions as $permission) {
@@ -66,6 +69,7 @@ class RolesAndPermissionsSeeder extends Seeder
             'import.run',
             'period.reopen',
             'payroll.config',
+            'compensation.apply-directly',
         ])));
 
         $hrOfficer = Role::findOrCreate('hr-officer');
@@ -95,6 +99,8 @@ class RolesAndPermissionsSeeder extends Seeder
             'leave.view',
             'payroll.view',
             'payroll.config',
+            'compensation.view',
+            'compensation.manage',
         ]);
 
         $auditor = Role::findOrCreate('auditor');

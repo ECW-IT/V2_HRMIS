@@ -23,6 +23,10 @@ use Modules\CoreHr\Services\DocumentService;
 use Modules\CoreHr\Services\EmploymentService;
 use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\Grade;
+use Modules\Payroll\Database\Seeders\PayComponentSeeder;
+use Modules\Payroll\Database\Seeders\PayRuleSeeder;
+use Modules\Payroll\Enums\OtRateMode;
+use Modules\Payroll\Services\CompensationService;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
 
@@ -59,6 +63,16 @@ class ReadinessChecksTest extends TestCase
         foreach ($mandatory as $type) {
             $this->addDocument($e->person, $type->code);
         }
+
+        $this->seed(PayComponentSeeder::class);
+        $this->seed(PayRuleSeeder::class);
+
+        $isIntern = ($emp['type'] ?? null) === 'INTERN';
+        app(CompensationService::class)->set($e, $hire, [
+            'basic_salary' => $isIntern ? '0.00' : '60000.00',
+            'ot_rate_mode' => OtRateMode::CALCULATED,
+            'attendance_tier_code' => null,
+        ]);
 
         return $e->fresh();
     }
@@ -231,7 +245,7 @@ class ReadinessChecksTest extends TestCase
         $c = $this->company();
         $this->ready($c);
         $summary = app(ReadinessService::class)->summary($c, '2026-11-01');
-        $this->assertSame(['HR001', 'HR002', 'HR003', 'HR004', 'HR005', 'HR006', 'HR007', 'HR008', 'HR009', 'HR010', 'HR011', 'HR012'], array_keys($summary));
+        $this->assertSame(['HR001', 'HR002', 'HR003', 'HR004', 'HR005', 'HR006', 'HR007', 'HR008', 'HR009', 'HR010', 'HR011', 'HR012', 'HR013'], array_keys($summary));
         $this->assertSame(0, array_sum(array_column($summary, 'count')));
     }
 

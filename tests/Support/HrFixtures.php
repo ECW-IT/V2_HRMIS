@@ -20,6 +20,10 @@ use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Job;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
+use Modules\Payroll\Database\Seeders\PayComponentSeeder;
+use Modules\Payroll\Database\Seeders\PayRuleSeeder;
+use Modules\Payroll\Enums\OtRateMode;
+use Modules\Payroll\Services\CompensationService;
 use Spatie\Permission\Models\Role;
 
 trait HrFixtures
@@ -170,6 +174,30 @@ trait HrFixtures
             'ot_mode' => $profile['ot_mode'] ?? OtMode::NONE,
             'late_deduction' => $profile['late_deduction'] ?? false,
         ]);
+
+        return $e->fresh();
+    }
+
+    /** hired() employee with compensation from the hire date. Defaults: basic '60000.00', CALCULATED, tier null. */
+    protected function paid(string $hireDate = '2026-01-01', ?Company $c = null, array $comp = [], array $components = []): Employment
+    {
+        $this->seed(PayComponentSeeder::class);
+
+        $e = $this->hired($hireDate, $c);
+        $this->seed(PayRuleSeeder::class);
+
+        $data = array_merge([
+            'basic_salary' => '60000.00',
+            'ot_rate_mode' => OtRateMode::CALCULATED,
+            'attendance_tier_code' => null,
+        ], $comp);
+
+        $svc = app(CompensationService::class);
+        $svc->set($e, $hireDate, $data);
+
+        foreach ($components as $code => $amount) {
+            $svc->addComponent($e, $code, $amount, $hireDate);
+        }
 
         return $e->fresh();
     }

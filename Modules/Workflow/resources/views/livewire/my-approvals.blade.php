@@ -73,25 +73,29 @@
                 </p>
 
                 <div class="mt-3 overflow-hidden rounded border">
-                    <table class="min-w-full text-sm">
-                        <thead class="bg-slate-50 text-xs uppercase text-slate-500">
-                            <tr>
-                                <th class="px-3 py-2 text-left">Field</th>
-                                <th class="px-3 py-2 text-left">Current</th>
-                                <th class="px-3 py-2 text-left">Requested</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (($selected->payload ?? []) as $key => $value)
-                                @php($changed = ($currentValues[$key] ?? null) != $value)
-                                <tr @class(['border-t', 'bg-amber-50' => $changed])>
-                                    <td class="px-3 py-2 font-medium">{{ $key }}</td>
-                                    <td class="px-3 py-2">{{ $currentValues[$key] ?? '—' }}</td>
-                                    <td class="px-3 py-2">{{ is_scalar($value) || $value === null ? $value : json_encode($value) }}</td>
+                    @if ($hideCompensationPayload)
+                        <p class="px-3 py-4 text-sm text-slate-600">Compensation change (hidden)</p>
+                    @else
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                                <tr>
+                                    <th class="px-3 py-2 text-left">Field</th>
+                                    <th class="px-3 py-2 text-left">Current</th>
+                                    <th class="px-3 py-2 text-left">Requested</th>
                                 </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                @foreach (($selected->payload ?? []) as $key => $value)
+                                    @php($changed = ($currentValues[$key] ?? null) != $value)
+                                    <tr @class(['border-t', 'bg-amber-50' => $changed])>
+                                        <td class="px-3 py-2 font-medium">{{ $key }}</td>
+                                        <td class="px-3 py-2">{{ $currentValues[$key] ?? '—' }}</td>
+                                        <td class="px-3 py-2">{{ is_scalar($value) || $value === null ? $value : json_encode($value) }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
                 </div>
 
                 <div class="mt-3">

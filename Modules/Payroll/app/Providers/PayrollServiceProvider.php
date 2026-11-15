@@ -3,6 +3,8 @@
 namespace Modules\Payroll\Providers;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Modules\Payroll\Approvals\CompensationChangeHandler;
+use Modules\Workflow\Services\ApprovalService;
 use Nwidart\Modules\Support\ModuleServiceProvider;
 
 class PayrollServiceProvider extends ModuleServiceProvider
@@ -33,6 +35,13 @@ class PayrollServiceProvider extends ModuleServiceProvider
         EventServiceProvider::class,
         RouteServiceProvider::class,
     ];
+
+    public function boot(): void
+    {
+        parent::boot();
+
+        ApprovalService::registerHandler('COMPENSATION_CHANGE', CompensationChangeHandler::class);
+    }
 
     /**
      * Define module schedules.
