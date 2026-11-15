@@ -119,17 +119,27 @@ erDiagram
 | created_at, updated_at | |
 
 ### `org_units`
+Single company-scoped tree. Hierarchy is enforced in `OrgUnitService` and typed on the model:
+
+- `DEPARTMENT` — root (parent null, or another department)
+- `SECTION` — parent must be a `DEPARTMENT` (`OrgUnit::sections()`)
+- `SUBSECTION` — parent must be a `SECTION` (`OrgUnit::subSections()`)
+
+Source list for import: [`docs/mapping/org_units.csv`](mapping/org_units.csv) (`company_code,code,name,type,parent_code`). Loaded by `hrmis:import:stage` via `OrgUnitService` for `CO1` and `CO2`.
+
 | Field | Notes |
 |-------|-------|
 | id | PK |
 | company_id | FK → `companies.id` (restrict) |
-| parent_id | FK → `org_units.id` (restrict) |
+| parent_id | FK → `org_units.id` (restrict); null for top-level departments |
 | code | unique with company_id |
 | name | |
-| type | |
+| type | `DEPARTMENT` \| `SECTION` \| `SUBSECTION` |
 | head_employment_id | FK → `employments.id` (nullOnDelete) |
 | is_active | |
 | created_at, updated_at | |
+
+Model helpers: `sections()`, `subSections()`, `department()`, scopes `departments()` / `sections()` / `subSections()`.
 
 ### `hr_jobs`
 | Field | Notes |

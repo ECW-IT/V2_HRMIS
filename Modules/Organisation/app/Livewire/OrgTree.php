@@ -15,6 +15,8 @@ use Modules\Organisation\Support\OrganisationNav;
 
 class OrgTree extends Component
 {
+    public string $search = '';
+
     public bool $showInactive = false;
 
     /** @var array<int, bool> */
@@ -27,6 +29,8 @@ class OrgTree extends Component
     public ?int $editingId = null;
 
     public ?int $parentId = null;
+
+    public string $parentLabel = '';
 
     public string $code = '';
 
@@ -43,6 +47,7 @@ class OrgTree extends Component
         $this->formMode = 'create';
         $this->type = OrgUnitType::DEPARTMENT->value;
         $this->parentId = null;
+        $this->parentLabel = '';
         $this->showForm = true;
     }
 
@@ -53,6 +58,7 @@ class OrgTree extends Component
         $this->resetFormState();
         $this->formMode = 'create';
         $this->parentId = $parent->id;
+        $this->parentLabel = $parent->code.' — '.$parent->name;
         $this->type = match ($parent->type) {
             OrgUnitType::DEPARTMENT => OrgUnitType::SECTION->value,
             OrgUnitType::SECTION => OrgUnitType::SUBSECTION->value,
@@ -65,7 +71,7 @@ class OrgTree extends Component
     public function openEdit(int $unitId): void
     {
         $this->authorize('org.manage');
-        $unit = OrgUnit::query()->findOrFail($unitId);
+        $unit = OrgUnit::query()->with('parent')->findOrFail($unitId);
         $this->resetFormState();
         $this->formMode = 'edit';
         $this->editingId = $unit->id;
@@ -73,6 +79,9 @@ class OrgTree extends Component
         $this->name = $unit->name;
         $this->type = $unit->type->value;
         $this->parentId = $unit->parent_id;
+        $this->parentLabel = $unit->parent
+            ? $unit->parent->code.' — '.$unit->parent->name
+            : '';
         $this->showForm = true;
     }
 
@@ -83,6 +92,7 @@ class OrgTree extends Component
         $this->resetFormState();
         $this->formMode = 'move';
         $this->editingId = $unit->id;
+        $this->type = $unit->type->value;
         $this->moveParentId = $unit->parent_id;
         $this->showForm = true;
     }
@@ -97,6 +107,7 @@ class OrgTree extends Component
     {
         $this->editingId = null;
         $this->parentId = null;
+        $this->parentLabel = '';
         $this->code = '';
         $this->name = '';
         $this->type = '';
@@ -191,11 +202,23 @@ class OrgTree extends Component
             $all = OrgUnit::query()
                 ->where('company_id', $companyId)
                 ->when(! $this->showInactive, fn ($q) => $q->where('is_active', true))
+                ->when($this->search !== '', function ($query) {
+                    $term = '%'.$this->search.'%';
+                    $query->where(function ($inner) use ($term) {
+                        $inner->where('code', 'like', $term)
+                            ->orWhere('name', 'like', $term);
+                    });
+                })
                 ->orderBy('code')
                 ->get();
 
+            // When searching, include ancestors so matched leaves stay in context.
+            if ($this->search !== '' && $all->isNotEmpty()) {
+                $all = $this->withAncestors($all, $companyId);
+            }
+
             $tree = $this->buildTree($all);
-            $moveParents = $all->where('id', '!=', $this->editingId);
+            $moveParents = $this->eligibleMoveParents($all, $companyId);
         }
 
         return view('organisation::livewire.org-tree', [
@@ -203,11 +226,98 @@ class OrgTree extends Component
             'tree' => $tree,
             'moveParents' => $moveParents,
             'types' => OrgUnitType::cases(),
+            'formTitle' => $this->formTitle(),
+            'typeLabel' => $this->typeLabel($this->type),
         ])->layout('components.layouts.module', [
             'moduleName' => 'Organisation',
             'title' => 'Org units',
             'moduleNav' => OrganisationNav::items('units'),
         ]);
+    }
+
+    protected function formTitle(): string
+    {
+        if ($this->formMode === 'move') {
+            return 'Move unit';
+        }
+
+        if ($this->formMode === 'edit') {
+            return 'Edit '.$this->typeLabel($this->type);
+        }
+
+        return match ($this->type) {
+            OrgUnitType::SECTION->value => 'Add section',
+            OrgUnitType::SUBSECTION->value => 'Add sub section',
+            default => 'Add department',
+        };
+    }
+
+    protected function typeLabel(string $type): string
+    {
+        return match ($type) {
+            OrgUnitType::DEPARTMENT->value => 'department',
+            OrgUnitType::SECTION->value => 'section',
+            OrgUnitType::SUBSECTION->value => 'sub section',
+            default => 'unit',
+        };
+    }
+
+    /**
+     * @param  Collection<int, OrgUnit>  $matched
+     * @return Collection<int, OrgUnit>
+     */
+    protected function withAncestors(Collection $matched, int $companyId): Collection
+    {
+        $byId = $matched->keyBy('id');
+        $needed = $matched->pluck('parent_id')->filter()->unique()->values();
+
+        while ($needed->isNotEmpty()) {
+            $missing = $needed->reject(fn ($id) => $byId->has($id));
+            if ($missing->isEmpty()) {
+                break;
+            }
+
+            $parents = OrgUnit::query()
+                ->where('company_id', $companyId)
+                ->whereIn('id', $missing)
+                ->get();
+
+            foreach ($parents as $parent) {
+                $byId->put($parent->id, $parent);
+            }
+
+            $needed = $parents->pluck('parent_id')->filter()->unique()->values();
+        }
+
+        return $byId->values()->sortBy('code')->values();
+    }
+
+    /**
+     * @param  Collection<int, OrgUnit>  $visible
+     * @return Collection<int, OrgUnit>
+     */
+    protected function eligibleMoveParents(Collection $visible, int $companyId): Collection
+    {
+        if ($this->formMode !== 'move' || $this->editingId === null) {
+            return collect();
+        }
+
+        $unit = OrgUnit::query()->find($this->editingId);
+        if ($unit === null) {
+            return collect();
+        }
+
+        $forbidden = app(OrgUnitService::class)->descendantIds($unit);
+
+        return OrgUnit::query()
+            ->where('company_id', $companyId)
+            ->where('is_active', true)
+            ->whereNotIn('id', $forbidden)
+            ->when($unit->type === OrgUnitType::SECTION, fn ($q) => $q->where('type', OrgUnitType::DEPARTMENT))
+            ->when($unit->type === OrgUnitType::SUBSECTION, fn ($q) => $q->where('type', OrgUnitType::SECTION))
+            ->when($unit->type === OrgUnitType::DEPARTMENT, fn ($q) => $q->where('type', OrgUnitType::DEPARTMENT))
+            ->orderBy('code')
+            ->get();
     }
 
     /**

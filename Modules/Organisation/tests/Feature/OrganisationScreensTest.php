@@ -18,6 +18,7 @@ use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Location;
+use Modules\Organisation\Models\OrgUnit;
 use Modules\Organisation\Services\OrgUnitService;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -195,6 +196,93 @@ class OrganisationScreensTest extends TestCase
             ->test(OrgTree::class)
             ->assertSee('A-PROD')
             ->assertDontSee('B-PROD');
+    }
+
+    public function test_manager_can_create_edit_and_deactivate_org_unit_chain(): void
+    {
+        $company = Company::factory()->create();
+        $user = User::factory()->allCompanies()->withPermissions('org.view', 'org.manage')->create([
+            'must_change_password' => false,
+        ]);
+
+        $this->actingAs($user);
+        CompanyContext::set($company->id);
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->call('openAddDepartment')
+            ->set('code', 'PROD')
+            ->set('name', 'Production')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $department = OrgUnit::query()->where('code', 'PROD')->first();
+        $this->assertNotNull($department);
+        $this->assertSame(OrgUnitType::DEPARTMENT, $department->type);
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->call('openAddChild', $department->id)
+            ->assertSet('type', OrgUnitType::SECTION->value)
+            ->set('code', 'PROD_S')
+            ->set('name', 'Production')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $section = OrgUnit::query()->where('code', 'PROD_S')->first();
+        $this->assertNotNull($section);
+        $this->assertSame($department->id, $section->parent_id);
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->call('openAddChild', $section->id)
+            ->assertSet('type', OrgUnitType::SUBSECTION->value)
+            ->set('code', 'PROD_A')
+            ->set('name', 'Production - A')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $subSection = OrgUnit::query()->where('code', 'PROD_A')->first();
+        $this->assertNotNull($subSection);
+        $this->assertSame($section->id, $subSection->parent_id);
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->call('openEdit', $subSection->id)
+            ->set('name', 'Production line A')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame('Production line A', $subSection->fresh()->name);
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->call('deactivate', $subSection->id)
+            ->assertHasNoErrors();
+
+        $this->assertFalse($subSection->fresh()->is_active);
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->call('activate', $subSection->id);
+
+        $this->assertTrue($subSection->fresh()->is_active);
+    }
+
+    public function test_view_only_user_cannot_create_org_unit(): void
+    {
+        $company = Company::factory()->create();
+        $user = User::factory()->allCompanies()->withPermissions('org.view')->create([
+            'must_change_password' => false,
+        ]);
+
+        $this->actingAs($user);
+        CompanyContext::set($company->id);
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->call('openAddDepartment')
+            ->assertForbidden();
     }
 
     public function test_grade_rank_must_be_unique(): void
