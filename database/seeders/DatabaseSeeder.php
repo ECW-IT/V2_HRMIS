@@ -9,6 +9,7 @@ use Modules\CoreHr\Database\Seeders\DocumentTypeSeeder;
 use Modules\Leave\Database\Seeders\LeaveSeeder;
 use Modules\Organisation\Database\Seeders\StaffWorkCategorySeeder;
 use Modules\Payroll\Database\Seeders\PayComponentSeeder;
+use Modules\Payroll\Database\Seeders\PayRuleSeeder;
 
 class DatabaseSeeder extends Seeder
 {
@@ -25,6 +26,7 @@ class DatabaseSeeder extends Seeder
             ShiftSeeder::class,
             LeaveSeeder::class,
             PayComponentSeeder::class,
+            PayRuleSeeder::class,
         ]);
     }
 }
