@@ -22,7 +22,7 @@
             </select>
         </div>
         <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600" for="jobId">Job</label>
+            <label class="mb-1 block text-xs font-medium text-gray-600" for="jobId">Designation</label>
             <select id="jobId" wire:model.live="jobId" class="w-44 rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
                 <option value="">All</option>
                 @foreach($jobs as $job)
@@ -85,7 +85,7 @@
                         </button>
                     </th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Department / section</th>
-                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Job</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Designation</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Grade</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Type</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">

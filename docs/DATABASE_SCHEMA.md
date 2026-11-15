@@ -142,6 +142,8 @@ Source list for import: [`docs/mapping/org_units.csv`](mapping/org_units.csv) (`
 Model helpers: `sections()`, `subSections()`, `department()`, scopes `departments()` / `sections()` / `subSections()`.
 
 ### `hr_jobs`
+UI label: **Designations** (nav and screens). Table/model stay `hr_jobs` / `Job`; assignments use `job_id`.
+
 | Field | Notes |
 |-------|-------|
 | id | PK |

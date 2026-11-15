@@ -741,7 +741,7 @@ class HireWizard extends Component
             'Employee category' => $name(EmployeeCategory::class, $this->employeeCategoryId),
             'Office / shop category' => $name(StaffWorkCategory::class, $this->staffWorkCategoryId),
             'Department / section' => $name(OrgUnit::class, $this->orgUnitId),
-            'Job' => $name(Job::class, $this->jobId),
+            'Designation' => $name(Job::class, $this->jobId),
             'Grade' => $name(Grade::class, $this->gradeId),
             'Location' => $name(Location::class, $this->locationId),
             'Reports to' => $manager ? $manager->employee_no.' · '.$manager->person->name_with_initials : '—',

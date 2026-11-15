@@ -18,7 +18,7 @@ class EmploymentHistory extends Component
 {
     private const FIELD_LABELS = [
         'org_unit_id' => 'Department / section',
-        'job_id' => 'Job',
+        'job_id' => 'Designation',
         'grade_id' => 'Grade',
         'location_id' => 'Location',
         'manager_employment_id' => 'Reports to',

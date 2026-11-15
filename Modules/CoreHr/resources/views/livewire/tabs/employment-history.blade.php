@@ -34,7 +34,7 @@
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">From</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">To</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Department / section</th>
-                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Job</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Designation</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Grade</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Location</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Reports to</th>

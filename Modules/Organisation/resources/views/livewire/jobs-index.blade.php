@@ -1,17 +1,17 @@
 <div class="p-4">
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-            <h1 class="text-lg font-semibold text-slate-800">Jobs</h1>
-            <p class="text-sm text-slate-500">Job titles used on employee assignments.</p>
+            <h1 class="text-lg font-semibold text-slate-800">Designations</h1>
+            <p class="text-sm text-slate-500">Designations used on employee assignments.</p>
         </div>
         @can('org.manage')
             <button type="button" wire:click="openCreate" class="rounded bg-[var(--color-erp-accent)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90">
-                New job
+                New designation
             </button>
         @endcan
     </div>
 
-    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search jobs" class="mb-3 w-full max-w-sm rounded border border-slate-300 px-3 py-2 text-sm">
+    <input type="search" wire:model.live.debounce.300ms="search" placeholder="Search designations" class="mb-3 w-full max-w-sm rounded border border-slate-300 px-3 py-2 text-sm">
 
     <div class="overflow-hidden rounded border bg-white">
         <table class="min-w-full text-left text-sm">
@@ -39,7 +39,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="px-3 py-6 text-center text-slate-500">No jobs found.</td></tr>
+                    <tr><td colspan="4" class="px-3 py-6 text-center text-slate-500">No designations found.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -48,7 +48,7 @@
     @if ($showForm)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
             <div class="w-full max-w-lg rounded-lg bg-white p-4 shadow-xl">
-                <h2 class="text-base font-semibold text-slate-800">{{ $editingId ? 'Edit job' : 'New job' }}</h2>
+                <h2 class="text-base font-semibold text-slate-800">{{ $editingId ? 'Edit designation' : 'New designation' }}</h2>
                 <div class="mt-3 space-y-3">
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">Code</label>

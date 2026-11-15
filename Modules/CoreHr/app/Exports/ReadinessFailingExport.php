@@ -12,7 +12,7 @@ final class ReadinessFailingExport implements FromArray, WithHeadings
 
     public function headings(): array
     {
-        return ['Employee no.', 'Name', 'Department', 'Job'];
+        return ['Employee no.', 'Name', 'Department', 'Designation'];
     }
 
     public function array(): array

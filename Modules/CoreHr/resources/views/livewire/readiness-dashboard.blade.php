@@ -94,7 +94,7 @@
                         <th class="px-3 py-2">Employee no.</th>
                         <th class="px-3 py-2">Name</th>
                         <th class="px-3 py-2">Department</th>
-                        <th class="px-3 py-2">Job</th>
+                        <th class="px-3 py-2">Designation</th>
                     </tr>
                 </thead>
                 <tbody>

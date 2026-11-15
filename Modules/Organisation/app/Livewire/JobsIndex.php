@@ -99,7 +99,7 @@ class JobsIndex extends Component
             'jobs' => $rows,
         ])->layout('components.layouts.module', [
             'moduleName' => 'Organisation',
-            'title' => 'Jobs',
+            'title' => 'Designations',
             'moduleNav' => OrganisationNav::items('jobs'),
         ]);
     }

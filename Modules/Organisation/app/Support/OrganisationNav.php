@@ -21,7 +21,7 @@ final class OrganisationNav
                 'active' => $active === 'units',
             ],
             [
-                'label' => 'Jobs',
+                'label' => 'Designations',
                 'route' => route('org.jobs.index'),
                 'active' => $active === 'jobs',
             ],

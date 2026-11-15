@@ -25,7 +25,7 @@ final class EmployeesExport implements FromQuery, WithHeadings, WithMapping
             'Name with initials',
             'NIC',
             'Department / section',
-            'Job',
+            'Designation',
             'Grade',
             'Type',
             'Hire date',

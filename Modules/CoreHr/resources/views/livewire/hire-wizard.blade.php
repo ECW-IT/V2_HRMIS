@@ -279,7 +279,7 @@
                     @error('orgUnitId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Job <span class="text-red-500">*</span></label>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Designation <span class="text-red-500">*</span></label>
                     <select wire:model="jobId" class="{{ $input }} @error('jobId') border-red-400 @enderror">
                         <option value="">Select</option>
                         @foreach($jobs as $job)
