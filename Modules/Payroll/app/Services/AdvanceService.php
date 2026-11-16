@@ -204,6 +204,37 @@ final class AdvanceService
         }
     }
 
+    /** Opening import: create a PAID advance for the given period (unrecovered). */
+    public function loadOpening(Employment $e, PayPeriod $p, string $amount, User $by, ?string $paidOn = null): SalaryAdvance
+    {
+        $this->authorizeManage($by, (int) $e->company_id);
+        $this->assertSameCompany($e, $p);
+
+        $amount = $this->money($amount);
+        if (bccomp($amount, '0.00', 2) <= 0) {
+            throw new InvalidAdvance('Advance amount must be greater than zero.');
+        }
+
+        $paidOn = $this->dateString($paidOn ?? $p->start_date);
+
+        return SalaryAdvance::query()->create([
+            'company_id' => $e->company_id,
+            'employment_id' => $e->id,
+            'pay_period_id' => $p->id,
+            'amount' => $amount,
+            'requested_on' => $paidOn,
+            'reason' => 'Opening data from legacy payroll',
+            'status' => AdvanceStatus::PAID,
+            'approval_request_id' => null,
+            'paid_on' => $paidOn,
+            'paid_by' => $by->id,
+            'payment_reference' => null,
+            'recovered_pay_run_id' => null,
+            'converted_loan_id' => null,
+            'created_by' => $by->id,
+        ]);
+    }
+
     private function assertWithinLimit(Employment $e, PayPeriod $p, string $amount): void
     {
         $comp = $this->compensation->on($e, $this->dateString($p->end_date));

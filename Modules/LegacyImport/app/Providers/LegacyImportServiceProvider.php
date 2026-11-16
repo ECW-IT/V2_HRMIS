@@ -5,6 +5,10 @@ namespace Modules\LegacyImport\Providers;
 use Livewire\Livewire;
 use Modules\LegacyImport\Console\ExportLegacySyncCommand;
 use Modules\LegacyImport\Console\LoadCommand;
+use Modules\LegacyImport\Console\PayCompareCommand;
+use Modules\LegacyImport\Console\PayLoadCommand;
+use Modules\LegacyImport\Console\PayStageCommand;
+use Modules\LegacyImport\Console\PayValidateCommand;
 use Modules\LegacyImport\Console\ReportCommand;
 use Modules\LegacyImport\Console\StageCommand;
 use Modules\LegacyImport\Console\ValidateCommand;
@@ -23,6 +27,10 @@ class LegacyImportServiceProvider extends ModuleServiceProvider
         LoadCommand::class,
         ReportCommand::class,
         ExportLegacySyncCommand::class,
+        PayStageCommand::class,
+        PayValidateCommand::class,
+        PayLoadCommand::class,
+        PayCompareCommand::class,
     ];
 
     protected array $providers = [

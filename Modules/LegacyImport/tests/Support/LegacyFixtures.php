@@ -19,7 +19,7 @@ trait LegacyFixtures
 
     private static int $fpSerial = 100;
 
-    private static int $epfSerial = 1000;
+    private static int $legacyEpfSerial = 1000;
 
     protected function setUpLegacyFixtures(): void
     {
@@ -119,14 +119,121 @@ trait LegacyFixtures
         });
 
         $pay = Schema::connection('legacy_payroll');
-        $pay->dropIfExists('payr__employee_profile');
+        foreach ([
+            'payr_advances_deductions',
+            'payr_salary_advance_requests',
+            'payr_loan_schedules',
+            'payr_employee_loans',
+            'payr_employee_adjestments',
+            'payr_adjustment_rates',
+            'payr_adjustment_types',
+            'payr_employee_tempt_net_salaries',
+            'payr_paysheet_records',
+            'payr_pay_cycles',
+            'payr__employee_profile',
+        ] as $table) {
+            $pay->dropIfExists($table);
+        }
+
         $pay->create('payr__employee_profile', function ($table) {
             $table->increments('id');
             $table->string('emp_no')->nullable();
             $table->string('epf_no')->nullable();
             $table->string('bank_account')->nullable();
+            $table->decimal('basic_salary', 12, 2)->nullable();
+            $table->string('ot_rate_mode', 20)->nullable();
+            $table->string('attendance_type', 20)->nullable();
+            $table->unsignedTinyInteger('hostal')->default(0);
             $table->unsignedTinyInteger('status')->nullable();
             $table->unsignedInteger('branch_id')->nullable();
+        });
+
+        $pay->create('payr_adjustment_types', function ($table) {
+            $table->increments('id');
+            $table->string('name')->nullable();
+            $table->string('paysheet_type')->nullable();
+            $table->unsignedTinyInteger('status')->default(1);
+        });
+
+        $pay->create('payr_adjustment_rates', function ($table) {
+            $table->increments('id');
+            $table->unsignedInteger('adjustment_id');
+            $table->decimal('amount', 12, 2)->nullable();
+            $table->date('start_date')->nullable();
+            $table->date('end_date')->nullable();
+            $table->unsignedTinyInteger('status')->default(1);
+        });
+
+        $pay->create('payr_employee_adjestments', function ($table) {
+            $table->increments('id');
+            $table->unsignedInteger('emp_id');
+            $table->unsignedInteger('adju_id');
+            $table->decimal('amount', 12, 2)->nullable();
+            $table->unsignedTinyInteger('status')->default(1);
+        });
+
+        $pay->create('payr_employee_loans', function ($table) {
+            $table->increments('id');
+            $table->unsignedInteger('employee_id');
+            $table->unsignedInteger('loan_type_id')->nullable();
+            $table->decimal('approved_amount', 12, 2)->nullable();
+            $table->unsignedInteger('approved_installments')->nullable();
+            $table->unsignedTinyInteger('if_approved')->default(0);
+            $table->unsignedTinyInteger('status')->default(0);
+            $table->unsignedTinyInteger('paid')->default(0);
+        });
+
+        $pay->create('payr_loan_schedules', function ($table) {
+            $table->increments('id');
+            $table->unsignedInteger('loan_id');
+            $table->date('schedule_month')->nullable();
+            $table->decimal('schedule_amount', 12, 2)->nullable();
+            $table->unsignedTinyInteger('if_paid')->default(0);
+            $table->unsignedTinyInteger('is_grace_month')->default(0);
+        });
+
+        $pay->create('payr_salary_advance_requests', function ($table) {
+            $table->increments('id');
+            $table->unsignedInteger('employee_id');
+            $table->decimal('amount', 12, 2)->nullable();
+            $table->unsignedTinyInteger('is_paid')->default(0);
+            $table->date('paid_date')->nullable();
+            $table->unsignedTinyInteger('status')->default(0);
+            $table->unsignedInteger('converted_to_loan_id')->nullable();
+        });
+
+        $pay->create('payr_advances_deductions', function ($table) {
+            $table->increments('id');
+            $table->unsignedInteger('payr_employee_salary_advance_id');
+            $table->decimal('deducted_amount', 12, 2)->nullable();
+            $table->date('month')->nullable();
+            $table->unsignedTinyInteger('if_paid')->default(0);
+        });
+
+        $pay->create('payr_pay_cycles', function ($table) {
+            $table->increments('id');
+            $table->unsignedSmallInteger('year');
+            $table->unsignedTinyInteger('month');
+            $table->unsignedTinyInteger('is_locked')->default(0);
+        });
+
+        $pay->create('payr_paysheet_records', function ($table) {
+            $table->increments('id');
+            $table->unsignedInteger('cycle_id');
+            $table->string('emp_no')->nullable();
+            $table->decimal('basic_salary', 12, 2)->nullable();
+            $table->decimal('gross', 12, 2)->nullable();
+            $table->decimal('epf_employee', 12, 2)->nullable();
+            $table->decimal('total_deductions', 12, 2)->nullable();
+            $table->decimal('net_pay', 12, 2)->nullable();
+        });
+
+        $pay->create('payr_employee_tempt_net_salaries', function ($table) {
+            $table->increments('id');
+            $table->unsignedSmallInteger('year');
+            $table->unsignedTinyInteger('month');
+            $table->string('emp_no')->nullable();
+            $table->decimal('net_salary', 12, 2)->nullable();
         });
     }
 
@@ -190,7 +297,7 @@ trait LegacyFixtures
             $o['emp_gender'] = $o['emp_gender'] ?? (Nic::gender($nic)->value === 'MALE' ? 'Male' : 'Female');
         }
 
-        $epf = $o['emp_etfno'] ?? (string) (self::$epfSerial++);
+        $epf = $o['emp_etfno'] ?? (string) (self::$legacyEpfSerial++);
         $empId = $o['emp_id'] ?? ('ECW 0'.str_pad((string) $n, 2, '0', STR_PAD_LEFT));
         $fp = array_key_exists('emp_fp_id', $o) ? $o['emp_fp_id'] : (self::$fpSerial++);
 
@@ -250,15 +357,155 @@ trait LegacyFixtures
     /**
      * @param  array<string, mixed>  $o
      */
-    protected function legacyProfile(array $o = []): void
+    /**
+     * @param  array<string, mixed>  $o
+     */
+    protected function legacyProfile(array $o = []): int
     {
-        DB::connection('legacy_payroll')->table('payr__employee_profile')->insert(array_merge([
+        return (int) DB::connection('legacy_payroll')->table('payr__employee_profile')->insertGetId(array_merge([
             'emp_no' => 'ECW 001',
             'epf_no' => '1',
             'bank_account' => null,
+            'basic_salary' => 60000,
+            'ot_rate_mode' => 'calculated',
+            'attendance_type' => null,
+            'hostal' => 0,
             'status' => 1,
             'branch_id' => 1,
         ], $o));
+    }
+
+    /**
+     * @param  array<string, mixed>  $o
+     */
+    protected function legacyAdjustmentType(array $o = []): int
+    {
+        $row = array_merge([
+            'name' => 'Fuel',
+            'paysheet_type' => 'earning',
+            'status' => 1,
+        ], $o);
+
+        if (isset($row['id'])) {
+            $id = (int) $row['id'];
+            DB::connection('legacy_payroll')->table('payr_adjustment_types')->updateOrInsert(
+                ['id' => $id],
+                $row
+            );
+
+            return $id;
+        }
+
+        return (int) DB::connection('legacy_payroll')->table('payr_adjustment_types')->insertGetId($row);
+    }
+
+    /**
+     * @param  array<string, mixed>  $o
+     */
+    protected function legacyEmployeeAdjustment(int $profileId, int $typeId, float|string $amount, int $status = 1): int
+    {
+        return (int) DB::connection('legacy_payroll')->table('payr_employee_adjestments')->insertGetId([
+            'emp_id' => $profileId,
+            'adju_id' => $typeId,
+            'amount' => $amount,
+            'status' => $status,
+        ]);
+    }
+
+    /**
+     * @param  array<string, mixed>  $o
+     */
+    protected function legacyAdjustmentRate(int $typeId, array $o = []): int
+    {
+        return (int) DB::connection('legacy_payroll')->table('payr_adjustment_rates')->insertGetId(array_merge([
+            'adjustment_id' => $typeId,
+            'amount' => 3500,
+            'start_date' => '2026-01-01',
+            'end_date' => null,
+            'status' => 1,
+        ], $o));
+    }
+
+    /**
+     * @param  array<string, mixed>  $loan
+     * @param  list<array{month: string, amount: float|string, paid?: int}>  $schedule
+     */
+    protected function legacyLoan(int $profileId, array $loan = [], array $schedule = []): int
+    {
+        $id = (int) DB::connection('legacy_payroll')->table('payr_employee_loans')->insertGetId(array_merge([
+            'employee_id' => $profileId,
+            'loan_type_id' => 1,
+            'approved_amount' => 60000,
+            'approved_installments' => 6,
+            'if_approved' => 1,
+            'status' => 1,
+            'paid' => 1,
+        ], $loan));
+
+        foreach ($schedule as $row) {
+            DB::connection('legacy_payroll')->table('payr_loan_schedules')->insert([
+                'loan_id' => $id,
+                'schedule_month' => $row['month'],
+                'schedule_amount' => $row['amount'],
+                'if_paid' => $row['paid'] ?? 0,
+                'is_grace_month' => $row['grace'] ?? 0,
+            ]);
+        }
+
+        return $id;
+    }
+
+    /**
+     * @param  array<string, mixed>  $advance
+     * @param  list<array{month: string, amount: float|string, paid?: int}>  $deductions
+     */
+    protected function legacyAdvance(int $profileId, array $advance = [], array $deductions = []): int
+    {
+        $id = (int) DB::connection('legacy_payroll')->table('payr_salary_advance_requests')->insertGetId(array_merge([
+            'employee_id' => $profileId,
+            'amount' => 10000,
+            'is_paid' => 1,
+            'paid_date' => '2026-11-15',
+            'status' => 1,
+            'converted_to_loan_id' => null,
+        ], $advance));
+
+        foreach ($deductions as $row) {
+            DB::connection('legacy_payroll')->table('payr_advances_deductions')->insert([
+                'payr_employee_salary_advance_id' => $id,
+                'deducted_amount' => $row['amount'],
+                'month' => $row['month'],
+                'if_paid' => $row['paid'] ?? 0,
+            ]);
+        }
+
+        return $id;
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     */
+    protected function legacyPayCycle(int $year, int $month, array $rows = [], bool $locked = true): int
+    {
+        $cycleId = (int) DB::connection('legacy_payroll')->table('payr_pay_cycles')->insertGetId([
+            'year' => $year,
+            'month' => $month,
+            'is_locked' => $locked ? 1 : 0,
+        ]);
+
+        foreach ($rows as $row) {
+            DB::connection('legacy_payroll')->table('payr_paysheet_records')->insert(array_merge([
+                'cycle_id' => $cycleId,
+                'emp_no' => 'ECW 001',
+                'basic_salary' => 0,
+                'gross' => 0,
+                'epf_employee' => 0,
+                'total_deductions' => 0,
+                'net_pay' => 0,
+            ], $row));
+        }
+
+        return $cycleId;
     }
 
     /**
@@ -280,6 +527,7 @@ trait LegacyFixtures
             'document_type_map.csv' => "legacy_attachment_type_id,document_type_code\n1,OTHER\n",
             'org_units.csv' => "company_code,code,name,type,parent_code\nCO1,PROD,Production,DEPARTMENT,\nCO2,PROD,Production,DEPARTMENT,\n",
             'jobs.csv' => "code,name\nTECH,Technician\n",
+            'pay_components.csv' => "legacy_adjustment_type_id,legacy_name,v2_code,action\n1,Fuel,FUEL,COMPONENT\n2,OT Rate,,OT_RATE\n3,Attendance Allowance,ATT_ALLOW,IGNORE\n4,Hostel,HOSTEL,IGNORE\n5,Meals,MEALS,ENTRY\n6,Skip me,,IGNORE\n",
         ];
 
         $paths = [];
@@ -315,6 +563,7 @@ trait LegacyFixtures
         Config::set('legacy_import.document_type_map', $paths['document_type_map.csv'] ?? $dir.'/document_type_map.csv.missing');
         Config::set('legacy_import.org_units', $paths['org_units.csv'] ?? $dir.'/org_units.csv.missing');
         Config::set('legacy_import.jobs', $paths['jobs.csv'] ?? $dir.'/jobs.csv.missing');
+        Config::set('legacy_import.pay_components', $paths['pay_components.csv'] ?? $dir.'/pay_components.csv.missing');
         Config::set('legacy_import.attachment_path', $dir.DIRECTORY_SEPARATOR.'attachments');
 
         if (! is_dir(config('legacy_import.attachment_path'))) {

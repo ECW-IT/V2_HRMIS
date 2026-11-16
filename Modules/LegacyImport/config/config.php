@@ -10,5 +10,6 @@ return [
     'document_type_map' => base_path('docs/mapping/document_type_map.csv'),
     'org_units' => base_path('docs/mapping/org_units.csv'),
     'jobs' => base_path('docs/mapping/jobs.csv'),
+    'pay_components' => base_path('docs/mapping/pay_components.csv'),
     'attachment_path' => storage_path('app/private/legacy_attachments'),
 ];

@@ -255,6 +255,70 @@ final class LoanService
         }
     }
 
+    /**
+     * Opening import: create an ACTIVE loan with the given unpaid DUE instalments.
+     * $data keys: loan_type_code?, amount, instalments: list{due_month, amount}, paid_on?, reason?.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function loadOpening(Employment $e, array $data, User $by): Loan
+    {
+        $this->authorizeManage($by, (int) $e->company_id);
+
+        $amount = $this->money($data['amount'] ?? null);
+        if (bccomp($amount, '0.00', 2) <= 0) {
+            throw new InvalidLoan('Loan amount must be greater than zero.');
+        }
+
+        /** @var list<array{due_month: string, amount: string}> $rows */
+        $rows = $data['instalments'] ?? [];
+        if ($rows === []) {
+            throw new InvalidLoan('Opening loan requires at least one unpaid instalment.');
+        }
+
+        $typeCode = (string) ($data['loan_type_code'] ?? 'STAFF');
+        $type = LoanType::query()->where('code', $typeCode)->where('is_active', true)->first();
+        if ($type === null) {
+            throw new InvalidLoan('Unknown loan type.');
+        }
+
+        $firstMonth = $this->dateString($rows[0]['due_month']);
+        $year = CarbonImmutable::parse($firstMonth)->year;
+        $paidOn = isset($data['paid_on']) ? $this->dateString($data['paid_on']) : $firstMonth;
+
+        return DB::transaction(function () use ($e, $type, $amount, $rows, $firstMonth, $paidOn, $data, $by, $year) {
+            $loan = Loan::query()->create([
+                'company_id' => $e->company_id,
+                'employment_id' => $e->id,
+                'loan_type_id' => $type->id,
+                'loan_no' => $this->nextLoanNo((int) $e->company_id, $year),
+                'amount' => $amount,
+                'instalments' => count($rows),
+                'first_month' => $firstMonth,
+                'reason' => $data['reason'] ?? 'Opening data from legacy payroll',
+                'status' => LoanStatus::ACTIVE,
+                'approval_request_id' => null,
+                'paid_on' => $paidOn,
+                'payment_reference' => null,
+                'created_by' => $by->id,
+            ]);
+
+            $seq = 1;
+            foreach ($rows as $row) {
+                $loan->instalmentRows()->create([
+                    'sequence' => $seq++,
+                    'due_month' => $this->dateString($row['due_month']),
+                    'amount' => $this->money($row['amount']),
+                    'status' => InstalmentStatus::DUE,
+                    'pay_run_id' => null,
+                    'note' => null,
+                ]);
+            }
+
+            return $loan->fresh(['instalmentRows']);
+        });
+    }
+
     public function nextLoanNo(int $companyId, int $year): string
     {
         $prefix = 'LN-'.$year.'-';

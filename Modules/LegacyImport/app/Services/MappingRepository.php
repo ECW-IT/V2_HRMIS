@@ -16,6 +16,7 @@ final class MappingRepository
         'document_type_map' => ['legacy_attachment_type_id', 'document_type_code'],
         'org_units' => ['company_code', 'code', 'name', 'type', 'parent_code'],
         'jobs' => ['code', 'name'],
+        'pay_components' => ['legacy_adjustment_type_id', 'legacy_name', 'v2_code', 'action'],
     ];
 
     /** @var array<string, list<array<string, string>>>|null */
@@ -109,6 +110,46 @@ final class MappingRepository
         foreach ($this->rows('document_type_map') as $row) {
             if ((string) $row['legacy_attachment_type_id'] === (string) $attachmentTypeId) {
                 return $row['document_type_code'];
+            }
+        }
+
+        return null;
+    }
+
+    /** @return array{legacy_adjustment_type_id: string, legacy_name: string, v2_code: string, action: string}|null */
+    public function payComponentMap(int|string|null $adjustmentTypeId): ?array
+    {
+        if ($adjustmentTypeId === null || $adjustmentTypeId === '') {
+            return null;
+        }
+
+        foreach ($this->rows('pay_components') as $row) {
+            if ((string) $row['legacy_adjustment_type_id'] === (string) $adjustmentTypeId) {
+                return $row;
+            }
+        }
+
+        return null;
+    }
+
+    /** First mapped type id with the given action (e.g. OT_RATE), or null. */
+    public function payComponentTypeIdForAction(string $action): ?int
+    {
+        foreach ($this->rows('pay_components') as $row) {
+            if (strtoupper($row['action']) === strtoupper($action)) {
+                return (int) $row['legacy_adjustment_type_id'];
+            }
+        }
+
+        return null;
+    }
+
+    /** Type id whose v2_code matches (e.g. HOSTEL / ATT_ALLOW). */
+    public function payComponentTypeIdForV2Code(string $v2Code): ?int
+    {
+        foreach ($this->rows('pay_components') as $row) {
+            if (strtoupper($row['v2_code']) === strtoupper($v2Code)) {
+                return (int) $row['legacy_adjustment_type_id'];
             }
         }
 
@@ -242,6 +283,7 @@ final class MappingRepository
             'document_type_map' => ['legacy_attachment_type_id', 'document_type_code'],
             'org_units' => ['company_code', 'code', 'name', 'type'],
             'jobs' => ['code', 'name'],
+            'pay_components' => ['legacy_adjustment_type_id', 'action'],
             default => [],
         };
 
