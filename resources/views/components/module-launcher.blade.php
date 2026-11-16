@@ -9,7 +9,7 @@
         ['icon' => '👥', 'label' => 'Employees', 'route' => 'employees.index'],
         ['icon' => '⏱️', 'label' => 'Time & Leave', 'route' => 'attendance.board'],
         ['icon' => '🗓️', 'label' => 'Calendar', 'route' => 'calendar.holidays.index'],
-        ['icon' => '💰', 'label' => 'Payroll', 'route' => null],
+        ['icon' => '💰', 'label' => 'Payroll', 'route' => 'payroll.components'],
         ['icon' => '✅', 'label' => 'Approvals', 'route' => 'approvals.index'],
         ['icon' => '📊', 'label' => 'Reports', 'route' => null],
         ['icon' => '📜', 'label' => 'Audit', 'route' => null],

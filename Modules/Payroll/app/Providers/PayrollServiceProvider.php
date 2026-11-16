@@ -3,11 +3,13 @@
 namespace Modules\Payroll\Providers;
 
 use Illuminate\Console\Scheduling\Schedule;
+use Livewire\Livewire;
 use Modules\Payroll\Approvals\AdvanceHandler;
 use Modules\Payroll\Approvals\CompensationChangeHandler;
 use Modules\Payroll\Approvals\LoanHandler;
 use Modules\Payroll\Enums\AdvanceStatus;
 use Modules\Payroll\Enums\LoanStatus;
+use Modules\Payroll\Livewire\PayComponentsIndex;
 use Modules\Payroll\Models\Loan;
 use Modules\Payroll\Models\SalaryAdvance;
 use Modules\Payroll\Services\AdvanceService;
@@ -42,6 +44,8 @@ class PayrollServiceProvider extends ModuleServiceProvider
     public function boot(): void
     {
         parent::boot();
+
+        Livewire::component('payroll.pay-components-index', PayComponentsIndex::class);
 
         ApprovalService::registerHandler('COMPENSATION_CHANGE', CompensationChangeHandler::class);
         ApprovalService::registerHandler('SALARY_ADVANCE', AdvanceHandler::class);
