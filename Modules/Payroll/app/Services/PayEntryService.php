@@ -153,10 +153,11 @@ final class PayEntryService
         return ['added' => count($prepared), 'errors' => []];
     }
 
-    /** Stub for Task 33 — refuse when a pay run is APPROVED or LOCKED. */
     private function assertPeriodAcceptsEntries(PayPeriod $p): void
     {
-        // Task 33 will enforce pay-run status.
+        if (app(PayRunService::class)->isPeriodFrozen((int) $p->id)) {
+            throw new InvalidPayEntry('Pay entries are closed for this period.');
+        }
     }
 
     /** @return array{0: PayComponent, 1: ?string, 2: ?string} */

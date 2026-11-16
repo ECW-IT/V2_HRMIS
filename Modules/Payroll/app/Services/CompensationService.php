@@ -9,10 +9,12 @@ use Modules\CoreHr\Enums\EmploymentType;
 use Modules\CoreHr\Models\Employment;
 use Modules\Payroll\Enums\CalcMethod;
 use Modules\Payroll\Enums\OtRateMode;
+use Modules\Payroll\Enums\PayRunStatus;
 use Modules\Payroll\Exceptions\InvalidCompensation;
 use Modules\Payroll\Models\EmployeeCompensation;
 use Modules\Payroll\Models\EmployeeComponent;
 use Modules\Payroll\Models\PayComponent;
+use Modules\Payroll\Models\PayRun;
 use Modules\Payroll\Rules\PayRules;
 
 final class CompensationService
@@ -230,10 +232,19 @@ final class CompensationService
             ->values();
     }
 
-    /** Stub for Task 33 — locked pay-run check. */
     private function assertPeriodNotLocked(string $on): void
     {
-        // Task 33 will enforce locked pay runs.
+        $locked = PayRun::query()
+            ->where('status', PayRunStatus::LOCKED)
+            ->whereHas('payPeriod', function ($q) use ($on) {
+                $q->whereDate('start_date', '<=', $on)
+                    ->whereDate('end_date', '>=', $on);
+            })
+            ->exists();
+
+        if ($locked) {
+            throw new InvalidCompensation('Compensation cannot change inside a locked pay period.');
+        }
     }
 
     private function isFirstOfMonth(string $date): bool

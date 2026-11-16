@@ -11,10 +11,12 @@ use Modules\Calendar\Models\PayPeriod;
 use Modules\CoreHr\Models\Employment;
 use Modules\Payroll\Enums\InstalmentStatus;
 use Modules\Payroll\Enums\LoanStatus;
+use Modules\Payroll\Enums\PayRunStatus;
 use Modules\Payroll\Exceptions\InvalidLoan;
 use Modules\Payroll\Models\Loan;
 use Modules\Payroll\Models\LoanInstalment;
 use Modules\Payroll\Models\LoanType;
+use Modules\Payroll\Models\PayRun;
 use Modules\Workflow\Enums\ApprovalActionType;
 use Modules\Workflow\Services\ApprovalService;
 
@@ -285,10 +287,23 @@ final class LoanService
         }
     }
 
-    /** Stub for Task 33. */
     private function assertPeriodNotLockedForMonth(string $month): void
     {
-        // Task 33 will enforce locked pay runs.
+        $day = CarbonImmutable::parse($month)->toDateString();
+        $frozen = PayRun::query()
+            ->whereIn('status', [
+                PayRunStatus::APPROVED,
+                PayRunStatus::LOCKED,
+            ])
+            ->whereHas('payPeriod', function ($q) use ($day) {
+                $q->whereDate('start_date', '<=', $day)
+                    ->whereDate('end_date', '>=', $day);
+            })
+            ->exists();
+
+        if ($frozen) {
+            throw new InvalidLoan('Loans are closed for this period.');
+        }
     }
 
     private function refuseSelf(User $by, Employment $e): void

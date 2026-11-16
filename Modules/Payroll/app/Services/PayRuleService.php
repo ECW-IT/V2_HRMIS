@@ -10,10 +10,12 @@ use Illuminate\Support\Facades\Gate;
 use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\Grade;
 use Modules\Payroll\Enums\ExtraDayMethod;
+use Modules\Payroll\Enums\PayRunStatus;
 use Modules\Payroll\Exceptions\InvalidPayRule;
 use Modules\Payroll\Models\AttendanceAllowanceTier;
 use Modules\Payroll\Models\CompanyPaySetting;
 use Modules\Payroll\Models\GradePayRule;
+use Modules\Payroll\Models\PayRun;
 use Modules\Payroll\Models\StatutoryRate;
 use Modules\Payroll\Models\TaxSlab;
 use Modules\Payroll\Rules\PayRules;
@@ -86,6 +88,7 @@ final class PayRuleService
     {
         Gate::authorize('payroll.config');
         $this->assertFirstOfMonth($from);
+        $this->assertNotInLockedPeriod($from);
         $this->assertPercent($percent);
 
         return DB::transaction(function () use ($code, $percent, $from) {
@@ -117,6 +120,7 @@ final class PayRuleService
     {
         Gate::authorize('payroll.config');
         $this->assertFirstOfMonth($from);
+        $this->assertNotInLockedPeriod($from);
         $this->assertTaxSlabs($slabs);
 
         DB::transaction(function () use ($from, $slabs) {
@@ -157,6 +161,7 @@ final class PayRuleService
     {
         Gate::authorize('payroll.config');
         $this->assertFirstOfMonth($from);
+        $this->assertNotInLockedPeriod($from);
 
         return DB::transaction(function () use ($code, $name, $base, $perDay, $from) {
             $this->assertAppendOnly(AttendanceAllowanceTier::query()->where('code', $code), $from, 'code');
@@ -201,6 +206,7 @@ final class PayRuleService
     {
         Gate::authorize('payroll.config');
         $this->assertFirstOfMonth($from);
+        $this->assertNotInLockedPeriod($from);
 
         return EffectiveDating::insert(new GradePayRule([
             'grade_id' => $g->id,
@@ -225,6 +231,7 @@ final class PayRuleService
     {
         Gate::authorize('payroll.config');
         $this->assertFirstOfMonth($from);
+        $this->assertNotInLockedPeriod($from, (int) $c->id);
         $validated = $this->validateCompanySettings($settings);
 
         return EffectiveDating::insert(new CompanyPaySetting([
@@ -265,6 +272,22 @@ final class PayRuleService
         $day = CarbonImmutable::parse($from);
         if ((int) $day->day !== 1) {
             throw new InvalidPayRule('A rule must start on the first day of a month.');
+        }
+    }
+
+    private function assertNotInLockedPeriod(string $from, ?int $companyId = null): void
+    {
+        $q = PayRun::query()
+            ->where('status', PayRunStatus::LOCKED)
+            ->whereHas('payPeriod', function ($q) use ($from, $companyId) {
+                $q->whereDate('end_date', '>=', $from);
+                if ($companyId !== null) {
+                    $q->where('company_id', $companyId);
+                }
+            });
+
+        if ($q->exists()) {
+            throw new InvalidPayRule('Pay rules cannot change on or before a locked pay period.');
         }
     }
 

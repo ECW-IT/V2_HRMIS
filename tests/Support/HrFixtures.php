@@ -3,12 +3,18 @@
 namespace Tests\Support;
 
 use App\Models\User;
+use Carbon\Carbon;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Modules\Attendance\Enums\AttendanceMode;
 use Modules\Attendance\Enums\OtMode;
+use Modules\Attendance\Models\PeriodTimeSummary;
 use Modules\Attendance\Models\Shift;
 use Modules\Attendance\Models\ShiftBreak;
 use Modules\Attendance\Services\TimeProfileService;
+use Modules\Calendar\Enums\PeriodStatus;
+use Modules\Calendar\Models\PayPeriod;
+use Modules\Calendar\Services\ExpectedDaysService;
+use Modules\Calendar\Services\PayPeriodService;
 use Modules\CoreHr\Models\Bank;
 use Modules\CoreHr\Models\BankBranch;
 use Modules\CoreHr\Models\Employment;
@@ -200,5 +206,83 @@ trait HrFixtures
         }
 
         return $e->fresh();
+    }
+
+    /**
+     * Closes the period's time data for the company so that summaries exist.
+     * Sets expected days 25 for every grade in use and closes with Carbon set after the period end.
+     */
+    protected function closedPeriod(Company $c, string $month = '2026-12'): PayPeriod
+    {
+        [$year, $mon] = array_map('intval', explode('-', $month));
+        $periods = app(PayPeriodService::class);
+        $p = $periods->ensure($c, $year, $mon);
+
+        $expected = app(ExpectedDaysService::class);
+        foreach (Grade::query()->where('is_active', true)->get() as $grade) {
+            try {
+                $expected->set($p, $grade, 25.0);
+            } catch (\Throwable) {
+                // already set or inactive
+            }
+        }
+
+        $this->travelTo(Carbon::parse($p->end_date)->addDay()->startOfDay());
+
+        $chain = [];
+        $cursor = $p;
+        while ($cursor !== null) {
+            array_unshift($chain, $cursor);
+            $cursor = $periods->previous($cursor);
+        }
+
+        foreach ($chain as $period) {
+            if ($period->status === PeriodStatus::OPEN) {
+                foreach (Grade::query()->where('is_active', true)->get() as $grade) {
+                    try {
+                        $expected->set($period, $grade, 25.0);
+                    } catch (\Throwable) {
+                    }
+                }
+                $this->travelTo(Carbon::parse($period->end_date)->addDay()->startOfDay());
+                $periods->markClosed($period, null);
+            }
+        }
+
+        return $p->fresh();
+    }
+
+    /** Inserts a summary row directly for tests that need exact figures. */
+    protected function summary(Employment $e, PayPeriod $p, array $figures = []): PeriodTimeSummary
+    {
+        $assignment = $e->assignmentOn($p->end_date);
+        $version = max(1, (int) $p->close_version);
+
+        return PeriodTimeSummary::query()->create(array_merge([
+            'company_id' => $e->company_id,
+            'pay_period_id' => $p->id,
+            'employment_id' => $e->id,
+            'version' => $version,
+            'grade_id' => $assignment?->grade_id ?? Grade::factory()->create()->id,
+            'attendance_mode' => AttendanceMode::PUNCH,
+            'employed_days' => 31,
+            'expected_days' => 25,
+            'worked_days' => 25,
+            'full_days' => 25,
+            'half_days' => 0,
+            'short_days' => 0,
+            'short_leave_count' => 0,
+            'paid_leave_days' => 0,
+            'unpaid_leave_days' => 0,
+            'credited_days' => 25,
+            'extra_days' => 0,
+            'nopay_days' => 0,
+            'late_minutes_total' => 0,
+            'late_minutes_chargeable' => 0,
+            'ot_normal_minutes' => 0,
+            'ot_double_minutes' => 0,
+            'has_override' => false,
+            'created_at' => now(),
+        ], $figures));
     }
 }

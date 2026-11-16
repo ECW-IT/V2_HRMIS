@@ -232,10 +232,11 @@ final class AdvanceService
         }
     }
 
-    /** Stub for Task 33. */
     private function assertPeriodAcceptsAdvances(PayPeriod $p): void
     {
-        // Task 33 will enforce pay-run status.
+        if (app(PayRunService::class)->isPeriodFrozen((int) $p->id)) {
+            throw new InvalidAdvance('Advances are closed for this period.');
+        }
     }
 
     private function assertEmployedInPeriod(Employment $e, PayPeriod $p): void

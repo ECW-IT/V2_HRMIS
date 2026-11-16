@@ -57,6 +57,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'advance.manage',
             'advance.pay',
             'loan.manage',
+            'ledger.adjust',
+            'payrun.manage',
+            'payrun.approve',
+            'payrun.lock',
+            'payrun.override',
         ];
 
         foreach ($permissions as $permission) {
@@ -75,6 +80,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'payroll.config',
             'compensation.apply-directly',
             'advance.pay',
+            'ledger.adjust',
+            'payrun.manage',
+            'payrun.lock',
+            'payrun.override',
         ])));
 
         $hrOfficer = Role::findOrCreate('hr-officer');
@@ -111,6 +120,10 @@ class RolesAndPermissionsSeeder extends Seeder
             'advance.manage',
             'advance.pay',
             'loan.manage',
+            'ledger.adjust',
+            'payrun.manage',
+            'payrun.lock',
+            'payrun.override',
         ]);
 
         $auditor = Role::findOrCreate('auditor');

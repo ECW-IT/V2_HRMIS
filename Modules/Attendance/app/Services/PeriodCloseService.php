@@ -24,6 +24,7 @@ use Modules\Calendar\Services\ExpectedDaysService;
 use Modules\Calendar\Services\PayPeriodService;
 use Modules\CoreHr\Models\Employment;
 use Modules\Leave\Services\LeaveService;
+use Modules\Payroll\Services\PayRunService;
 
 final class PeriodCloseService
 {
@@ -153,6 +154,10 @@ final class PeriodCloseService
     public function reopen(PayPeriod $p, User $by, string $reason): PayPeriod
     {
         $this->authorize($by, 'period.reopen', (int) $p->company_id);
+
+        if (app(PayRunService::class)->isPeriodFrozen((int) $p->id)) {
+            throw new InvalidPeriodAction('Send the pay run back first.');
+        }
 
         $reason = trim($reason);
         if (mb_strlen($reason) < 10) {
