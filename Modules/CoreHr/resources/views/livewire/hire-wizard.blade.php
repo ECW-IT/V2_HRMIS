@@ -19,17 +19,11 @@
         @if($step === 1)
             <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Who is joining?</h3>
 
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Company <span class="text-red-500">*</span></label>
-                    <select wire:model="companyId" class="{{ $input }} @error('companyId') border-red-400 @enderror">
-                        <option value="">Select</option>
-                        @foreach($companies as $company)
-                            <option value="{{ $company->id }}">{{ $company->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('companyId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                </div>
+            @error('companyId')
+                <div class="mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{{ $message }}</div>
+            @enderror
+
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">NIC</label>
                     <input wire:model="nic" type="text" maxlength="20" class="{{ $input }} @error('nic') border-red-400 @enderror" />
@@ -183,6 +177,25 @@
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Postal code</label>
                     <input wire:model="postalCode" type="text" maxlength="10" class="{{ $input }}" />
+                </div>
+            </div>
+
+            <h4 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-500">Electorate information</h4>
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Electorate</label>
+                    <input wire:model="electorate" type="text" maxlength="100" class="{{ $input }} @error('electorate') border-red-400 @enderror" />
+                    @error('electorate')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Polling division</label>
+                    <input wire:model="pollingDivision" type="text" maxlength="100" class="{{ $input }} @error('pollingDivision') border-red-400 @enderror" />
+                    @error('pollingDivision')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">GN division</label>
+                    <input wire:model="gnDivision" type="text" maxlength="100" class="{{ $input }} @error('gnDivision') border-red-400 @enderror" />
+                    @error('gnDivision')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
             </div>
 

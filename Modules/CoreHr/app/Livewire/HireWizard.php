@@ -96,6 +96,12 @@ class HireWizard extends Component
 
     public string $nationality = 'Sri Lankan';
 
+    public string $electorate = '';
+
+    public string $pollingDivision = '';
+
+    public string $gnDivision = '';
+
     public string $mobile = '';
 
     public string $email = '';
@@ -175,10 +181,8 @@ class HireWizard extends Component
 
     public function mount(): void
     {
-        $permitted = CompanyContext::permittedIds();
-        $selected = CompanyContext::id();
-
-        $this->companyId = $selected ?? (count($permitted) === 1 ? $permitted[0] : null);
+        CompanyContext::ensureSoleSelected();
+        $this->companyId = CompanyContext::id();
         $this->hireDate = CarbonImmutable::now(config('app.timezone'))->toDateString();
     }
 
@@ -302,6 +306,7 @@ class HireWizard extends Component
 
     private function completeIdentify(): void
     {
+        $this->companyId = CompanyContext::id();
         $permitted = CompanyContext::permittedIds();
 
         $this->validate([
@@ -309,8 +314,8 @@ class HireWizard extends Component
             'nic' => ['nullable', 'string', 'max:20'],
             'passportNo' => ['nullable', 'string', 'max:20'],
         ], [
-            'companyId.required' => 'Choose a company.',
-            'companyId.in' => 'Choose one of your companies.',
+            'companyId.required' => 'Select a company in the header first.',
+            'companyId.in' => 'Select a company in the header first.',
         ]);
 
         $nic = trim($this->nic);
@@ -392,6 +397,7 @@ class HireWizard extends Component
             // The earlier lookup matched somebody else; their details must not stay in the form.
             $this->reset([
                 'title', 'firstName', 'middleName', 'lastName', 'nameWithInitials', 'callingName', 'maritalStatus',
+                'electorate', 'pollingDivision', 'gnDivision',
                 'mobile', 'email', 'addressLine1', 'addressLine2', 'city', 'district', 'postalCode',
             ]);
             $this->nationality = 'Sri Lankan';
@@ -424,6 +430,9 @@ class HireWizard extends Component
         $this->gender = $person->gender->value;
         $this->maritalStatus = $person->marital_status?->value ?? '';
         $this->nationality = (string) ($person->nationality ?: 'Sri Lankan');
+        $this->electorate = (string) $person->electorate;
+        $this->pollingDivision = (string) $person->polling_division;
+        $this->gnDivision = (string) $person->gn_division;
         $this->identityLocked = $person->nic !== null;
 
         $mobile = $person->contacts->where('type', ContactType::MOBILE)->sortByDesc('is_primary')->first();
@@ -488,6 +497,9 @@ class HireWizard extends Component
                 'gender' => ['required', Rule::enum(Gender::class)],
                 'maritalStatus' => ['nullable', Rule::enum(MaritalStatus::class)],
                 'nationality' => ['nullable', 'string', 'max:50'],
+                'electorate' => ['nullable', 'string', 'max:100'],
+                'pollingDivision' => ['nullable', 'string', 'max:100'],
+                'gnDivision' => ['nullable', 'string', 'max:100'],
                 'mobile' => ['required', 'string', 'regex:/^\+?[0-9][0-9\s-]{6,19}$/'],
                 'email' => ['nullable', 'email', 'max:150'],
                 'addressLine1' => ['required', 'string', 'max:150'],
@@ -583,6 +595,9 @@ class HireWizard extends Component
             'date_of_birth' => $this->dateOfBirth,
             'gender' => $this->gender,
             'nationality' => $this->nationality !== '' ? $this->nationality : 'Sri Lankan',
+            'electorate' => $this->electorate !== '' ? $this->electorate : null,
+            'polling_division' => $this->pollingDivision !== '' ? $this->pollingDivision : null,
+            'gn_division' => $this->gnDivision !== '' ? $this->gnDivision : null,
         ];
 
         if ($this->maritalStatus !== '') {
@@ -733,11 +748,6 @@ class HireWizard extends Component
         return view('corehr::livewire.hire-wizard', [
             ...$options,
             ...$this->bankOptions(),
-            'companies' => Company::query()
-                ->whereIn('id', CompanyContext::permittedIds())
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name']),
             'types' => EmploymentType::cases(),
             'genders' => Gender::cases(),
             'maritalStatuses' => MaritalStatus::cases(),
@@ -778,6 +788,9 @@ class HireWizard extends Component
             'Mobile' => $this->mobile,
             'Email' => $this->email !== '' ? $this->email : '—',
             'Permanent address' => implode(', ', array_filter([$this->addressLine1, $this->addressLine2, $this->city, $this->district, $this->postalCode])),
+            'Electorate' => $this->electorate !== '' ? $this->electorate : '—',
+            'Polling division' => $this->pollingDivision !== '' ? $this->pollingDivision : '—',
+            'GN division' => $this->gnDivision !== '' ? $this->gnDivision : '—',
             'Emergency contact' => $this->emergencyName !== '' ? "{$this->emergencyName} ({$this->emergencyRelationship}) {$this->emergencyPhone}" : '—',
             'Type' => ucfirst(strtolower($this->type)),
             'Hire date' => $this->hireDate,

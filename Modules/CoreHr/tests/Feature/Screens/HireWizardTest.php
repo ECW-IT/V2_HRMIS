@@ -3,6 +3,7 @@
 namespace Modules\CoreHr\Tests\Feature\Screens;
 
 use App\Models\User;
+use App\Support\Company\CompanyContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -78,13 +79,14 @@ class HireWizardTest extends TestCase
             ->set('companyId', $c->id)->set('nic', '853400937V')->call('next')
             ->assertSet('step', 2)->assertSet('dateOfBirth', '1985-12-05')->assertSet('gender', 'MALE')
             ->set('firstName', 'Nimal')->set('lastName', 'Perera')->set('nameWithInitials', 'N. Perera')->set('mobile', '0771234567')
-            ->set('addressLine1', '12 Main St')->set('city', 'Nittambuwa')->call('next')
+            ->set('addressLine1', '12 Main St')->set('city', 'Nittambuwa')
+            ->set('electorate', 'Gampaha')->set('pollingDivision', 'Attanagalla')->set('gnDivision', 'Nittambuwa North')->call('next')
             ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('epfNo', '900')
             ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])
             ->set('shiftId', $this->shift()->id)->call('next')
             ->set('basicSalary', '55000.00')->set('otRateMode', OtRateMode::CALCULATED->value)
             ->set('bankId', $bank->id)->set('bankBranchId', $branch->id)->set('accountNo', '0012345678')->set('deviceGroup', 'NIT')->set('deviceUserId', 116)->call('next')
-            ->assertSet('step', 5)->assertSee('The employee number will be issued when you save.')->call('hire')
+            ->assertSet('step', 5)->assertSee('The employee number will be issued when you save.')->assertSee('Gampaha')->call('hire')
             ->assertHasNoErrors()->assertRedirect();
 
         $e = Employment::sole();
@@ -98,6 +100,9 @@ class HireWizardTest extends TestCase
         $this->assertSame($e->id, app(EnrolmentService::class)->resolve('NIT', 116, '2026-12-01 08:00:00'));
         $this->assertSame('0771234567', $e->person->contacts()->where('type', 'MOBILE')->sole()->value);
         $this->assertSame('Nittambuwa', $e->person->addresses()->where('type', 'PERMANENT')->sole()->city);
+        $this->assertSame('Gampaha', $e->person->electorate);
+        $this->assertSame('Attanagalla', $e->person->polling_division);
+        $this->assertSame('Nittambuwa North', $e->person->gn_division);
     }
 
     public function test_hire_redirects_to_the_profile_with_a_flash_message(): void
@@ -161,8 +166,9 @@ class HireWizardTest extends TestCase
         $p = $this->person();
         app(EmploymentService::class)->exit($this->hired('2024-01-01', $a, p: $p), '2025-06-30', ExitReason::RESIGNATION);
         $this->loginAs('hr-manager', $a, $b);
+        CompanyContext::set($b->id);
 
-        Livewire::test(HireWizard::class)->set('companyId', $b->id)->set('nic', $p->nic)->call('next')
+        Livewire::test(HireWizard::class)->set('nic', $p->nic)->call('next')
             ->assertSet('step', 2)->assertSet('mode', 'HIRE')->assertSet('firstName', $p->first_name);
     }
 
@@ -253,29 +259,33 @@ class HireWizardTest extends TestCase
         $this->get(route('employees.create'))->assertForbidden();
     }
 
-    public function test_company_picker_only_lists_permitted_companies(): void
+    public function test_step_one_uses_session_company_and_hides_company_picker(): void
     {
         $mine = $this->company(['name' => 'Alpha Garments']);
         $theirs = $this->company(['name' => 'Omega Textiles']);
         $this->loginAs('hr-manager', $mine);
+        CompanyContext::set($mine->id);
 
         Livewire::test(HireWizard::class)
-            ->assertSee('Alpha Garments')
+            ->assertSet('companyId', $mine->id)
+            ->assertDontSeeHtml('wire:model="companyId"')
             ->assertDontSee('Omega Textiles');
 
         $this->assertNotNull($theirs);
     }
 
-    public function test_company_outside_the_permitted_list_is_refused(): void
+    public function test_tampered_company_id_is_replaced_by_session_company(): void
     {
         $mine = $this->company();
         $theirs = $this->company();
         $this->loginAs('hr-manager', $mine);
+        CompanyContext::set($mine->id);
 
         Livewire::test(HireWizard::class)
             ->set('companyId', $theirs->id)->set('nic', '853400937V')->call('next')
-            ->assertSet('step', 1)
-            ->assertHasErrors(['companyId']);
+            ->assertHasNoErrors(['companyId'])
+            ->assertSet('companyId', $mine->id)
+            ->assertSet('step', 2);
     }
 
     public function test_invalid_nic_stays_on_step_one(): void
