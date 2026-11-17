@@ -166,10 +166,10 @@ class PayEntryServiceTest extends TestCase
 
     public function test_employee_must_be_employed_in_the_period(): void
     {
+        $this->travelTo('2027-01-05');
         $e = $this->paid('2027-01-05');
         $by = $this->manager($e);
         $p = $this->decemberPeriod($e->company);
-
         $this->expectException(InvalidPayEntry::class);
         $this->svc->add($e, $p, ['component_code' => 'MEALS', 'amount' => '1000.00'], $by);
     }

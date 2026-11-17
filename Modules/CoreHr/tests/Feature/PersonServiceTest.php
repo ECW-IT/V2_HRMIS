@@ -90,17 +90,17 @@ class PersonServiceTest extends TestCase
         $this->svc->create($this->valid(['nic' => null, 'passport_no' => 'N1234567']));
     }
 
-    public function test_person_younger_than_sixteen_is_refused(): void
+    public function test_person_younger_than_eighteen_is_refused(): void
     {
         $this->travelTo('2026-12-01');
         $this->expectException(InvalidPersonData::class);
-        $this->svc->create($this->valid(['nic' => null, 'passport_no' => 'N1', 'date_of_birth' => '2010-12-02']));
+        $this->svc->create($this->valid(['nic' => null, 'passport_no' => 'N1', 'date_of_birth' => '2008-12-02']));
     }
 
-    public function test_person_aged_exactly_sixteen_is_allowed(): void
+    public function test_person_aged_exactly_eighteen_is_allowed(): void
     {
         $this->travelTo('2026-12-01');
-        $this->assertNotNull($this->svc->create($this->valid(['nic' => null, 'passport_no' => 'N1', 'date_of_birth' => '2010-12-01'])));
+        $this->assertNotNull($this->svc->create($this->valid(['nic' => null, 'passport_no' => 'N1', 'date_of_birth' => '2008-12-01'])));
     }
 
     public function test_update_cannot_take_another_persons_nic(): void

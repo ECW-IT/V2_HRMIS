@@ -226,6 +226,7 @@ class ReadinessChecksTest extends TestCase
     public function test_employee_not_yet_hired_on_the_date_is_not_reported(): void
     {
         $c = $this->company();
+        $this->travelTo('2026-12-01');
         $this->hired('2026-12-01', $c);
         $this->assertCount(0, app(ReadinessService::class)->run($c, '2026-11-01'));
     }

@@ -18,6 +18,7 @@ use Modules\CoreHr\Livewire\DocumentTypesIndex;
 use Modules\CoreHr\Livewire\EmployeeProfile;
 use Modules\CoreHr\Livewire\EmployeesIndex;
 use Modules\CoreHr\Livewire\HireWizard;
+use Modules\CoreHr\Livewire\HrReportsIndex;
 use Modules\CoreHr\Livewire\ReadinessDashboard;
 use Modules\CoreHr\Livewire\ReadinessHomeTile;
 use Modules\CoreHr\Livewire\Tabs\Attendance;
@@ -66,6 +67,7 @@ class CoreHrServiceProvider extends ModuleServiceProvider
         Livewire::component('corehr.bank-branches-index', BankBranchesIndex::class);
         Livewire::component('corehr.document-types-index', DocumentTypesIndex::class);
         Livewire::component('corehr.employees-index', EmployeesIndex::class);
+        Livewire::component('corehr.hr-reports-index', HrReportsIndex::class);
         Livewire::component('corehr.hire-wizard', HireWizard::class);
         Livewire::component('corehr.employee-profile', EmployeeProfile::class);
         Livewire::component('corehr.tabs.summary', Summary::class);

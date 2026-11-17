@@ -80,6 +80,7 @@ class ShiftScreensTest extends TestCase
 
     public function test_hire_wizard_saves_a_time_profile_from_the_hire_date(): void
     {
+        $this->travelTo('2026-12-01');
         $c = $this->company(['employee_no_prefix' => 'ECW', 'next_employee_seq' => 1]);
         $a = $this->asg($c);
         $shift = $this->shift();

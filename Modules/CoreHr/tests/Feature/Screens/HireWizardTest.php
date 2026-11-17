@@ -25,6 +25,7 @@ class HireWizardTest extends TestCase
     /** Walks the wizard from step 1 to step 5 for a new person. */
     private function walkToReview(string $companyId, array $employment = [], bool $withBank = true): Testable
     {
+        $this->travelTo($employment['hireDate'] ?? '2026-12-01');
         $a = $this->asg(Company::query()->findOrFail($companyId));
 
         $component = Livewire::test(HireWizard::class)
@@ -61,6 +62,7 @@ class HireWizardTest extends TestCase
 
     public function test_new_person_is_hired_with_bank_and_enrolment(): void
     {
+        $this->travelTo('2026-12-01');
         $c = $this->company(['employee_no_prefix' => 'ECW', 'next_employee_seq' => 412]);
         $a = $this->asg($c);
         [$bank, $branch] = $this->bankWithBranch();

@@ -38,6 +38,7 @@ class EmploymentServiceTest extends TestCase
 
     public function test_hire_creates_number_first_assignment_and_event(): void
     {
+        $this->travelTo('2026-12-01');
         $c = $this->company(['employee_no_prefix' => 'ECW', 'employee_no_padding' => 3, 'next_employee_seq' => 1]);
         $e = $this->svc->hire($this->person(), $c, $this->emp(['hire_date' => '2026-12-01', 'type' => 'PROBATION']), $this->asg($c));
 
@@ -136,7 +137,7 @@ class EmploymentServiceTest extends TestCase
         $this->travelTo('2026-12-01');
         $c = $this->company();
         $this->expectException(InvalidEmploymentData::class);
-        $this->svc->hire($this->person(), $c, $this->emp(['hire_date' => '2027-02-01']), $this->asg($c));
+        $this->svc->hire($this->person(), $c, $this->emp(['hire_date' => '2026-12-09']), $this->asg($c));
     }
 
     public function test_confirm_turns_probation_into_permanent(): void
@@ -234,6 +235,7 @@ class EmploymentServiceTest extends TestCase
         $p = $this->person();
         $old = $this->svc->exit($this->hired('2024-01-01', $c, p: $p), '2025-06-30', ExitReason::RESIGNATION);
 
+        $this->travelTo('2026-12-01');
         $new = $this->svc->rejoin($p, $c, $this->emp(['hire_date' => '2026-12-01']), $this->asg($c));
 
         $this->assertSame($old->id, $new->previous_employment_id);
@@ -275,6 +277,7 @@ class EmploymentServiceTest extends TestCase
 
         $this->loginAs('hr-manager', $a);
 
+        $this->travelTo('2026-12-01');
         $this->expectException(ActiveEmploymentExists::class);
         $this->expectExceptionMessage('This person is already employed in another company.');
         $this->svc->hire($p, $a, $this->emp(['hire_date' => '2026-12-01']), $this->asg($a));

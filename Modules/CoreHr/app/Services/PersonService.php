@@ -51,6 +51,9 @@ final class PersonService
                 'gender',
                 'marital_status',
                 'nationality',
+                'electorate',
+                'polling_division',
+                'gn_division',
                 'photo_path',
                 'nic_mismatch',
             ]), $data);
@@ -130,6 +133,15 @@ final class PersonService
             'gender' => $gender,
             'marital_status' => $marital,
             'nationality' => $data['nationality'] ?? $existing?->nationality ?? 'Sri Lankan',
+            'electorate' => array_key_exists('electorate', $data)
+                ? (($data['electorate'] === '' || $data['electorate'] === null) ? null : $data['electorate'])
+                : $existing?->electorate,
+            'polling_division' => array_key_exists('polling_division', $data)
+                ? (($data['polling_division'] === '' || $data['polling_division'] === null) ? null : $data['polling_division'])
+                : $existing?->polling_division,
+            'gn_division' => array_key_exists('gn_division', $data)
+                ? (($data['gn_division'] === '' || $data['gn_division'] === null) ? null : $data['gn_division'])
+                : $existing?->gn_division,
             'photo_path' => array_key_exists('photo_path', $data) ? $data['photo_path'] : $existing?->photo_path,
             'nic_mismatch' => $data['nic_mismatch'] ?? $existing?->nic_mismatch ?? false,
         ];
@@ -201,8 +213,8 @@ final class PersonService
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
         $age = $dob->diffInYears($today);
 
-        if ($age < 16 || $age > 75) {
-            throw new InvalidPersonData('Age must be between 16 and 75.');
+        if ($age < 18 || $age > 75) {
+            throw new InvalidPersonData('Age must be between 18 and 75.');
         }
     }
 

@@ -28,6 +28,7 @@ class SisterCompanyTransferTest extends TestCase
 
     public function test_transfer_creates_linked_second_employment(): void
     {
+        $this->travelTo('2026-12-01');
         $a = $this->company(['employee_no_prefix' => 'ECW']);
         $b = $this->company(['employee_no_prefix' => 'ECN', 'next_employee_seq' => 40]);
         $old = $this->hired('2024-03-01', $a, ['epf_no' => '500', 'type' => 'PERMANENT']);
@@ -57,6 +58,7 @@ class SisterCompanyTransferTest extends TestCase
 
     public function test_failed_transfer_leaves_the_old_employment_untouched(): void
     {
+        $this->travelTo('2026-12-01');
         $a = $this->company();
         $b = $this->company();
         $this->hired(c: $b, emp: ['epf_no' => '77']);
@@ -85,6 +87,7 @@ class SisterCompanyTransferTest extends TestCase
 
     public function test_transferred_intern_stays_non_epf(): void
     {
+        $this->travelTo('2026-12-01');
         $a = $this->company();
         $b = $this->company();
         $old = $this->hired('2026-06-01', $a, ['type' => 'INTERN']);

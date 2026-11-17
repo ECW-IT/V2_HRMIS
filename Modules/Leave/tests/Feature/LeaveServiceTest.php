@@ -139,6 +139,7 @@ class LeaveServiceTest extends TestCase
 
     public function test_invalid_requests(): void
     {
+        $this->travelTo('2026-12-05');
         $e = $this->hired('2026-12-05');
         $o = $this->officer($e);
         $cases = [

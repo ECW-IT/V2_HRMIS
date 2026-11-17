@@ -42,6 +42,12 @@ class Personal extends Component
 
     public string $nationality = '';
 
+    public string $electorate = '';
+
+    public string $pollingDivision = '';
+
+    public string $gnDivision = '';
+
     /** @var array<string, array{line1: string, line2: string, city: string, district: string, postal_code: string}> */
     public array $addresses = [];
 
@@ -104,6 +110,9 @@ class Personal extends Component
             'callingName' => ['nullable', 'string', 'max:100'],
             'maritalStatus' => ['nullable', Rule::enum(MaritalStatus::class)],
             'nationality' => ['nullable', 'string', 'max:50'],
+            'electorate' => ['nullable', 'string', 'max:100'],
+            'pollingDivision' => ['nullable', 'string', 'max:100'],
+            'gnDivision' => ['nullable', 'string', 'max:100'],
             'addresses.*.line1' => ['nullable', 'string', 'max:150'],
             'addresses.*.line2' => ['nullable', 'string', 'max:150'],
             'addresses.*.city' => ['nullable', 'string', 'max:80'],
@@ -128,6 +137,9 @@ class Personal extends Component
         if ($this->nationality !== '') {
             $person['nationality'] = $this->nationality;
         }
+        $person['electorate'] = $this->electorate !== '' ? $this->electorate : null;
+        $person['polling_division'] = $this->pollingDivision !== '' ? $this->pollingDivision : null;
+        $person['gn_division'] = $this->gnDivision !== '' ? $this->gnDivision : null;
 
         $addresses = [];
         foreach (self::ADDRESS_TYPES as $type) {
@@ -445,6 +457,9 @@ class Personal extends Component
         $this->callingName = (string) $person->calling_name;
         $this->maritalStatus = $person->marital_status?->value ?? '';
         $this->nationality = (string) $person->nationality;
+        $this->electorate = (string) $person->electorate;
+        $this->pollingDivision = (string) $person->polling_division;
+        $this->gnDivision = (string) $person->gn_division;
 
         $this->addresses = [];
         foreach (self::ADDRESS_TYPES as $type) {

@@ -102,6 +102,7 @@ class EmployeeProfileTest extends TestCase
 
     public function test_other_employments_of_the_person_are_listed_only_when_visible(): void
     {
+        $this->travelTo('2026-12-01');
         $a = $this->company();
         $b = $this->company();
         $old = $this->hired('2024-03-01', $a);

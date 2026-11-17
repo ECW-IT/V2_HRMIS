@@ -8,6 +8,7 @@ use Modules\CoreHr\Livewire\DocumentTypesIndex;
 use Modules\CoreHr\Livewire\EmployeeProfile;
 use Modules\CoreHr\Livewire\EmployeesIndex;
 use Modules\CoreHr\Livewire\HireWizard;
+use Modules\CoreHr\Livewire\HrReportsIndex;
 use Modules\CoreHr\Livewire\ReadinessDashboard;
 
 Route::middleware(['auth', 'password.changed', 'can:employee.document.view'])
@@ -17,6 +18,10 @@ Route::middleware(['auth', 'password.changed', 'can:employee.document.view'])
 Route::middleware(['auth', 'password.changed', 'can:employee.view'])
     ->get('/employees/readiness', ReadinessDashboard::class)
     ->name('employees.readiness');
+
+Route::middleware(['auth', 'password.changed', 'can:employee.view'])
+    ->get('/employees/reports', HrReportsIndex::class)
+    ->name('employees.reports');
 
 Route::middleware(['auth', 'password.changed', 'can:employee.view'])
     ->get('/employees', EmployeesIndex::class)

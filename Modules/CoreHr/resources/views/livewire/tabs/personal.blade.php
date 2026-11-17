@@ -54,6 +54,21 @@
                 <input wire:model="nationality" type="text" maxlength="50" @disabled(! $canEdit)
                     class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
             </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Electorate</label>
+                <input wire:model="electorate" type="text" maxlength="100" @disabled(! $canEdit)
+                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Polling division</label>
+                <input wire:model="pollingDivision" type="text" maxlength="100" @disabled(! $canEdit)
+                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">GN division</label>
+                <input wire:model="gnDivision" type="text" maxlength="100" @disabled(! $canEdit)
+                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+            </div>
             <div class="rounded border bg-gray-50 px-3 py-1.5 text-sm text-gray-700">
                 <span class="block text-xs text-gray-500">NIC, date of birth and gender</span>
                 <span class="font-mono text-xs">{{ $person->nic ?: '—' }}</span>

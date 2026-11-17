@@ -210,6 +210,7 @@ class EmployeeActionsTest extends TestCase
 
     public function test_sister_transfer_by_hr_manager_creates_the_new_employment_and_redirects_to_it(): void
     {
+        $this->travelTo('2026-12-01');
         $a = $this->company();
         $b = $this->company();
         $e = $this->hired('2024-03-01', $a);

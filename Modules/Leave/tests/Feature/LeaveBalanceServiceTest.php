@@ -88,6 +88,7 @@ class LeaveBalanceServiceTest extends TestCase
 
     public function test_joiner_during_the_period_gets_the_policy_on_the_hire_date(): void
     {
+        $this->travelTo('2026-12-05');
         $e = $this->hired('2026-12-05');
         $p = $this->period($e, '2026-12');
         $this->assertSame(8.0, $this->svc->balance($e, $this->ml, $p));

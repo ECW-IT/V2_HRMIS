@@ -24,6 +24,12 @@ final class EmployeesNav
         }
 
         $items[] = [
+            'label' => 'Reports',
+            'route' => route('employees.reports'),
+            'active' => $active === 'reports',
+        ];
+
+        $items[] = [
             'label' => 'Readiness',
             'route' => route('employees.readiness'),
             'active' => $active === 'readiness',

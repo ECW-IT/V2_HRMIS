@@ -31,6 +31,9 @@ class Person extends Model
         'gender',
         'marital_status',
         'nationality',
+        'electorate',
+        'polling_division',
+        'gn_division',
         'photo_path',
         'nic_mismatch',
     ];

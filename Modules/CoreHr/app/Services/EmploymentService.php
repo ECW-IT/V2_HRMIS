@@ -299,7 +299,7 @@ final class EmploymentService
 
         $today = CarbonImmutable::now(config('app.timezone'))->startOfDay();
         $hire = CarbonImmutable::createFromFormat('Y-m-d', $hireDate)->startOfDay();
-        if ($hire->greaterThan($today->addDays(60))) {
+        if ($hire->greaterThan($today->addDays(7))) {
             throw new InvalidEmploymentData('Hire date is too far in the future.');
         }
 
