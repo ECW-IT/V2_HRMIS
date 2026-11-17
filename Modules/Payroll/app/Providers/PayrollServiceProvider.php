@@ -9,7 +9,18 @@ use Modules\Payroll\Approvals\CompensationChangeHandler;
 use Modules\Payroll\Approvals\LoanHandler;
 use Modules\Payroll\Enums\AdvanceStatus;
 use Modules\Payroll\Enums\LoanStatus;
+use Modules\Payroll\Livewire\AttendanceTiersIndex;
+use Modules\Payroll\Livewire\CompanyPaySettingsIndex;
+use Modules\Payroll\Livewire\CompensationIndex;
+use Modules\Payroll\Livewire\GradePayRulesIndex;
+use Modules\Payroll\Livewire\LoansIndex;
+use Modules\Payroll\Livewire\LoanTypesIndex;
 use Modules\Payroll\Livewire\PayComponentsIndex;
+use Modules\Payroll\Livewire\PayEntriesIndex;
+use Modules\Payroll\Livewire\SalaryAdvancesIndex;
+use Modules\Payroll\Livewire\StatutoryRatesIndex;
+use Modules\Payroll\Livewire\TaxSlabsIndex;
+use Modules\Payroll\Livewire\YtdOpeningsIndex;
 use Modules\Payroll\Models\Loan;
 use Modules\Payroll\Models\SalaryAdvance;
 use Modules\Payroll\Services\AdvanceService;
@@ -46,6 +57,17 @@ class PayrollServiceProvider extends ModuleServiceProvider
         parent::boot();
 
         Livewire::component('payroll.pay-components-index', PayComponentsIndex::class);
+        Livewire::component('payroll.loan-types-index', LoanTypesIndex::class);
+        Livewire::component('payroll.statutory-rates-index', StatutoryRatesIndex::class);
+        Livewire::component('payroll.tax-slabs-index', TaxSlabsIndex::class);
+        Livewire::component('payroll.attendance-tiers-index', AttendanceTiersIndex::class);
+        Livewire::component('payroll.grade-pay-rules-index', GradePayRulesIndex::class);
+        Livewire::component('payroll.company-pay-settings-index', CompanyPaySettingsIndex::class);
+        Livewire::component('payroll.loans-index', LoansIndex::class);
+        Livewire::component('payroll.salary-advances-index', SalaryAdvancesIndex::class);
+        Livewire::component('payroll.pay-entries-index', PayEntriesIndex::class);
+        Livewire::component('payroll.compensation-index', CompensationIndex::class);
+        Livewire::component('payroll.ytd-openings-index', YtdOpeningsIndex::class);
 
         ApprovalService::registerHandler('COMPENSATION_CHANGE', CompensationChangeHandler::class);
         ApprovalService::registerHandler('SALARY_ADVANCE', AdvanceHandler::class);
