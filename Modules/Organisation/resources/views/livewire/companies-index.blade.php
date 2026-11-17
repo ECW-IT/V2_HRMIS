@@ -26,7 +26,7 @@
         <table class="min-w-full text-left text-sm">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                    <th class="px-3 py-2">Code</th>
+                    {{-- <th class="px-3 py-2">Code</th> --}}
                     <th class="px-3 py-2">Name</th>
                     <th class="px-3 py-2">Prefix</th>
                     <th class="px-3 py-2">Padding</th>
@@ -40,7 +40,7 @@
             <tbody>
                 @forelse ($companies as $company)
                     <tr class="border-t">
-                        <td class="px-3 py-2 font-medium">{{ $company->code }}</td>
+                        {{-- <td class="px-3 py-2 font-medium">{{ $company->code }}</td> --}}
                         <td class="px-3 py-2">{{ $company->name }}</td>
                         <td class="px-3 py-2">{{ $company->employee_no_prefix }}</td>
                         <td class="px-3 py-2">{{ $company->employee_no_padding }}</td>
