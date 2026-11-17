@@ -24,7 +24,7 @@
 
     @unless ($companySelected)
         <div class="rounded border border-amber-200 bg-amber-50 px-4 py-6 text-sm text-amber-800">
-            Select a company
+            Select a company first (use the company dropdown in the top bar).
         </div>
     @else
         <input

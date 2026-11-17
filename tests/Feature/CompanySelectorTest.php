@@ -71,4 +71,24 @@ class CompanySelectorTest extends TestCase
 
         $this->assertSame($company->id, CompanyContext::id());
     }
+
+    public function test_company_selector_uses_light_nav_styles_when_requested(): void
+    {
+        $company = Company::factory()->create();
+        $user = User::factory()->forCompanies([$company])->create([
+            'must_change_password' => false,
+        ]);
+
+        $this->actingAs($user);
+
+        Livewire::actingAs($user)
+            ->test(CompanySelector::class, ['lightNav' => true])
+            ->assertSet('lightNav', true)
+            ->assertSeeHtml('border-gray-300 bg-white text-gray-800');
+
+        Livewire::actingAs($user)
+            ->test(CompanySelector::class, ['lightNav' => false])
+            ->assertSet('lightNav', false)
+            ->assertSeeHtml('border-white/20 bg-white/10 text-white');
+    }
 }

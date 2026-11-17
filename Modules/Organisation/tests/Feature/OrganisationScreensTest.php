@@ -185,6 +185,39 @@ class OrganisationScreensTest extends TestCase
             ->assertDontSee('B-PROD');
     }
 
+    public function test_org_tree_prompts_for_a_company_when_none_is_selected(): void
+    {
+        Company::factory()->count(2)->create();
+        $user = User::factory()->allCompanies()->withPermissions('org.view', 'org.manage')->create([
+            'must_change_password' => false,
+        ]);
+
+        $this->actingAs($user);
+        $this->assertNull(CompanyContext::id());
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->assertSee('Select a company first (use the company dropdown in the top bar).')
+            ->assertDontSee('Add department');
+    }
+
+    public function test_org_tree_shows_add_department_when_a_company_is_selected(): void
+    {
+        $company = Company::factory()->create();
+        $user = User::factory()->allCompanies()->withPermissions('org.view', 'org.manage')->create([
+            'must_change_password' => false,
+        ]);
+
+        $this->actingAs($user);
+        CompanyContext::set($company->id);
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->assertDontSee('Select a company first (use the company dropdown in the top bar).')
+            ->assertSee('Add department')
+            ->assertSee('No organisation units yet.');
+    }
+
     public function test_manager_can_create_edit_and_deactivate_org_unit_chain(): void
     {
         $company = Company::factory()->create();

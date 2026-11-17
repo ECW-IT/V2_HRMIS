@@ -11,6 +11,9 @@ class CompanySelector extends Component
 {
     public ?int $selectedCompanyId = null;
 
+    /** When true, styles for the white Organisation/module top bar. */
+    public bool $lightNav = false;
+
     public function mount(): void
     {
         CompanyContext::ensureSoleSelected();

@@ -80,7 +80,7 @@
                         @endif
                     </a>
                 @endcan
-                <livewire:company-selector />
+                <livewire:company-selector :light-nav="$lightNav" />
             @endauth
 
             {{-- User Avatar --}}
