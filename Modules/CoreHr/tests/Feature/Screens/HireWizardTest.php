@@ -14,6 +14,8 @@ use Modules\CoreHr\Models\Person;
 use Modules\CoreHr\Services\BankAccountService;
 use Modules\CoreHr\Services\EmploymentService;
 use Modules\Organisation\Models\Company;
+use Modules\Payroll\Enums\OtRateMode;
+use Modules\Payroll\Services\CompensationService;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
 
@@ -50,6 +52,10 @@ class HireWizardTest extends TestCase
 
         $component->call('next');
 
+        $salary = ($employment['type'] ?? 'PERMANENT') === 'INTERN' ? '0.00' : '55000.00';
+        $component->set('basicSalary', $employment['basicSalary'] ?? $salary)
+            ->set('otRateMode', $employment['otRateMode'] ?? OtRateMode::CALCULATED->value);
+
         if ($withBank) {
             [$bank, $branch] = $this->bankWithBranch();
             $component->set('bankId', $bank->id)->set('bankBranchId', $branch->id)->set('accountNo', '0012345678');
@@ -76,6 +82,7 @@ class HireWizardTest extends TestCase
             ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('epfNo', '900')
             ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])
             ->set('shiftId', $this->shift()->id)->call('next')
+            ->set('basicSalary', '55000.00')->set('otRateMode', OtRateMode::CALCULATED->value)
             ->set('bankId', $bank->id)->set('bankBranchId', $branch->id)->set('accountNo', '0012345678')->set('deviceGroup', 'NIT')->set('deviceUserId', 116)->call('next')
             ->assertSet('step', 5)->assertSee('The employee number will be issued when you save.')->call('hire')
             ->assertHasNoErrors()->assertRedirect();
@@ -84,6 +91,10 @@ class HireWizardTest extends TestCase
         $this->assertSame('ECW412', $e->employee_no);
         $this->assertSame('198534000937', $e->person->nic);
         $this->assertSame('N. Perera', app(BankAccountService::class)->on($e, '2026-12-01')->account_name);
+        $comp = app(CompensationService::class)->on($e, '2026-12-01');
+        $this->assertNotNull($comp);
+        $this->assertSame('55000.00', $comp->basic_salary);
+        $this->assertSame(OtRateMode::CALCULATED, $comp->ot_rate_mode);
         $this->assertSame($e->id, app(EnrolmentService::class)->resolve('NIT', 116, '2026-12-01 08:00:00'));
         $this->assertSame('0771234567', $e->person->contacts()->where('type', 'MOBILE')->sole()->value);
         $this->assertSame('Nittambuwa', $e->person->addresses()->where('type', 'PERMANENT')->sole()->city);
@@ -133,13 +144,14 @@ class HireWizardTest extends TestCase
             ->set('type', 'PERMANENT')->set('hireDate', '2026-11-20')->set('epfNo', '4321')
             ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])
             ->set('shiftId', $this->shift()->id)->call('next')
-            ->set('isCash', true)->call('next')
+            ->set('basicSalary', '45000.00')->set('isCash', true)->call('next')
             ->call('hire')->assertHasNoErrors()->assertRedirect();
 
         $this->assertSame(1, Person::query()->where('nic', $p->nic)->count());
         $new = Employment::query()->where('person_id', $p->id)->where('status', 'ACTIVE')->sole();
         $this->assertNotNull($new->previous_employment_id);
         $this->assertSame(2, Employment::query()->where('person_id', $p->id)->count());
+        $this->assertSame('45000.00', app(CompensationService::class)->on($new, $new->hire_date)->basic_salary);
     }
 
     public function test_person_exited_from_another_company_is_hired_as_a_new_hire_of_the_same_person(): void
@@ -172,10 +184,12 @@ class HireWizardTest extends TestCase
         $this->loginAs('hr-manager', $c);
 
         $component = $this->walkToReview((string) $c->id, ['type' => 'INTERN', 'epfNo' => ''], false);
-        $component->assertSet('epfLiable', false);
+        $component->assertSet('epfLiable', false)->assertSet('basicSalary', '0.00');
         $component->call('hire')->assertHasNoErrors()->assertRedirect();
 
-        $this->assertFalse(Employment::sole()->epf_liable);
+        $e = Employment::sole();
+        $this->assertFalse($e->epf_liable);
+        $this->assertSame('0.00', app(CompensationService::class)->on($e, $e->hire_date)->basic_salary);
     }
 
     public function test_choosing_intern_clears_the_epf_liability(): void
@@ -185,8 +199,8 @@ class HireWizardTest extends TestCase
 
         Livewire::test(HireWizard::class)
             ->assertSet('epfLiable', true)
-            ->set('type', 'INTERN')->assertSet('epfLiable', false)
-            ->set('type', 'PERMANENT')->assertSet('epfLiable', true);
+            ->set('type', 'INTERN')->assertSet('epfLiable', false)->assertSet('basicSalary', '0.00')
+            ->set('type', 'PERMANENT')->assertSet('epfLiable', true)->assertSet('basicSalary', '');
     }
 
     public function test_probation_defaults_the_confirmation_due_date_to_six_months(): void

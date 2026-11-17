@@ -93,7 +93,7 @@ class ShiftScreensTest extends TestCase
             ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('epfNo', '900')
             ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])
             ->set('shiftId', $shift->id)->call('next')
-            ->set('isCash', true)->call('next')
+            ->set('basicSalary', '55000.00')->set('isCash', true)->call('next')
             ->call('hire')
             ->assertHasNoErrors();
 

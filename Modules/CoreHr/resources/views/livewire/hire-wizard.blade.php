@@ -1,6 +1,6 @@
 @php
     $input = 'w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500';
-    $steps = [1 => 'Who', 2 => 'Personal details', 3 => 'Employment', 4 => 'Bank and fingerprint', 5 => 'Review'];
+    $steps = [1 => 'Who', 2 => 'Personal details', 3 => 'Employment', 4 => 'Pay and bank', 5 => 'Review'];
 @endphp
 
 <div class="mx-auto max-w-4xl">
@@ -349,8 +349,48 @@
 
         {{-- Step 4 --}}
         @if($step === 4)
-            <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Bank and fingerprint</h3>
+            <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Pay and bank</h3>
 
+            <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Payroll details</h4>
+            <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Basic salary <span class="text-red-500">*</span></label>
+                    <input wire:model="basicSalary" type="text" maxlength="20" @readonly($type === 'INTERN')
+                        class="{{ $input }} {{ $type === 'INTERN' ? 'bg-gray-100' : '' }} @error('basicSalary') border-red-400 @enderror" />
+                    @if($type === 'INTERN')
+                        <p class="mt-1 text-xs text-gray-500">Interns are hired at zero basic salary.</p>
+                    @endif
+                    @error('basicSalary')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">OT rate mode <span class="text-red-500">*</span></label>
+                    <select wire:model.live="otRateMode" class="{{ $input }} @error('otRateMode') border-red-400 @enderror">
+                        @foreach($otRateModes as $mode)
+                            <option value="{{ $mode->value }}">{{ $mode->value }}</option>
+                        @endforeach
+                    </select>
+                    @error('otRateMode')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                @if($otRateMode === 'FIXED')
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">Fixed OT rate <span class="text-red-500">*</span></label>
+                        <input wire:model="otRate" type="text" maxlength="20" class="{{ $input }} @error('otRate') border-red-400 @enderror" />
+                        @error('otRate')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    </div>
+                @endif
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Attendance tier</label>
+                    <select wire:model="attendanceTierCode" class="{{ $input }} @error('attendanceTierCode') border-red-400 @enderror">
+                        <option value="">None</option>
+                        @foreach($attendanceTiers as $code)
+                            <option value="{{ $code }}">{{ $code }}</option>
+                        @endforeach
+                    </select>
+                    @error('attendanceTierCode')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
+            <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Bank details</h4>
             <label class="mb-4 flex items-center gap-2 text-sm text-gray-700">
                 <input wire:model.live="isCash" type="checkbox" class="rounded border" /> Paid in cash (no bank account)
             </label>

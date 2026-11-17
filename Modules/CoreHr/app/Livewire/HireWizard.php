@@ -40,6 +40,9 @@ use Modules\Organisation\Models\Job;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Organisation\Models\StaffWorkCategory;
+use Modules\Payroll\Enums\OtRateMode;
+use Modules\Payroll\Models\AttendanceAllowanceTier;
+use Modules\Payroll\Services\CompensationService;
 
 class HireWizard extends Component
 {
@@ -144,7 +147,15 @@ class HireWizard extends Component
 
     public bool $lateDeduction = false;
 
-    // Step 4: bank and fingerprint
+    // Step 4: payroll, bank and fingerprint
+    public string $basicSalary = '';
+
+    public string $otRateMode = 'CALCULATED';
+
+    public string $otRate = '';
+
+    public string $attendanceTierCode = '';
+
     public bool $isCash = false;
 
     public string|int|null $bankId = null;
@@ -176,8 +187,12 @@ class HireWizard extends Component
         if ($this->type === EmploymentType::INTERN->value) {
             $this->epfLiable = false;
             $this->epfNo = '';
+            $this->basicSalary = '0.00';
         } else {
             $this->epfLiable = true;
+            if ($this->basicSalary === '0.00') {
+                $this->basicSalary = '';
+            }
         }
 
         $this->setConfirmationDueDate();
@@ -215,6 +230,7 @@ class HireWizard extends Component
         BankAccountService $banks,
         EnrolmentService $enrolments,
         TimeProfileService $timeProfiles,
+        CompensationService $compensation,
     ): void {
         $this->authorize('employee.create');
         $this->domainError = '';
@@ -224,7 +240,7 @@ class HireWizard extends Component
         }
 
         try {
-            $employment = DB::transaction(function () use ($persons, $employments, $banks, $enrolments, $timeProfiles) {
+            $employment = DB::transaction(function () use ($persons, $employments, $banks, $enrolments, $timeProfiles, $compensation) {
                 $personData = $this->personData();
 
                 if ($this->existingPersonId !== null) {
@@ -253,6 +269,8 @@ class HireWizard extends Component
                     : $employments->hire($person, $company, $employmentData, $assignment);
 
                 $banks->set($employment, $this->bankData());
+
+                $compensation->set($employment, $this->hireDate, $this->compensationData());
 
                 $timeProfiles->set($employment, [
                     'effective_from' => $this->hireDate,
@@ -512,6 +530,14 @@ class HireWizard extends Component
                 'lateDeduction' => ['boolean'],
             ],
             4 => [
+                'basicSalary' => ['required', 'string', 'max:20'],
+                'otRateMode' => ['required', Rule::enum(OtRateMode::class)],
+                'otRate' => [
+                    $this->otRateMode === OtRateMode::FIXED->value ? 'required' : 'nullable',
+                    'string',
+                    'max:20',
+                ],
+                'attendanceTierCode' => ['nullable', 'string', 'max:10'],
                 'isCash' => ['boolean'],
                 'bankId' => [$this->isCash ? 'nullable' : 'required', 'integer'],
                 'bankBranchId' => [$this->isCash ? 'nullable' : 'required', 'integer'],
@@ -535,6 +561,8 @@ class HireWizard extends Component
                 'emergencyPhone.required_with' => 'Enter the name, relationship and phone of the emergency contact together.',
             ],
             4 => [
+                'basicSalary.required' => 'Enter the basic salary.',
+                'otRate.required' => 'Enter the fixed OT rate.',
                 'deviceGroup.required_with' => 'Enter the device group as well.',
                 'deviceUserId.required_with' => 'Enter the device user ID as well.',
             ],
@@ -648,6 +676,18 @@ class HireWizard extends Component
         ];
     }
 
+    /** @return array<string, mixed> */
+    private function compensationData(): array
+    {
+        return [
+            'basic_salary' => $this->type === EmploymentType::INTERN->value ? '0.00' : trim($this->basicSalary),
+            'ot_rate_mode' => $this->otRateMode,
+            'ot_rate' => trim($this->otRate) !== '' ? trim($this->otRate) : null,
+            'attendance_tier_code' => trim($this->attendanceTierCode) !== '' ? trim($this->attendanceTierCode) : null,
+            'change_reason' => 'Hire',
+        ];
+    }
+
     private function setConfirmationDueDate(): void
     {
         if ($this->type !== EmploymentType::PROBATION->value) {
@@ -673,6 +713,9 @@ class HireWizard extends Component
             str_contains($message, 'EPF') => 'epfNo',
             str_contains($message, 'Device user ID') => 'deviceUserId',
             str_contains($message, 'Hire date') => 'hireDate',
+            str_contains($message, 'Basic salary') || str_contains($message, 'intern must have a basic salary') => 'basicSalary',
+            str_contains($message, 'OT rate') => 'otRate',
+            str_contains($message, 'attendance tier') => 'attendanceTierCode',
             default => null,
         };
 
@@ -703,6 +746,8 @@ class HireWizard extends Component
             'shifts' => Shift::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
             'attendanceModes' => AttendanceMode::cases(),
             'otModes' => OtMode::cases(),
+            'otRateModes' => OtRateMode::cases(),
+            'attendanceTiers' => AttendanceAllowanceTier::query()->orderBy('code')->pluck('code')->unique()->values(),
             'deviceGroups' => Device::query()->whereNotNull('device_group')->distinct()->orderBy('device_group')->pluck('device_group'),
             'selectedManager' => $this->selectedManager(),
             'managerResults' => $this->managerResults($companyId),
@@ -745,6 +790,10 @@ class HireWizard extends Component
             'Grade' => $name(Grade::class, $this->gradeId),
             'Location' => $name(Location::class, $this->locationId),
             'Reports to' => $manager ? $manager->employee_no.' · '.$manager->person->name_with_initials : '—',
+            'Basic salary' => $this->basicSalary !== '' ? $this->basicSalary : '—',
+            'OT rate mode' => $this->otRateMode,
+            'Fixed OT rate' => $this->otRateMode === OtRateMode::FIXED->value && $this->otRate !== '' ? $this->otRate : '—',
+            'Attendance tier' => $this->attendanceTierCode !== '' ? $this->attendanceTierCode : '—',
             'Payment' => $this->isCash ? 'Cash' : 'Bank account '.$this->accountNo,
             'Fingerprint' => trim($this->deviceGroup) !== '' ? trim($this->deviceGroup).' · ID '.$this->deviceUserId : 'Not enrolled yet',
         ];
