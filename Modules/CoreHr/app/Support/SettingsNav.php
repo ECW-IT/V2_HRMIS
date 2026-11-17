@@ -11,16 +11,19 @@ final class SettingsNav
     {
         return [
             [
+                'icon' => '🏦',
                 'label' => 'Banks',
                 'route' => route('settings.banks.index'),
                 'active' => $active === 'banks',
             ],
             [
+                'icon' => '🌿',
                 'label' => 'Bank branches',
                 'route' => route('settings.bank-branches.index'),
                 'active' => $active === 'bank-branches',
             ],
             [
+                'icon' => '📄',
                 'label' => 'Document types',
                 'route' => route('settings.document-types.index'),
                 'active' => $active === 'document-types',

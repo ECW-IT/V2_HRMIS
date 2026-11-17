@@ -46,9 +46,7 @@
                         <td class="px-3 py-2">{{ $user->is_active ? 'Active' : 'Inactive' }}</td>
                         <td class="px-3 py-2 text-right">
                             @if ($canManage)
-                                <button type="button" wire:click="openEdit({{ $user->id }})" class="text-indigo-600 hover:underline">
-                                    Edit
-                                </button>
+                                <x-action-icon-button variant="edit" wire:click="openEdit({{ $user->id }})" />
                             @endif
                         </td>
                     </tr>

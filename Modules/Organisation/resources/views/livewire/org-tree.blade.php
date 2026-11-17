@@ -1,8 +1,7 @@
 <div class="p-4">
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
-            <h1 class="text-lg font-semibold text-slate-800">Org units</h1>
-            <p class="text-sm text-slate-500">Department, section and sub section tree for the selected company.</p>
+            <h1 class="text-lg font-semibold text-slate-800">Department break down</h1>
         </div>
         <div class="flex flex-wrap items-center gap-3">
             <label class="flex items-center gap-2 text-sm text-slate-700">
@@ -40,7 +39,7 @@
                     <tr>
                         <th class="px-3 py-2">Unit</th>
                         <th class="px-3 py-2">Type</th>
-                        <th class="px-3 py-2">Status</th>
+                        {{-- <th class="px-3 py-2">Status</th> --}}
                         <th class="px-3 py-2"></th>
                     </tr>
                 </thead>
@@ -52,7 +51,7 @@
                                 <div class="flex items-center gap-2" style="padding-left: {{ $row['depth'] * 1.25 }}rem">
                                     @if ($row['hasChildren'])
                                         <button type="button" wire:click="toggleExpanded({{ $unit->id }})" class="text-slate-500 hover:text-slate-800">
-                                            {{ ($expanded[$unit->id] ?? true) ? '▾' : '▸' }}
+                                            {{ ($expanded[$unit->id] ?? false) ? '▾' : '▸' }}
                                         </button>
                                     @else
                                         <span class="inline-block w-4"></span>
@@ -78,26 +77,28 @@
                                     @endswitch
                                 </span>
                             </td>
-                            <td class="px-3 py-2">{{ $unit->is_active ? 'Active' : 'Inactive' }}</td>
-                            <td class="px-3 py-2 text-right space-x-2 whitespace-nowrap">
+                            {{-- <td class="px-3 py-2">{{ $unit->is_active ? 'Active' : 'Inactive' }}</td> --}}
+                            <td class="px-3 py-2 text-right whitespace-nowrap">
                                 @can('org.manage')
-                                    @if ($unit->type === \Modules\Organisation\Enums\OrgUnitType::DEPARTMENT)
-                                        <button type="button" wire:click="openAddChild({{ $unit->id }})" class="text-[var(--color-erp-accent)] hover:underline">Add section</button>
-                                    @elseif ($unit->type === \Modules\Organisation\Enums\OrgUnitType::SECTION)
-                                        <button type="button" wire:click="openAddChild({{ $unit->id }})" class="text-[var(--color-erp-accent)] hover:underline">Add sub section</button>
-                                    @endif
-                                    <button type="button" wire:click="openEdit({{ $unit->id }})" class="text-[var(--color-erp-accent)] hover:underline">Edit</button>
-                                    <button type="button" wire:click="openMove({{ $unit->id }})" class="text-slate-600 hover:underline">Move</button>
-                                    @if ($unit->is_active)
-                                        <button type="button" wire:click="deactivate({{ $unit->id }})" class="text-slate-600 hover:underline">Deactivate</button>
-                                    @else
-                                        <button type="button" wire:click="activate({{ $unit->id }})" class="text-slate-600 hover:underline">Activate</button>
-                                    @endif
+                                    <div class="inline-flex items-center gap-1.5">
+                                        @if ($unit->type === \Modules\Organisation\Enums\OrgUnitType::DEPARTMENT)
+                                            <x-action-icon-button variant="add" label="Add section" wire:click="openAddChild({{ $unit->id }})" />
+                                        @elseif ($unit->type === \Modules\Organisation\Enums\OrgUnitType::SECTION)
+                                            <x-action-icon-button variant="add" label="Add sub section" wire:click="openAddChild({{ $unit->id }})" />
+                                        @endif
+                                        <x-action-icon-button variant="edit" wire:click="openEdit({{ $unit->id }})" />
+                                        <x-action-icon-button variant="move" wire:click="openMove({{ $unit->id }})" />
+                                        @if ($unit->is_active)
+                                            <x-action-icon-button variant="deactivate" wire:click="deactivate({{ $unit->id }})" />
+                                        @else
+                                            <x-action-icon-button variant="activate" wire:click="activate({{ $unit->id }})" />
+                                        @endif
+                                    </div>
                                 @endcan
                             </td>
                         </tr>
                     @empty
-                        <tr><td colspan="4" class="px-3 py-6 text-center text-slate-500">No organisation units yet.</td></tr>
+                        <tr><td colspan="4" class="px-3 py-6 text-center text-slate-500">No departments yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -113,14 +114,67 @@
                     @if ($formMode === 'move')
                         <div>
                             <label class="mb-1 block text-xs font-medium text-slate-600">New parent</label>
-                            <select wire:model="moveParentId" class="w-full rounded border px-3 py-2 text-sm">
-                                @if ($type === \Modules\Organisation\Enums\OrgUnitType::DEPARTMENT->value)
-                                    <option value="">No parent (top level)</option>
-                                @endif
-                                @foreach ($moveParents as $parent)
-                                    <option value="{{ $parent->id }}">{{ $parent->code }} — {{ $parent->name }} ({{ $parent->type->value }})</option>
-                                @endforeach
-                            </select>
+                            <div
+                                x-data="moveParentPicker({
+                                    selectedId: {{ $moveParentId === null ? 'null' : (int) $moveParentId }},
+                                    allowNoParent: {{ $allowNoParent ? 'true' : 'false' }},
+                                    options: {{ \Illuminate\Support\Js::from($moveParentOptions) }}
+                                })"
+                                class="relative"
+                                x-on:click.outside="open = false"
+                            >
+                                <button
+                                    type="button"
+                                    class="flex w-full items-center justify-between rounded border border-[var(--color-erp-border)] bg-white px-3 py-2 text-left text-sm text-slate-800"
+                                    x-on:click="open = !open"
+                                    aria-haspopup="listbox"
+                                    x-bind:aria-expanded="open"
+                                >
+                                    <span class="truncate" x-text="selectedLabel"></span>
+                                    <svg class="h-4 w-4 shrink-0 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                                    </svg>
+                                </button>
+                                <div
+                                    x-show="open"
+                                    x-cloak
+                                    class="popup absolute z-10 mt-1 w-full border border-[var(--color-erp-border)] bg-white shadow-lg"
+                                    role="listbox"
+                                >
+                                    <div class="border-b border-[var(--color-erp-border)] p-2">
+                                        <input
+                                            type="search"
+                                            x-model="query"
+                                            x-on:keydown.escape.stop="open = false"
+                                            placeholder="Search parent"
+                                            class="w-full rounded border border-[var(--color-erp-border)] px-2 py-1.5 text-sm"
+                                            aria-label="Search parent"
+                                        >
+                                    </div>
+                                    <ul class="max-h-48 overflow-y-auto py-1 text-sm">
+                                        <template x-if="allowNoParent">
+                                            <li>
+                                                <button
+                                                    type="button"
+                                                    class="block w-full px-3 py-1.5 text-left hover:bg-[var(--color-erp-row-hover)]"
+                                                    x-on:click="select(null)"
+                                                >No parent (top level)</button>
+                                            </li>
+                                        </template>
+                                        <template x-for="opt in filtered" :key="opt.id">
+                                            <li>
+                                                <button
+                                                    type="button"
+                                                    class="block w-full px-3 py-1.5 text-left hover:bg-[var(--color-erp-row-hover)]"
+                                                    x-on:click="select(opt.id)"
+                                                    x-text="opt.label"
+                                                ></button>
+                                            </li>
+                                        </template>
+                                        <li x-show="filtered.length === 0" class="px-3 py-2 text-slate-500">No matches</li>
+                                    </ul>
+                                </div>
+                            </div>
                             @error('code') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                         </div>
                     @else

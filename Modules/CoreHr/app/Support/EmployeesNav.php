@@ -9,6 +9,7 @@ final class EmployeesNav
     {
         $items = [
             [
+                'icon' => '👥',
                 'label' => 'Employees',
                 'route' => route('employees.index'),
                 'active' => $active === 'employees',
@@ -17,6 +18,7 @@ final class EmployeesNav
 
         if (auth()->user()?->can('employee.create')) {
             $items[] = [
+                'icon' => '➕',
                 'label' => 'Hire employee',
                 'route' => route('employees.create'),
                 'active' => $active === 'hire',
@@ -24,12 +26,14 @@ final class EmployeesNav
         }
 
         $items[] = [
+            'icon' => '📊',
             'label' => 'Reports',
             'route' => route('employees.reports'),
             'active' => $active === 'reports',
         ];
 
         $items[] = [
+            'icon' => '✅',
             'label' => 'Readiness',
             'route' => route('employees.readiness'),
             'active' => $active === 'readiness',

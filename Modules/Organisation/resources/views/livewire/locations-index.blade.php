@@ -17,7 +17,7 @@
         <table class="min-w-full text-left text-sm">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                    <th class="px-3 py-2">Code</th>
+                    {{-- <th class="px-3 py-2">Code</th> --}}
                     <th class="px-3 py-2">Name</th>
                     <th class="px-3 py-2">Address</th>
                     <th class="px-3 py-2">Status</th>
@@ -27,16 +27,20 @@
             <tbody>
                 @forelse ($locations as $location)
                     <tr class="border-t">
-                        <td class="px-3 py-2 font-medium">{{ $location->code }}</td>
+                        {{-- <td class="px-3 py-2 font-medium">{{ $location->code }}</td> --}}
                         <td class="px-3 py-2">{{ $location->name }}</td>
                         <td class="px-3 py-2">{{ $location->address ?: '—' }}</td>
                         <td class="px-3 py-2">{{ $location->is_active ? 'Active' : 'Inactive' }}</td>
-                        <td class="px-3 py-2 text-right space-x-2 whitespace-nowrap">
+                        <td class="px-3 py-2 text-right whitespace-nowrap">
                             @can('org.manage')
-                                <button type="button" wire:click="openEdit({{ $location->id }})" class="text-[var(--color-erp-accent)] hover:underline">Edit</button>
-                                <button type="button" wire:click="toggleActive({{ $location->id }})" class="text-slate-600 hover:underline">
-                                    {{ $location->is_active ? 'Deactivate' : 'Activate' }}
-                                </button>
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $location->id }})" />
+                                    @if ($location->is_active)
+                                        <x-action-icon-button variant="deactivate" wire:click="toggleActive({{ $location->id }})" />
+                                    @else
+                                        <x-action-icon-button variant="activate" wire:click="toggleActive({{ $location->id }})" />
+                                    @endif
+                                </div>
                             @endcan
                         </td>
                     </tr>

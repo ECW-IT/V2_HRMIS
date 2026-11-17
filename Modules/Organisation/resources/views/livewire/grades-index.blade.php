@@ -31,12 +31,16 @@
                         <td class="px-3 py-2 font-medium">{{ $grade->code }}</td>
                         <td class="px-3 py-2">{{ $grade->name }}</td>
                         <td class="px-3 py-2">{{ $grade->is_active ? 'Active' : 'Inactive' }}</td>
-                        <td class="px-3 py-2 text-right space-x-2 whitespace-nowrap">
+                        <td class="px-3 py-2 text-right whitespace-nowrap">
                             @can('org.manage')
-                                <button type="button" wire:click="openEdit({{ $grade->id }})" class="text-[var(--color-erp-accent)] hover:underline">Edit</button>
-                                <button type="button" wire:click="toggleActive({{ $grade->id }})" class="text-slate-600 hover:underline">
-                                    {{ $grade->is_active ? 'Deactivate' : 'Activate' }}
-                                </button>
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $grade->id }})" />
+                                    @if ($grade->is_active)
+                                        <x-action-icon-button variant="deactivate" wire:click="toggleActive({{ $grade->id }})" />
+                                    @else
+                                        <x-action-icon-button variant="activate" wire:click="toggleActive({{ $grade->id }})" />
+                                    @endif
+                                </div>
                             @endcan
                         </td>
                     </tr>

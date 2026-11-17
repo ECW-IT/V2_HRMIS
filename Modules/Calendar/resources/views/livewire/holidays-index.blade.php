@@ -57,10 +57,12 @@
                                     {{ $holiday->kind->value }}
                                 </span>
                             </td>
-                            <td class="space-x-2 whitespace-nowrap px-3 py-2 text-right">
+                            <td class="whitespace-nowrap px-3 py-2 text-right">
                                 @can('calendar.manage')
-                                    <button type="button" wire:click="openEdit({{ $holiday->id }})" class="text-[var(--color-erp-accent)] hover:underline">Edit</button>
-                                    <button type="button" wire:click="remove({{ $holiday->id }})" class="text-red-600 hover:underline" wire:confirm="Remove this holiday?">Remove</button>
+                                    <div class="inline-flex items-center gap-1.5">
+                                        <x-action-icon-button variant="edit" wire:click="openEdit({{ $holiday->id }})" />
+                                        <x-action-icon-button variant="remove" wire:click="remove({{ $holiday->id }})" wire:confirm="Remove this holiday?" />
+                                    </div>
                                 @endcan
                             </td>
                         </tr>

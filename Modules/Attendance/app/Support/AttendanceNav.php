@@ -23,6 +23,7 @@ final class AttendanceNav
 
         return [
             [
+                'icon' => '⏱️',
                 'label' => 'Time & Leave',
                 'active' => in_array($active, $screens, true),
                 'children' => [
@@ -37,31 +38,37 @@ final class AttendanceNav
                 ],
             ],
             [
+                'icon' => '🕐',
                 'label' => 'Shifts',
                 'route' => route('attendance.shifts.index'),
                 'active' => $active === 'shifts',
             ],
             [
+                'icon' => '📋',
                 'label' => 'Bulk time profiles',
                 'route' => route('attendance.time-profiles.bulk'),
                 'active' => $active === 'time-profiles',
             ],
             [
+                'icon' => '🖥️',
                 'label' => 'Devices',
                 'route' => route('attendance.devices.index'),
                 'active' => $active === 'devices',
             ],
             [
+                'icon' => '⚠️',
                 'label' => 'Unresolved punches',
                 'route' => route('attendance.unresolved.index'),
                 'active' => $active === 'unresolved',
             ],
             [
+                'icon' => '🏖️',
                 'label' => 'Leave types',
                 'route' => route('leave.types.index'),
                 'active' => $active === 'leave-types',
             ],
             [
+                'icon' => '📜',
                 'label' => 'Leave policies',
                 'route' => route('leave.policies.index'),
                 'active' => $active === 'leave-policies',

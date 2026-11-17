@@ -62,16 +62,19 @@ class AuditLogList extends Component
             'title' => 'Audit',
             'moduleNav' => [
                 [
+                    'icon' => '👤',
                     'label' => 'User account',
                     'route' => route('access-control.users.index'),
                     'active' => false,
                 ],
                 [
+                    'icon' => '🛡️',
                     'label' => 'Role',
                     'route' => route('access-control.roles.index'),
                     'active' => false,
                 ],
                 [
+                    'icon' => '📑',
                     'label' => 'Audit',
                     'route' => route('access-control.audit.index'),
                     'active' => true,

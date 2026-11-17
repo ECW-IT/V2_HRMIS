@@ -29,8 +29,8 @@
                         <td class="px-3 py-2">{{ $type->enforce_balance ? 'Yes' : 'No' }}</td>
                         <td class="px-3 py-2">{{ $type->is_active ? 'Yes' : 'No' }}</td>
                         @can('leave.manage')
-                            <td class="px-3 py-2">
-                                <button type="button" wire:click="edit({{ $type->id }})" class="text-sky-700 hover:underline">Edit</button>
+                            <td class="px-3 py-2 text-right">
+                                <x-action-icon-button variant="edit" wire:click="edit({{ $type->id }})" />
                             </td>
                         @endcan
                     </tr>

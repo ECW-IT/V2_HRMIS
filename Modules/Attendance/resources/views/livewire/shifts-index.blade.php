@@ -46,12 +46,14 @@
                         <td class="px-3 py-2">{{ $shift->breaks->pluck('name')->join(', ') ?: '—' }}</td>
                         <td class="px-3 py-2">{{ $row['employees_now'] }}</td>
                         <td class="px-3 py-2">{{ $shift->is_active ? 'Yes' : 'No' }}</td>
-                        <td class="space-x-2 whitespace-nowrap px-3 py-2 text-right">
+                        <td class="whitespace-nowrap px-3 py-2 text-right">
                             @can('shift.manage')
-                                <button type="button" wire:click="openEdit({{ $shift->id }})" class="text-[var(--color-erp-accent)] hover:underline">Edit</button>
-                                @if ($shift->is_active)
-                                    <button type="button" wire:click="deactivate({{ $shift->id }})" class="text-red-600 hover:underline">Deactivate</button>
-                                @endif
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $shift->id }})" />
+                                    @if ($shift->is_active)
+                                        <x-action-icon-button variant="deactivate" wire:click="deactivate({{ $shift->id }})" />
+                                    @endif
+                                </div>
                             @endcan
                         </td>
                     </tr>

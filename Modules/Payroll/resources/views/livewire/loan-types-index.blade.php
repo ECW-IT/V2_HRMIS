@@ -33,7 +33,7 @@
                         <td class="px-3 py-2">{{ $type->is_active ? 'Yes' : 'No' }}</td>
                         @if ($canConfigure)
                             <td class="px-3 py-2 text-right">
-                                <button type="button" wire:click="openEdit({{ $type->id }})" class="text-sm text-[var(--color-erp-accent)]">Edit</button>
+                                <x-action-icon-button variant="edit" wire:click="openEdit({{ $type->id }})" />
                             </td>
                         @endif
                     </tr>

@@ -56,14 +56,16 @@
                                 {{ $company->is_active ? 'Active' : 'Inactive' }}
                             </span>
                         </td>
-                        <td class="px-3 py-2 text-right space-x-2 whitespace-nowrap">
+                        <td class="px-3 py-2 text-right whitespace-nowrap">
                             @can('org.manage')
-                                <button type="button" wire:click="openEdit({{ $company->id }})" class="text-[var(--color-erp-accent)] hover:underline">
-                                    Edit
-                                </button>
-                                <button type="button" wire:click="toggleActive({{ $company->id }})" class="text-slate-600 hover:underline">
-                                    {{ $company->is_active ? 'Deactivate' : 'Activate' }}
-                                </button>
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $company->id }})" />
+                                    @if ($company->is_active)
+                                        <x-action-icon-button variant="deactivate" wire:click="toggleActive({{ $company->id }})" />
+                                    @else
+                                        <x-action-icon-button variant="activate" wire:click="toggleActive({{ $company->id }})" />
+                                    @endif
+                                </div>
                             @endcan
                         </td>
                     </tr>

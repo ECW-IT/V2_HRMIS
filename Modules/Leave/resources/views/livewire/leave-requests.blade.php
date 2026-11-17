@@ -41,9 +41,9 @@
                         <td class="px-3 py-1.5 text-xs text-gray-700">{{ $request->leaveType?->name }}</td>
                         <td class="px-3 py-1.5 text-xs text-gray-700">{{ $request->portion->value }}</td>
                         <td class="px-3 py-1.5 text-xs text-gray-700">{{ ucfirst(strtolower($request->status->value)) }}</td>
-                        <td class="px-3 py-1.5 text-xs">
+                        <td class="px-3 py-1.5 text-right">
                             @if(in_array($request->status->value, ['PENDING', 'APPROVED'], true))
-                                <button type="button" wire:click="cancel({{ $request->id }})" class="text-blue-700 hover:underline">Cancel</button>
+                                <x-action-icon-button variant="cancel" wire:click="cancel({{ $request->id }})" />
                             @endif
                         </td>
                     </tr>

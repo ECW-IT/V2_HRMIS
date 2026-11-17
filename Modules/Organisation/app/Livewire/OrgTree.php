@@ -115,6 +115,13 @@ class OrgTree extends Component
         $this->resetErrorBag();
     }
 
+    public function updatedSearch(): void
+    {
+        if (trim($this->search) === '') {
+            $this->expanded = [];
+        }
+    }
+
     public function toggleExpanded(int $unitId): void
     {
         $this->expanded[$unitId] = ! ($this->expanded[$unitId] ?? false);
@@ -215,22 +222,34 @@ class OrgTree extends Component
             // When searching, include ancestors so matched leaves stay in context.
             if ($this->search !== '' && $all->isNotEmpty()) {
                 $all = $this->withAncestors($all, $companyId);
+                $this->expandAncestorsForSearch($all);
             }
 
             $tree = $this->buildTree($all);
             $moveParents = $this->eligibleMoveParents($all, $companyId);
         }
 
+        $moveParentOptions = $moveParents
+            ->map(fn (OrgUnit $parent) => [
+                'id' => $parent->id,
+                'label' => $parent->code.' — '.$parent->name.' ('.$parent->type->value.')',
+                'search' => strtolower($parent->code.' '.$parent->name.' '.$parent->type->value),
+            ])
+            ->values()
+            ->all();
+
         return view('organisation::livewire.org-tree', [
             'companySelected' => $companyId !== null,
             'tree' => $tree,
             'moveParents' => $moveParents,
+            'moveParentOptions' => $moveParentOptions,
+            'allowNoParent' => $this->type === OrgUnitType::DEPARTMENT->value,
             'types' => OrgUnitType::cases(),
             'formTitle' => $this->formTitle(),
             'typeLabel' => $this->typeLabel($this->type),
         ])->layout('components.layouts.module', [
             'moduleName' => 'Organisation',
-            'title' => 'Org units',
+            'title' => 'Department break down',
             'moduleNav' => OrganisationNav::items('units'),
         ]);
     }
@@ -293,6 +312,23 @@ class OrgTree extends Component
     }
 
     /**
+     * Expand every ancestor so search hits remain visible under collapsed defaults.
+     *
+     * @param  Collection<int, OrgUnit>  $units
+     */
+    protected function expandAncestorsForSearch(Collection $units): void
+    {
+        foreach ($units as $unit) {
+            $parentId = $unit->parent_id;
+            while ($parentId !== null) {
+                $this->expanded[(int) $parentId] = true;
+                $parent = $units->firstWhere('id', $parentId);
+                $parentId = $parent?->parent_id;
+            }
+        }
+    }
+
+    /**
      * @param  Collection<int, OrgUnit>  $visible
      * @return Collection<int, OrgUnit>
      */
@@ -313,9 +349,7 @@ class OrgTree extends Component
             ->where('company_id', $companyId)
             ->where('is_active', true)
             ->whereNotIn('id', $forbidden)
-            ->when($unit->type === OrgUnitType::SECTION, fn ($q) => $q->where('type', OrgUnitType::DEPARTMENT))
-            ->when($unit->type === OrgUnitType::SUBSECTION, fn ($q) => $q->where('type', OrgUnitType::SECTION))
-            ->when($unit->type === OrgUnitType::DEPARTMENT, fn ($q) => $q->where('type', OrgUnitType::DEPARTMENT))
+            ->orderBy('type')
             ->orderBy('code')
             ->get();
     }
@@ -340,7 +374,7 @@ class OrgTree extends Component
                     'hasChildren' => $hasChildren,
                 ];
 
-                if ($hasChildren && ($this->expanded[$unit->id] ?? true)) {
+                if ($hasChildren && ($this->expanded[$unit->id] ?? false)) {
                     $walk($unit->id, $depth + 1);
                 }
             }

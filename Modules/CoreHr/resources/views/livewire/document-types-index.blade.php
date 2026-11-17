@@ -33,12 +33,16 @@
                         <td class="px-3 py-2">{{ $type->requires_expiry ? 'Yes' : 'No' }}</td>
                         <td class="px-3 py-2">{{ $type->is_mandatory ? 'Yes' : 'No' }}</td>
                         <td class="px-3 py-2">{{ $type->is_active ? 'Active' : 'Inactive' }}</td>
-                        <td class="space-x-2 whitespace-nowrap px-3 py-2 text-right">
+                        <td class="whitespace-nowrap px-3 py-2 text-right">
                             @can('settings.manage')
-                                <button type="button" wire:click="openEdit({{ $type->id }})" class="text-[var(--color-erp-accent)] hover:underline">Edit</button>
-                                <button type="button" wire:click="toggleActive({{ $type->id }})" class="text-slate-600 hover:underline">
-                                    {{ $type->is_active ? 'Deactivate' : 'Activate' }}
-                                </button>
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $type->id }})" />
+                                    @if ($type->is_active)
+                                        <x-action-icon-button variant="deactivate" wire:click="toggleActive({{ $type->id }})" />
+                                    @else
+                                        <x-action-icon-button variant="activate" wire:click="toggleActive({{ $type->id }})" />
+                                    @endif
+                                </div>
                             @endcan
                         </td>
                     </tr>

@@ -42,9 +42,9 @@
                         <td class="px-3 py-2">{{ $policy->effective_from?->toDateString() }}</td>
                         <td class="px-3 py-2">{{ $policy->effective_to?->toDateString() ?? 'Open' }}</td>
                         @can('leave.manage')
-                            <td class="px-3 py-2">
+                            <td class="px-3 py-2 text-right">
                                 @if ($policy->effective_to === null)
-                                    <button type="button" wire:click="end({{ $policy->id }})" class="text-sky-700 hover:underline">End</button>
+                                    <x-action-icon-button variant="end" wire:click="end({{ $policy->id }})" />
                                 @endif
                             </td>
                         @endcan

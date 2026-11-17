@@ -11,16 +11,19 @@ final class CalendarNav
     {
         return [
             [
+                'icon' => '🎉',
                 'label' => 'Holidays',
                 'route' => route('calendar.holidays.index'),
                 'active' => $active === 'holidays',
             ],
             [
+                'icon' => '📆',
                 'label' => 'Pay periods',
                 'route' => route('calendar.periods.index'),
                 'active' => $active === 'periods',
             ],
             [
+                'icon' => '📅',
                 'label' => 'Expected days',
                 'route' => route('calendar.expected-days.index'),
                 'active' => $active === 'expected-days',

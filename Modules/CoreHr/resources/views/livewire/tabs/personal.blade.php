@@ -179,10 +179,11 @@
                         <td class="px-3 py-2 text-gray-700">{{ $contact->phone }}</td>
                         <td class="px-3 py-2 text-gray-700">{{ $contact->address ?: '—' }}</td>
                         @if($canEdit)
-                            <td class="space-x-2 whitespace-nowrap px-3 py-2 text-right">
-                                <button type="button" wire:click="openEditEmergency({{ $contact->id }})" class="text-blue-600 hover:underline">Edit</button>
-                                <button type="button" wire:click="removeChild('emergency', {{ $contact->id }})"
-                                    wire:confirm="Remove this emergency contact?" class="text-red-600 hover:text-red-800">Remove</button>
+                            <td class="whitespace-nowrap px-3 py-2 text-right">
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEditEmergency({{ $contact->id }})" />
+                                    <x-action-icon-button variant="remove" wire:click="removeChild('emergency', {{ $contact->id }})" wire:confirm="Remove this emergency contact?" />
+                                </div>
                             </td>
                         @endif
                     </tr>
@@ -216,10 +217,11 @@
                         <td class="px-3 py-2 text-gray-700">{{ $dependent->relationship }}</td>
                         <td class="px-3 py-2 text-gray-700">{{ $dependent->date_of_birth?->format('Y-m-d') ?? '—' }}</td>
                         @if($canEdit)
-                            <td class="space-x-2 whitespace-nowrap px-3 py-2 text-right">
-                                <button type="button" wire:click="openEditDependent({{ $dependent->id }})" class="text-blue-600 hover:underline">Edit</button>
-                                <button type="button" wire:click="removeChild('dependent', {{ $dependent->id }})"
-                                    wire:confirm="Remove this dependent?" class="text-red-600 hover:text-red-800">Remove</button>
+                            <td class="whitespace-nowrap px-3 py-2 text-right">
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEditDependent({{ $dependent->id }})" />
+                                    <x-action-icon-button variant="remove" wire:click="removeChild('dependent', {{ $dependent->id }})" wire:confirm="Remove this dependent?" />
+                                </div>
                             </td>
                         @endif
                     </tr>
@@ -255,10 +257,11 @@
                         <td class="px-3 py-2 text-gray-700">{{ $qualification->institute }}</td>
                         <td class="px-3 py-2 text-gray-700">{{ $qualification->year ?? '—' }}</td>
                         @if($canEdit)
-                            <td class="space-x-2 whitespace-nowrap px-3 py-2 text-right">
-                                <button type="button" wire:click="openEditQualification({{ $qualification->id }})" class="text-blue-600 hover:underline">Edit</button>
-                                <button type="button" wire:click="removeChild('qualification', {{ $qualification->id }})"
-                                    wire:confirm="Remove this qualification?" class="text-red-600 hover:text-red-800">Remove</button>
+                            <td class="whitespace-nowrap px-3 py-2 text-right">
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEditQualification({{ $qualification->id }})" />
+                                    <x-action-icon-button variant="remove" wire:click="removeChild('qualification', {{ $qualification->id }})" wire:confirm="Remove this qualification?" />
+                                </div>
                             </td>
                         @endif
                     </tr>
@@ -294,10 +297,11 @@
                         <td class="px-3 py-2 text-gray-700">{{ $experience->from_date->format('Y-m-d') }}</td>
                         <td class="px-3 py-2 text-gray-700">{{ $experience->to_date?->format('Y-m-d') ?? 'present' }}</td>
                         @if($canEdit)
-                            <td class="space-x-2 whitespace-nowrap px-3 py-2 text-right">
-                                <button type="button" wire:click="openEditExperience({{ $experience->id }})" class="text-blue-600 hover:underline">Edit</button>
-                                <button type="button" wire:click="removeChild('experience', {{ $experience->id }})"
-                                    wire:confirm="Remove this experience?" class="text-red-600 hover:text-red-800">Remove</button>
+                            <td class="whitespace-nowrap px-3 py-2 text-right">
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEditExperience({{ $experience->id }})" />
+                                    <x-action-icon-button variant="remove" wire:click="removeChild('experience', {{ $experience->id }})" wire:confirm="Remove this experience?" />
+                                </div>
                             </td>
                         @endif
                     </tr>

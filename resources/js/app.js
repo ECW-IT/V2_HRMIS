@@ -1,4 +1,39 @@
 document.addEventListener('alpine:init', () => {
+    Alpine.data('moveParentPicker', (config = {}) => ({
+        open: false,
+        query: '',
+        selectedId: config.selectedId ?? null,
+        allowNoParent: config.allowNoParent ?? false,
+        options: config.options ?? [],
+
+        get selectedLabel() {
+            if (this.selectedId === null || this.selectedId === '') {
+                return this.allowNoParent ? 'No parent (top level)' : 'Select parent';
+            }
+
+            const match = this.options.find((o) => String(o.id) === String(this.selectedId));
+
+            return match ? match.label : 'Select parent';
+        },
+
+        get filtered() {
+            const q = this.query.trim().toLowerCase();
+
+            if (q === '') {
+                return this.options;
+            }
+
+            return this.options.filter((o) => o.search.includes(q));
+        },
+
+        select(id) {
+            this.selectedId = id;
+            this.query = '';
+            this.open = false;
+            this.$wire.set('moveParentId', id);
+        },
+    }));
+
     Alpine.data('inlineTable', () => ({
         editingCell: null,
         editValue: '',

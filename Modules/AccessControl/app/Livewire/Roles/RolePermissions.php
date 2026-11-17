@@ -78,16 +78,19 @@ class RolePermissions extends Component
             'title' => 'Permissions',
             'moduleNav' => [
                 [
+                    'icon' => '👤',
                     'label' => 'User account',
                     'route' => route('access-control.users.index'),
                     'active' => false,
                 ],
                 [
+                    'icon' => '🛡️',
                     'label' => 'Role',
                     'route' => route('access-control.roles.index'),
                     'active' => false,
                 ],
                 [
+                    'icon' => '🔑',
                     'label' => 'Permission',
                     'route' => route('access-control.roles.permissions', $this->roleId),
                     'active' => true,

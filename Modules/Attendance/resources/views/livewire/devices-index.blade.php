@@ -55,11 +55,15 @@
                             {{ $device->last_seen_at?->format('Y-m-d H:i') ?? '—' }}
                         </td>
                         <td class="px-3 py-2">{{ $device->punches_today }}</td>
-                        <td class="px-3 py-2 text-right space-x-2 whitespace-nowrap">
-                            <button type="button" wire:click="rotateToken({{ $device->id }})" class="text-[var(--color-erp-accent)] hover:underline">Rotate token</button>
-                            <button type="button" wire:click="toggleActive({{ $device->id }})" class="text-slate-600 hover:underline">
-                                {{ $device->is_active ? 'Deactivate' : 'Activate' }}
-                            </button>
+                        <td class="px-3 py-2 text-right whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1.5">
+                                <button type="button" wire:click="rotateToken({{ $device->id }})" class="text-xs text-[var(--color-erp-accent)] hover:underline">Rotate token</button>
+                                @if ($device->is_active)
+                                    <x-action-icon-button variant="deactivate" wire:click="toggleActive({{ $device->id }})" />
+                                @else
+                                    <x-action-icon-button variant="activate" wire:click="toggleActive({{ $device->id }})" />
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty

@@ -77,12 +77,14 @@
                         <td class="px-3 py-2">{{ $component->taxable ? 'Yes' : 'No' }}</td>
                         <td class="px-3 py-2">{{ $component->fund instanceof \Modules\Payroll\Enums\FundCode ? $component->fund->value : ($component->fund ?? '—') }}</td>
                         <td class="px-3 py-2">{{ $component->is_active ? 'Yes' : 'No' }}</td>
-                        <td class="px-3 py-2 text-right whitespace-nowrap space-x-2">
+                        <td class="px-3 py-2 text-right whitespace-nowrap">
                             @if ($canConfigure)
-                                <button type="button" wire:click="openEdit({{ $component->id }})" class="text-[var(--color-erp-accent)] hover:underline">Edit</button>
-                                @if (! $component->is_system && $component->is_active)
-                                    <button type="button" wire:click="deactivate({{ $component->id }})" class="text-slate-600 hover:underline">Deactivate</button>
-                                @endif
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $component->id }})" />
+                                    @if (! $component->is_system && $component->is_active)
+                                        <x-action-icon-button variant="deactivate" wire:click="deactivate({{ $component->id }})" />
+                                    @endif
+                                </div>
                             @endif
                         </td>
                     </tr>

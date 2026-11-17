@@ -215,7 +215,165 @@ class OrganisationScreensTest extends TestCase
             ->test(OrgTree::class)
             ->assertDontSee('Select a company first (use the company dropdown in the top bar).')
             ->assertSee('Add department')
-            ->assertSee('No organisation units yet.');
+            ->assertSee('No departments yet.');
+    }
+
+    public function test_department_break_down_shows_departments_collapsed_by_default(): void
+    {
+        $company = Company::factory()->create();
+        $units = app(OrgUnitService::class);
+        $department = $units->create([
+            'company_id' => $company->id,
+            'code' => 'PROD',
+            'name' => 'Production',
+            'type' => OrgUnitType::DEPARTMENT,
+        ]);
+        $section = $units->create([
+            'company_id' => $company->id,
+            'parent_id' => $department->id,
+            'code' => 'PROD_S',
+            'name' => 'Production section',
+            'type' => OrgUnitType::SECTION,
+        ]);
+        $units->create([
+            'company_id' => $company->id,
+            'parent_id' => $section->id,
+            'code' => 'PROD_A',
+            'name' => 'Production - A',
+            'type' => OrgUnitType::SUBSECTION,
+        ]);
+
+        $user = User::factory()->allCompanies()->withPermissions('org.view', 'org.manage')->create([
+            'must_change_password' => false,
+        ]);
+
+        $this->actingAs($user);
+        CompanyContext::set($company->id);
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->assertSee('Department break down')
+            ->assertSee('Production')
+            ->assertDontSee('Production section')
+            ->assertDontSee('Production - A')
+            ->assertSeeHtml('aria-label="Edit"')
+            ->assertSeeHtml('aria-label="Add section"')
+            ->assertSeeHtml('backdrop-blur-sm')
+            ->assertSeeHtml('bg-white/70')
+            ->assertSeeHtml('border-green-600')
+            ->assertSeeHtml('border-sky-500')
+            ->assertSeeHtml('border-slate-900')
+            ->assertSeeHtml('border-red-600')
+            ->call('toggleExpanded', $department->id)
+            ->assertSee('Production section')
+            ->assertDontSee('Production - A')
+            ->assertSeeHtml('aria-label="Add sub section"')
+            ->call('toggleExpanded', $section->id)
+            ->assertSee('Production - A');
+    }
+
+    public function test_clearing_search_collapses_back_to_departments_only(): void
+    {
+        $company = Company::factory()->create();
+        $units = app(OrgUnitService::class);
+        $department = $units->create([
+            'company_id' => $company->id,
+            'code' => 'PROD',
+            'name' => 'Production',
+            'type' => OrgUnitType::DEPARTMENT,
+        ]);
+        $section = $units->create([
+            'company_id' => $company->id,
+            'parent_id' => $department->id,
+            'code' => 'PROD_S',
+            'name' => 'Production section',
+            'type' => OrgUnitType::SECTION,
+        ]);
+        $units->create([
+            'company_id' => $company->id,
+            'parent_id' => $section->id,
+            'code' => 'PROD_A',
+            'name' => 'Production - A',
+            'type' => OrgUnitType::SUBSECTION,
+        ]);
+
+        $user = User::factory()->allCompanies()->withPermissions('org.view')->create([
+            'must_change_password' => false,
+        ]);
+
+        $this->actingAs($user);
+        CompanyContext::set($company->id);
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->set('search', 'Production - A')
+            ->assertSee('Production - A')
+            ->set('search', '')
+            ->assertSee('Production')
+            ->assertDontSee('Production section')
+            ->assertDontSee('Production - A');
+    }
+
+    public function test_move_unit_new_parent_is_searchable_and_can_save(): void
+    {
+        $company = Company::factory()->create();
+        $units = app(OrgUnitService::class);
+        $departmentA = $units->create([
+            'company_id' => $company->id,
+            'code' => 'HR',
+            'name' => 'Human Resources',
+            'type' => OrgUnitType::DEPARTMENT,
+        ]);
+        $departmentB = $units->create([
+            'company_id' => $company->id,
+            'code' => 'FIN',
+            'name' => 'Finance',
+            'type' => OrgUnitType::DEPARTMENT,
+        ]);
+        $section = $units->create([
+            'company_id' => $company->id,
+            'parent_id' => $departmentA->id,
+            'code' => 'HR_S',
+            'name' => 'Human Resources',
+            'type' => OrgUnitType::SECTION,
+        ]);
+        $financeSection = $units->create([
+            'company_id' => $company->id,
+            'parent_id' => $departmentB->id,
+            'code' => 'FIN_S',
+            'name' => 'Finance section',
+            'type' => OrgUnitType::SECTION,
+        ]);
+        $units->create([
+            'company_id' => $company->id,
+            'parent_id' => $financeSection->id,
+            'code' => 'FIN_A',
+            'name' => 'Finance - A',
+            'type' => OrgUnitType::SUBSECTION,
+        ]);
+
+        $user = User::factory()->allCompanies()->withPermissions('org.view', 'org.manage')->create([
+            'must_change_password' => false,
+        ]);
+
+        $this->actingAs($user);
+        CompanyContext::set($company->id);
+
+        Livewire::actingAs($user)
+            ->test(OrgTree::class)
+            ->call('openMove', $section->id)
+            ->assertSee('Move unit')
+            ->assertSee('New parent')
+            ->assertSeeHtml('placeholder="Search parent"')
+            ->assertSeeHtml('aria-label="Search parent"')
+            ->assertSee('(DEPARTMENT)')
+            ->assertSee('(SECTION)')
+            ->assertSee('(SUBSECTION)')
+            ->set('moveParentId', $departmentB->id)
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertSame($departmentB->id, $section->fresh()->parent_id);
     }
 
     public function test_manager_can_create_edit_and_deactivate_org_unit_chain(): void

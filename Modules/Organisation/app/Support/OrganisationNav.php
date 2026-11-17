@@ -11,31 +11,37 @@ final class OrganisationNav
     {
         $items = [
             [
+                'icon' => '📍',
                 'label' => 'Locations',
                 'route' => route('org.locations.index'),
                 'active' => $active === 'locations',
             ],
             [
-                'label' => 'Org units',
+                'icon' => '🗂️',
+                'label' => 'Department break down',
                 'route' => route('org.units.index'),
                 'active' => $active === 'units',
             ],
             [
+                'icon' => '💼',
                 'label' => 'Designations',
                 'route' => route('org.jobs.index'),
                 'active' => $active === 'jobs',
             ],
             [
+                'icon' => '🏷️',
                 'label' => 'Employee categories',
                 'route' => route('org.categories.index'),
                 'active' => $active === 'categories',
             ],
             [
+                'icon' => '🏪',
                 'label' => 'Office / shop categories',
                 'route' => route('org.staff-work-categories.index'),
                 'active' => $active === 'staff-work-categories',
             ],
             [
+                'icon' => '📶',
                 'label' => 'Grades',
                 'route' => route('org.grades.index'),
                 'active' => $active === 'grades',
@@ -44,6 +50,7 @@ final class OrganisationNav
 
         if (auth()->user()?->hasRole('super-admin')) {
             array_unshift($items, [
+                'icon' => '🏢',
                 'label' => 'Companies',
                 'route' => route('org.companies.index'),
                 'active' => $active === 'companies',

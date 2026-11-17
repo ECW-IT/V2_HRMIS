@@ -29,14 +29,18 @@
                         <td class="px-3 py-2 font-mono text-xs font-medium">{{ $bank->code }}</td>
                         <td class="px-3 py-2">{{ $bank->name }}</td>
                         <td class="px-3 py-2">{{ $bank->is_active ? 'Active' : 'Inactive' }}</td>
-                        <td class="space-x-2 whitespace-nowrap px-3 py-2 text-right">
-                            <a href="{{ route('settings.bank-branches.index', ['bank' => $bank->id]) }}" class="text-slate-600 hover:underline">Branches</a>
-                            @can('settings.manage')
-                                <button type="button" wire:click="openEdit({{ $bank->id }})" class="text-[var(--color-erp-accent)] hover:underline">Edit</button>
-                                <button type="button" wire:click="toggleActive({{ $bank->id }})" class="text-slate-600 hover:underline">
-                                    {{ $bank->is_active ? 'Deactivate' : 'Activate' }}
-                                </button>
-                            @endcan
+                        <td class="whitespace-nowrap px-3 py-2 text-right">
+                            <div class="inline-flex items-center gap-1.5">
+                                <a href="{{ route('settings.bank-branches.index', ['bank' => $bank->id]) }}" class="text-xs text-slate-600 hover:underline">Branches</a>
+                                @can('settings.manage')
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $bank->id }})" />
+                                    @if ($bank->is_active)
+                                        <x-action-icon-button variant="deactivate" wire:click="toggleActive({{ $bank->id }})" />
+                                    @else
+                                        <x-action-icon-button variant="activate" wire:click="toggleActive({{ $bank->id }})" />
+                                    @endif
+                                @endcan
+                            </div>
                         </td>
                     </tr>
                 @empty

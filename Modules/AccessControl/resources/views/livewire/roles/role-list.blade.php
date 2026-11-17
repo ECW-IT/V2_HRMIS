@@ -48,26 +48,17 @@
                             {{ $role->permissions->count() }} assigned
                         </td>
                         <td class="px-3 py-2">{{ $role->users_count }}</td>
-                        <td class="space-x-2 px-3 py-2 text-right whitespace-nowrap">
-                            <a
-                                href="{{ route('access-control.roles.permissions', $role) }}"
-                                class="text-[var(--color-erp-accent)] hover:underline"
-                            >
-                                Permissions
-                            </a>
-                            @if ($canManage)
-                                <button type="button" wire:click="openEdit({{ $role->id }})" class="text-slate-700 hover:underline">
-                                    Edit
-                                </button>
-                                <button
-                                    type="button"
-                                    wire:click="delete({{ $role->id }})"
-                                    wire:confirm="Delete this role?"
-                                    class="text-red-600 hover:underline"
-                                >
-                                    Delete
-                                </button>
-                            @endif
+                        <td class="px-3 py-2 text-right whitespace-nowrap">
+                            <div class="inline-flex items-center gap-1.5">
+                                <x-action-icon-button
+                                    variant="permissions"
+                                    href="{{ route('access-control.roles.permissions', $role) }}"
+                                />
+                                @if ($canManage)
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $role->id }})" />
+                                    <x-action-icon-button variant="delete" wire:click="delete({{ $role->id }})" wire:confirm="Delete this role?" />
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty

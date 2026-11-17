@@ -39,12 +39,16 @@
                         <td class="px-3 py-2 font-mono text-xs font-medium">{{ $branch->code }}</td>
                         <td class="px-3 py-2">{{ $branch->name }}</td>
                         <td class="px-3 py-2">{{ $branch->is_active ? 'Active' : 'Inactive' }}</td>
-                        <td class="space-x-2 whitespace-nowrap px-3 py-2 text-right">
+                        <td class="whitespace-nowrap px-3 py-2 text-right">
                             @can('settings.manage')
-                                <button type="button" wire:click="openEdit({{ $branch->id }})" class="text-[var(--color-erp-accent)] hover:underline">Edit</button>
-                                <button type="button" wire:click="toggleActive({{ $branch->id }})" class="text-slate-600 hover:underline">
-                                    {{ $branch->is_active ? 'Deactivate' : 'Activate' }}
-                                </button>
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $branch->id }})" />
+                                    @if ($branch->is_active)
+                                        <x-action-icon-button variant="deactivate" wire:click="toggleActive({{ $branch->id }})" />
+                                    @else
+                                        <x-action-icon-button variant="activate" wire:click="toggleActive({{ $branch->id }})" />
+                                    @endif
+                                </div>
                             @endcan
                         </td>
                     </tr>

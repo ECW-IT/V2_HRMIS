@@ -29,14 +29,16 @@
                         <td class="px-3 py-2 font-medium">{{ $category->code }}</td>
                         <td class="px-3 py-2">{{ $category->name }}</td>
                         <td class="px-3 py-2">{{ $category->is_active ? 'Active' : 'Inactive' }}</td>
-                        <td class="space-x-2 whitespace-nowrap px-3 py-2 text-right">
+                        <td class="whitespace-nowrap px-3 py-2 text-right">
                             @can('org.manage')
-                                <button type="button" wire:click="openEdit({{ $category->id }})" class="text-[var(--color-erp-accent)] hover:underline">Edit</button>
-                                @if ($category->is_active)
-                                    <button type="button" wire:click="deactivate({{ $category->id }})" class="text-slate-600 hover:underline">Deactivate</button>
-                                @else
-                                    <button type="button" wire:click="activate({{ $category->id }})" class="text-slate-600 hover:underline">Activate</button>
-                                @endif
+                                <div class="inline-flex items-center gap-1.5">
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $category->id }})" />
+                                    @if ($category->is_active)
+                                        <x-action-icon-button variant="deactivate" wire:click="deactivate({{ $category->id }})" />
+                                    @else
+                                        <x-action-icon-button variant="activate" wire:click="activate({{ $category->id }})" />
+                                    @endif
+                                </div>
                             @endcan
                         </td>
                     </tr>

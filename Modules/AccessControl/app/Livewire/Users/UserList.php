@@ -179,21 +179,25 @@ class UserList extends Component
     {
         return [
             [
+                'icon' => '👤',
                 'label' => 'User account',
                 'route' => route('access-control.users.index'),
                 'active' => $active === 'users',
             ],
             [
+                'icon' => '🛡️',
                 'label' => 'Role',
                 'route' => route('access-control.roles.index'),
                 'active' => $active === 'roles',
             ],
             [
+                'icon' => '🔑',
                 'label' => 'Permission',
                 'route' => route('access-control.roles.index'),
                 'active' => $active === 'permissions',
             ],
             [
+                'icon' => '📑',
                 'label' => 'Audit',
                 'route' => route('access-control.audit.index'),
                 'active' => $active === 'audit',
