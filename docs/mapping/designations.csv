@@ -1,0 +1,14 @@
+code,name
+MD,MD
+CEO,CEO
+ADMIN,Admin
+SUPER_ADMIN,Super Admin
+ACCOUNTANT,Accountant
+EXECUTIVE,Executive
+MANAGER,Manager
+SALES,Sales
+GENERAL_MANAGER,General Manager
+TEAM_LEADER,Team Leader
+COORDINATOR,Coordinator
+DIRECTOR,Director
+EMPLOYEE,Employee

@@ -7,6 +7,7 @@ use Modules\Attendance\Database\Seeders\ShiftSeeder;
 use Modules\CoreHr\Database\Seeders\BankSeeder;
 use Modules\CoreHr\Database\Seeders\DocumentTypeSeeder;
 use Modules\Leave\Database\Seeders\LeaveSeeder;
+use Modules\Organisation\Database\Seeders\JobsSeeder;
 use Modules\Organisation\Database\Seeders\OrgUnitsSeeder;
 use Modules\Organisation\Database\Seeders\StaffWorkCategorySeeder;
 use Modules\Payroll\Database\Seeders\LoanTypeSeeder;
@@ -22,6 +23,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             OrganisationSeeder::class,
             OrgUnitsSeeder::class,
+            JobsSeeder::class,
             StaffWorkCategorySeeder::class,
             ApprovalDefinitionSeeder::class,
             DocumentTypeSeeder::class,

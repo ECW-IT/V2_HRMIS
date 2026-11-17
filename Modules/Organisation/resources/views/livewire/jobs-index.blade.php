@@ -17,7 +17,7 @@
         <table class="min-w-full text-left text-sm">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                    <th class="px-3 py-2">Code</th>
+                    {{-- <th class="px-3 py-2">Code</th> --}}
                     <th class="px-3 py-2">Name</th>
                     <th class="px-3 py-2">Status</th>
                     <th class="px-3 py-2"></th>
@@ -26,7 +26,7 @@
             <tbody>
                 @forelse ($jobs as $job)
                     <tr class="border-t">
-                        <td class="px-3 py-2 font-medium">{{ $job->code }}</td>
+                        {{-- <td class="px-3 py-2 font-medium">{{ $job->code }}</td> --}}
                         <td class="px-3 py-2">{{ $job->name }}</td>
                         <td class="px-3 py-2">{{ $job->is_active ? 'Active' : 'Inactive' }}</td>
                         <td class="px-3 py-2 text-right whitespace-nowrap">
