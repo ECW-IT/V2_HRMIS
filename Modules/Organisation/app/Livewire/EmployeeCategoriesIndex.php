@@ -22,6 +22,8 @@ class EmployeeCategoriesIndex extends Component
 
     public string $name = '';
 
+    public string $level = '';
+
     public function openCreate(): void
     {
         $this->authorize('org.manage');
@@ -37,6 +39,7 @@ class EmployeeCategoriesIndex extends Component
         $this->editingId = $category->id;
         $this->code = $category->code;
         $this->name = $category->name;
+        $this->level = (string) $category->level;
         $this->showForm = true;
     }
 
@@ -54,6 +57,7 @@ class EmployeeCategoriesIndex extends Component
         $validated = $this->validate([
             'code' => ['required', 'string', 'max:20', Rule::unique('employee_categories', 'code')->ignore($this->editingId)],
             'name' => ['required', 'string', 'max:150'],
+            'level' => ['required', 'integer', 'min:1', Rule::unique('employee_categories', 'level')->ignore($this->editingId)],
         ]);
 
         try {
@@ -63,7 +67,8 @@ class EmployeeCategoriesIndex extends Component
                 $categories->update(EmployeeCategory::query()->findOrFail($this->editingId), $validated);
             }
         } catch (DomainException $e) {
-            $this->addError('name', $e->getMessage());
+            $field = str_contains(strtolower($e->getMessage()), 'level') ? 'level' : 'name';
+            $this->addError($field, $e->getMessage());
 
             return;
         }
@@ -89,6 +94,7 @@ class EmployeeCategoriesIndex extends Component
                         ->orWhere('name', 'like', '%'.$this->search.'%');
                 });
             })
+            ->orderBy('level')
             ->orderBy('code')
             ->get();
 
@@ -106,5 +112,6 @@ class EmployeeCategoriesIndex extends Component
         $this->resetValidation();
         $this->code = '';
         $this->name = '';
+        $this->level = '';
     }
 }

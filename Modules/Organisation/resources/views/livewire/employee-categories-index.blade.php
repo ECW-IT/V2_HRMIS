@@ -2,7 +2,7 @@
     <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
         <div>
             <h1 class="text-lg font-semibold text-slate-800">Employee categories</h1>
-            <p class="text-sm text-slate-500">A category is a label for grouping employees and for reports. Working times are set on the shift, leave on the leave policy, and pay on the employee's Pay tab.</p>
+            {{-- <p class="text-sm text-slate-500">A category is a label for grouping employees and for reports. Working times are set on the shift, leave on the leave policy, and pay on the employee's Pay tab.</p> --}}
         </div>
         @can('org.manage')
             <button type="button" wire:click="openCreate" class="rounded bg-[var(--color-erp-accent)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90">
@@ -17,18 +17,20 @@
         <table class="min-w-full text-left text-sm">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                    <th class="px-3 py-2">Code</th>
+                    <th class="px-3 py-2">Level</th>
+                    {{-- <th class="px-3 py-2">Code</th> --}}
                     <th class="px-3 py-2">Name</th>
-                    <th class="px-3 py-2">Active</th>
+                    {{-- <th class="px-3 py-2">Active</th> --}}
                     <th class="px-3 py-2"></th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($categories as $category)
                     <tr class="border-t">
-                        <td class="px-3 py-2 font-medium">{{ $category->code }}</td>
+                        <td class="px-3 py-2">{{ $category->level }}</td>
+                            {{-- <td class="px-3 py-2 font-medium">{{ $category->code }}</td> --}}
                         <td class="px-3 py-2">{{ $category->name }}</td>
-                        <td class="px-3 py-2">{{ $category->is_active ? 'Yes' : 'No' }}</td>
+                        {{-- <td class="px-3 py-2">{{ $category->is_active ? 'Yes' : 'No' }}</td> --}}
                         <td class="whitespace-nowrap px-3 py-2 text-right">
                             @can('org.manage')
                                 <div class="inline-flex items-center gap-1.5">
@@ -43,7 +45,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="px-3 py-6 text-center text-slate-500">No categories found.</td></tr>
+                    <tr><td colspan="5" class="px-3 py-6 text-center text-slate-500">No categories found.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -54,6 +56,11 @@
             <div class="w-full max-w-lg rounded-lg bg-white p-4 shadow-xl">
                 <h2 class="text-base font-semibold text-slate-800">{{ $editingId ? 'Edit category' : 'New category' }}</h2>
                 <div class="mt-3 space-y-3">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-slate-600">Level</label>
+                        <input type="number" min="1" wire:model="level" class="w-full rounded border px-3 py-2 text-sm">
+                        @error('level') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
                     <div>
                         <label class="mb-1 block text-xs font-medium text-slate-600">Code</label>
                         <input type="text" wire:model="code" class="w-full rounded border px-3 py-2 text-sm">

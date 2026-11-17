@@ -104,18 +104,21 @@ class OrganisationScreensTest extends TestCase
             ->call('openCreate')
             ->set('code', 'FAC')
             ->set('name', 'Factory')
+            ->set('level', 1)
             ->call('save')
             ->assertHasNoErrors();
 
         $category = EmployeeCategory::query()->where('code', 'FAC')->first();
         $this->assertNotNull($category);
         $this->assertSame('Factory', $category->name);
+        $this->assertSame(1, $category->level);
         $this->assertTrue($category->is_active);
 
         Livewire::actingAs($user)
             ->test(EmployeeCategoriesIndex::class)
             ->call('openEdit', $category->id)
             ->set('name', 'Factory shift')
+            ->set('level', 2)
             ->call('save')
             ->assertHasNoErrors();
 

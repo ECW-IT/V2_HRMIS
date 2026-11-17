@@ -21,6 +21,7 @@ class EmployeeCategoryFactory extends Factory
             'code' => strtoupper(fake()->unique()->lexify('???')),
             'name' => ucwords($name),
             'name_key' => EmployeeCategoryService::nameKey($name),
+            'level' => fake()->unique()->numberBetween(1, 65000),
             'is_active' => true,
         ];
     }

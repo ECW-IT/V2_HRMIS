@@ -4,6 +4,7 @@ namespace Modules\Organisation\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
+use Modules\Organisation\Exceptions\DuplicateLevel;
 use Modules\Organisation\Exceptions\DuplicateName;
 use Modules\Organisation\Services\EmployeeCategoryService;
 use Tests\TestCase;
@@ -19,16 +20,23 @@ class EmployeeCategoryServiceTest extends TestCase
 
     public function test_category_name_must_be_unique_ignoring_case_and_spaces(): void
     {
-        app(EmployeeCategoryService::class)->create(['code' => 'FAC', 'name' => 'Factory']);
+        app(EmployeeCategoryService::class)->create(['code' => 'FAC', 'name' => 'Factory', 'level' => 1]);
         $this->expectException(DuplicateName::class);
-        app(EmployeeCategoryService::class)->create(['code' => 'FAC2', 'name' => ' factory ']);
+        app(EmployeeCategoryService::class)->create(['code' => 'FAC2', 'name' => ' factory ', 'level' => 2]);
+    }
+
+    public function test_category_level_must_be_unique(): void
+    {
+        app(EmployeeCategoryService::class)->create(['code' => 'FAC', 'name' => 'Factory', 'level' => 1]);
+        $this->expectException(DuplicateLevel::class);
+        app(EmployeeCategoryService::class)->create(['code' => 'OFF', 'name' => 'Office', 'level' => 1]);
     }
 
     public function test_renaming_a_category_to_an_existing_name_is_refused(): void
     {
         $svc = app(EmployeeCategoryService::class);
-        $svc->create(['code' => 'FAC', 'name' => 'Factory']);
-        $b = $svc->create(['code' => 'OFF', 'name' => 'Office']);
+        $svc->create(['code' => 'FAC', 'name' => 'Factory', 'level' => 1]);
+        $b = $svc->create(['code' => 'OFF', 'name' => 'Office', 'level' => 2]);
         $this->expectException(DuplicateName::class);
         $svc->update($b, ['name' => 'FACTORY']);
     }
@@ -39,7 +47,7 @@ class EmployeeCategoryServiceTest extends TestCase
         sort($cols);
 
         $this->assertSame(
-            ['code', 'created_at', 'id', 'is_active', 'name', 'name_key', 'updated_at'],
+            ['code', 'created_at', 'id', 'is_active', 'level', 'name', 'name_key', 'updated_at'],
             $cols,
         );
     }
@@ -56,23 +64,26 @@ class EmployeeCategoryServiceTest extends TestCase
         $category = app(EmployeeCategoryService::class)->create([
             'code' => 'FAC',
             'name' => 'Factory',
+            'level' => 1,
             'on_duty_time' => '08:00',
             'normal_ot_rate' => 240,
         ]);
 
         $this->assertSame('FAC', $category->code);
         $this->assertSame('Factory', $category->name);
+        $this->assertSame(1, $category->level);
         $this->assertTrue($category->is_active);
     }
 
-    public function test_update_changes_code_name_and_active(): void
+    public function test_update_changes_code_name_level_and_active(): void
     {
         $svc = app(EmployeeCategoryService::class);
-        $category = $svc->create(['code' => 'FAC', 'name' => 'Factory']);
+        $category = $svc->create(['code' => 'FAC', 'name' => 'Factory', 'level' => 1]);
 
         $svc->update($category, [
             'code' => 'WRK',
             'name' => 'Workshop',
+            'level' => 3,
             'is_active' => false,
         ]);
 
@@ -80,6 +91,7 @@ class EmployeeCategoryServiceTest extends TestCase
         $this->assertSame('WRK', $fresh->code);
         $this->assertSame('Workshop', $fresh->name);
         $this->assertSame('workshop', $fresh->name_key);
+        $this->assertSame(3, $fresh->level);
         $this->assertFalse($fresh->is_active);
     }
 }

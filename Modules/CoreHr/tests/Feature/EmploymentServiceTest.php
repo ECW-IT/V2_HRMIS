@@ -55,7 +55,7 @@ class EmploymentServiceTest extends TestCase
     public function test_hire_stores_employee_category(): void
     {
         $c = $this->company();
-        $category = app(EmployeeCategoryService::class)->create(['code' => 'FAC', 'name' => 'Factory']);
+        $category = app(EmployeeCategoryService::class)->create(['code' => 'FAC', 'name' => 'Factory', 'level' => 1]);
 
         $e = $this->svc->hire(
             $this->person(),

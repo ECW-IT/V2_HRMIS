@@ -1,0 +1,9 @@
+level,code,name
+1,DIRECTOR,Director
+2,HOD,HOD
+3,CONSULTANT,Consultant
+4,MANAGER,Manager
+5,EXECUTIVE,Executive
+6,PRODUCTION,Production
+7,OFFICE_STAFF,Office Staff
+8,WORKER,Worker

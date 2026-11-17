@@ -16,12 +16,14 @@ class EmployeeCategory extends Model
         'code',
         'name',
         'name_key',
+        'level',
         'is_active',
     ];
 
     protected function casts(): array
     {
         return [
+            'level' => 'integer',
             'is_active' => 'boolean',
         ];
     }

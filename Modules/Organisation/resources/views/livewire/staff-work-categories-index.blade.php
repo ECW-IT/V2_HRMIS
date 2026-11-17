@@ -17,18 +17,18 @@
         <table class="min-w-full text-left text-sm">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                    <th class="px-3 py-2">Code</th>
+                    {{-- <th class="px-3 py-2">Code</th> --}}
                     <th class="px-3 py-2">Name</th>
-                    <th class="px-3 py-2">Status</th>
+                    {{-- <th class="px-3 py-2">Status</th> --}}
                     <th class="px-3 py-2"></th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($categories as $category)
                     <tr class="border-t">
-                        <td class="px-3 py-2 font-medium">{{ $category->code }}</td>
+                        {{-- <td class="px-3 py-2 font-medium">{{ $category->code }}</td> --}}
                         <td class="px-3 py-2">{{ $category->name }}</td>
-                        <td class="px-3 py-2">{{ $category->is_active ? 'Active' : 'Inactive' }}</td>
+                        {{-- <td class="px-3 py-2">{{ $category->is_active ? 'Active' : 'Inactive' }}</td> --}}
                         <td class="whitespace-nowrap px-3 py-2 text-right">
                             @can('org.manage')
                                 <div class="inline-flex items-center gap-1.5">
