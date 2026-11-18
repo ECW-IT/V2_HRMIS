@@ -22,6 +22,7 @@ class CompanyFactory extends Factory
             'employee_no_prefix' => $code,
             'employee_no_padding' => 3,
             'next_employee_seq' => 1,
+            'next_epf_seq' => 1,
             'epf_employer_no' => null,
             'etf_employer_no' => null,
             'tin' => null,

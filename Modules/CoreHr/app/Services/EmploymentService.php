@@ -31,6 +31,7 @@ final class EmploymentService
 {
     public function __construct(
         private readonly EmployeeNumberGenerator $numbers,
+        private readonly EpfNumberGenerator $epfNumbers,
         private readonly EnrolmentService $enrolments,
     ) {}
 
@@ -318,15 +319,18 @@ final class EmploymentService
 
         $epfLiable = (bool) ($employment['epf_liable'] ?? true);
         $epfNo = $employment['epf_no'] ?? null;
+        if ($epfNo === '') {
+            $epfNo = null;
+        }
 
         if ($type === EmploymentType::INTERN) {
             $epfLiable = false;
             $epfNo = null;
-        } elseif ($epfLiable && ($epfNo === null || $epfNo === '')) {
-            throw new InvalidEmploymentData('EPF number is required.');
         }
 
-        if ($epfNo !== null && $epfNo !== '') {
+        $epfNeedsAuto = $type !== EmploymentType::INTERN && $epfLiable && $epfNo === null;
+
+        if ($epfNo !== null) {
             $epfTaken = Employment::query()
                 ->where('company_id', $company->id)
                 ->where('epf_no', $epfNo)
@@ -354,6 +358,7 @@ final class EmploymentService
             $type,
             $epfLiable,
             $epfNo,
+            $epfNeedsAuto,
             $confirmationDue,
         ) {
             if (! empty($employment['employee_no'])) {
@@ -364,6 +369,16 @@ final class EmploymentService
                     fn (string $n) => Employment::query()
                         ->where('company_id', $company->id)
                         ->where('employee_no', $n)
+                        ->exists(),
+                );
+            }
+
+            if ($epfNeedsAuto) {
+                $epfNo = $this->epfNumbers->next(
+                    $company,
+                    fn (string $n) => Employment::query()
+                        ->where('company_id', $company->id)
+                        ->where('epf_no', $n)
                         ->exists(),
                 );
             }

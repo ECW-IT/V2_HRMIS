@@ -9,8 +9,13 @@ use Livewire\Livewire;
 use Modules\Attendance\Livewire\ShiftsIndex;
 use Modules\Attendance\Livewire\TimeProfilesBulk;
 use Modules\Attendance\Services\TimeProfileService;
+use Modules\CoreHr\Database\Seeders\RegionSeeder;
+use Modules\CoreHr\Database\Seeders\RelationshipSeeder;
+use Modules\CoreHr\Enums\ArriveWorkFrom;
+use Modules\CoreHr\Enums\MaritalStatus;
 use Modules\CoreHr\Livewire\HireWizard;
 use Modules\CoreHr\Models\Employment;
+use Modules\Organisation\Models\EmployeeCategory;
 use Spatie\Permission\Models\Permission;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
@@ -80,17 +85,35 @@ class ShiftScreensTest extends TestCase
 
     public function test_hire_wizard_saves_a_time_profile_from_the_hire_date(): void
     {
+        $this->seed(RegionSeeder::class);
+        $this->seed(RelationshipSeeder::class);
         $this->travelTo('2026-12-01');
         $c = $this->company(['employee_no_prefix' => 'ECW', 'next_employee_seq' => 1]);
         $a = $this->asg($c);
         $shift = $this->shift();
+        $categoryId = EmployeeCategory::factory()->create()->id;
         $this->loginAs('hr-manager', $c);
 
         Livewire::test(HireWizard::class)
             ->set('companyId', $c->id)->set('nic', '853400937V')->call('next')
-            ->set('firstName', 'Nimal')->set('lastName', 'Perera')->set('nameWithInitials', 'N. Perera')->set('mobile', '0771234567')
-            ->set('addressLine1', '12 Main St')->set('city', 'Nittambuwa')->call('next')
-            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('epfNo', '900')
+            ->set('fullName', 'Nimal Perera')
+            ->set('callingName', 'Nimal')
+            ->set('maritalStatus', MaritalStatus::MARRIED->value)
+            ->set('nationality', 'Sri Lankan')
+            ->set('region', 'Buddhism')
+            ->set('arriveWorkFrom', ArriveWorkFrom::HOME->value)
+            ->set('province', 'Western')
+            ->set('electorateDistrict', 'Gampaha')
+            ->set('gnDivision', 'Nittambuwa North')
+            ->set('mobile', '0771234567')
+            ->set('addressLine1', '12 Main St')
+            ->set('city', 'Nittambuwa')
+            ->set('emergencyContacts', [
+                ['name' => 'Kamala Perera', 'relationship' => 'Wife', 'phone' => '0771111111'],
+            ])
+            ->call('next')
+            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')
+            ->set('employeeCategoryId', $categoryId)
             ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])
             ->set('shiftId', $shift->id)->call('next')
             ->set('basicSalary', '55000.00')->set('isCash', true)->call('next')

@@ -107,11 +107,13 @@ class EmploymentServiceTest extends TestCase
         $this->assertNull($e->epf_no);
     }
 
-    public function test_epf_liable_without_epf_number_is_refused(): void
+    public function test_epf_liable_without_epf_number_is_auto_issued(): void
     {
-        $c = $this->company();
-        $this->expectException(InvalidEmploymentData::class);
-        $this->svc->hire($this->person(), $c, $this->emp(['epf_no' => null]), $this->asg($c));
+        $c = $this->company(['next_epf_seq' => 15]);
+        $e = $this->svc->hire($this->person(), $c, $this->emp(['epf_no' => null]), $this->asg($c));
+        $this->assertTrue($e->epf_liable);
+        $this->assertSame('15', $e->epf_no);
+        $this->assertSame(16, $c->fresh()->next_epf_seq);
     }
 
     public function test_epf_number_is_unique_within_a_company_but_may_repeat_across_companies(): void

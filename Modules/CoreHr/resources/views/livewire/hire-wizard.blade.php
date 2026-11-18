@@ -311,18 +311,11 @@
                     </div>
                 @endif
                 @if($type !== 'INTERN')
-                    <div class="flex items-end">
-                        <label class="flex items-center gap-2 text-sm text-gray-700">
-                            <input wire:model.live="epfLiable" type="checkbox" class="rounded border" /> EPF liable
-                        </label>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">EPF no.</label>
+                        <input type="text" value="{{ $epfNoPreview }}" readonly class="{{ $input }} bg-gray-100 font-mono" />
+                        <p class="mt-1 text-xs text-gray-500">Issued when you save.</p>
                     </div>
-                    @if($epfLiable)
-                        <div>
-                            <label class="mb-1 block text-xs font-medium text-gray-600">EPF no. <span class="text-red-500">*</span></label>
-                            <input wire:model="epfNo" type="text" maxlength="20" class="{{ $input }} @error('epfNo') border-red-400 @enderror" />
-                            @error('epfNo')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                        </div>
-                    @endif
                 @endif
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">
@@ -331,7 +324,7 @@
                     <select wire:model="employeeCategoryId" class="{{ $input }} @error('employeeCategoryId') border-red-400 @enderror">
                         <option value="">Select</option>
                         @foreach($employeeCategories as $category)
-                            <option value="{{ $category->id }}">{{ $category->name }} ({{ $category->code }})</option>
+                            <option value="{{ $category->id }}">{{ $category->name }} </option>
                         @endforeach
                     </select>
                     @error('employeeCategoryId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror

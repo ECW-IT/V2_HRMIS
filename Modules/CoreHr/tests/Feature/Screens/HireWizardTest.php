@@ -87,7 +87,6 @@ class HireWizardTest extends TestCase
         foreach (array_merge([
             'type' => 'PERMANENT',
             'hireDate' => '2026-12-01',
-            'epfNo' => '900',
             'employeeCategoryId' => $categoryId,
             'orgUnitId' => $a['org_unit_id'],
             'jobId' => $a['job_id'],
@@ -116,7 +115,7 @@ class HireWizardTest extends TestCase
     {
         $this->seedHireLookups();
         $this->travelTo('2026-12-01');
-        $c = $this->company(['employee_no_prefix' => 'ECW', 'next_employee_seq' => 412]);
+        $c = $this->company(['employee_no_prefix' => 'ECW', 'next_employee_seq' => 412, 'next_epf_seq' => 900]);
         $a = $this->asg($c);
         [$bank, $branch] = $this->bankWithBranch();
         $district = District::factory()->create(['code' => 'GAM', 'name' => 'Gampaha']);
@@ -145,7 +144,10 @@ class HireWizardTest extends TestCase
             ->assertSee('ECW412')
             ->assertDontSee('Address line 2')
             ->assertDontSee('Postal code')
-            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('epfNo', '900')
+            ->assertDontSee('EPF liable')
+            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')
+            ->assertSee('900')
+            ->assertDontSeeHtml('wire:model="epfNo"')
             ->set('employeeCategoryId', $categoryId)
             ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])
             ->set('shiftId', $this->shift()->id)->call('next')
@@ -156,6 +158,9 @@ class HireWizardTest extends TestCase
 
         $e = Employment::sole();
         $this->assertSame('ECW412', $e->employee_no);
+        $this->assertTrue($e->epf_liable);
+        $this->assertSame('900', $e->epf_no);
+        $this->assertSame(901, $c->fresh()->next_epf_seq);
         $this->assertSame('198534000937', $e->person->nic);
         $this->assertSame('Nimal S Perera', $e->person->full_name);
         $this->assertSame('Nimal', $e->person->first_name);
@@ -214,7 +219,7 @@ class HireWizardTest extends TestCase
         }
 
         $component->call('next')
-            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('epfNo', '900')
+            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')
             ->set('employeeCategoryId', $categoryId)
             ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])
             ->set('shiftId', $this->shift()->id)->call('next')
@@ -257,7 +262,7 @@ class HireWizardTest extends TestCase
         }
 
         $component->call('next')
-            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('epfNo', '900')
+            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')
             ->set('employeeCategoryId', $categoryId)
             ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])
             ->set('shiftId', $this->shift()->id)->call('next')
@@ -317,7 +322,7 @@ class HireWizardTest extends TestCase
         }
 
         $component->call('next')
-            ->set('type', 'PERMANENT')->set('hireDate', '2026-11-20')->set('epfNo', '4321')
+            ->set('type', 'PERMANENT')->set('hireDate', '2026-11-20')
             ->set('employeeCategoryId', $categoryId)
             ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])
             ->set('shiftId', $this->shift()->id)->call('next')
@@ -359,15 +364,19 @@ class HireWizardTest extends TestCase
 
     public function test_intern_hides_epf_and_is_saved_non_liable(): void
     {
-        $c = $this->company();
+        $c = $this->company(['next_epf_seq' => 50]);
         $this->loginAs('hr-manager', $c);
 
-        $component = $this->walkToReview((string) $c->id, ['type' => 'INTERN', 'epfNo' => ''], false);
-        $component->assertSet('epfLiable', false)->assertSet('basicSalary', '0.00');
+        $component = $this->walkToReview((string) $c->id, ['type' => 'INTERN'], false);
+        $component->assertSet('epfLiable', false)->assertSet('basicSalary', '0.00')
+            ->assertDontSee('EPF liable')
+            ->assertDontSeeHtml('wire:model="epfNo"');
         $component->call('hire')->assertHasNoErrors()->assertRedirect();
 
         $e = Employment::sole();
         $this->assertFalse($e->epf_liable);
+        $this->assertNull($e->epf_no);
+        $this->assertSame(50, $c->fresh()->next_epf_seq);
         $this->assertSame('0.00', app(CompensationService::class)->on($e, $e->hire_date)->basic_salary);
     }
 
@@ -434,7 +443,7 @@ class HireWizardTest extends TestCase
         }
 
         $component->call('next')
-            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('epfNo', '900')
+            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')
             ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])
             ->set('shiftId', $this->shift()->id)
             ->call('next')
@@ -442,21 +451,24 @@ class HireWizardTest extends TestCase
             ->assertHasErrors(['employeeCategoryId']);
     }
 
-    public function test_domain_error_on_save_shows_a_message_and_saves_nothing(): void
+    public function test_non_intern_hire_auto_issues_epf_and_skips_taken_numbers(): void
     {
-        $c = $this->company();
-        $this->hired('2026-01-01', $c, ['epf_no' => '900']);
+        $c = $this->company(['next_epf_seq' => 1]);
+        $this->hired('2026-01-01', $c, ['epf_no' => '1']);
         $this->loginAs('hr-manager', $c);
-        $people = Person::count();
-        $employments = Employment::count();
 
         $this->walkToReview((string) $c->id)
+            ->assertDontSee('EPF liable')
+            ->assertDontSeeHtml('wire:model="epfNo"')
             ->call('hire')
-            ->assertSee('EPF number is already in use')
-            ->assertNoRedirect();
+            ->assertHasNoErrors()
+            ->assertRedirect();
 
-        $this->assertSame($people, Person::count());
-        $this->assertSame($employments, Employment::count());
+        $e = Employment::query()->where('status', 'ACTIVE')->orderByDesc('id')->first();
+        $this->assertNotNull($e);
+        $this->assertTrue($e->epf_liable);
+        $this->assertSame('2', $e->epf_no);
+        $this->assertSame(3, $c->fresh()->next_epf_seq);
     }
 
     public function test_wizard_needs_employee_create(): void

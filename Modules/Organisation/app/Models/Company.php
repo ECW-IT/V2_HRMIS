@@ -18,6 +18,7 @@ class Company extends Model
         'employee_no_prefix',
         'employee_no_padding',
         'next_employee_seq',
+        'next_epf_seq',
         'epf_employer_no',
         'etf_employer_no',
         'tin',
@@ -30,6 +31,7 @@ class Company extends Model
         return [
             'employee_no_padding' => 'integer',
             'next_employee_seq' => 'integer',
+            'next_epf_seq' => 'integer',
             'is_active' => 'boolean',
             'monthly_late_grace_minutes' => 'integer',
         ];

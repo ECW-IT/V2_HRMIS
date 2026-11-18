@@ -35,6 +35,7 @@ use Modules\CoreHr\Models\Relationship;
 use Modules\CoreHr\Services\BankAccountService;
 use Modules\CoreHr\Services\EmployeeNumberGenerator;
 use Modules\CoreHr\Services\EmploymentService;
+use Modules\CoreHr\Services\EpfNumberGenerator;
 use Modules\CoreHr\Services\PersonService;
 use Modules\CoreHr\Support\EmployeesNav;
 use Modules\CoreHr\Support\Nic;
@@ -139,8 +140,6 @@ class HireWizard extends Component
 
     public bool $epfLiable = true;
 
-    public string $epfNo = '';
-
     public string|int|null $employeeCategoryId = null;
 
     public string|int|null $staffWorkCategoryId = null;
@@ -198,7 +197,6 @@ class HireWizard extends Component
     {
         if ($this->type === EmploymentType::INTERN->value) {
             $this->epfLiable = false;
-            $this->epfNo = '';
             $this->basicSalary = '0.00';
         } else {
             $this->epfLiable = true;
@@ -569,12 +567,6 @@ class HireWizard extends Component
                 'type' => ['required', Rule::enum(EmploymentType::class)],
                 'hireDate' => ['required', 'date_format:Y-m-d'],
                 'confirmationDueDate' => ['nullable', 'date_format:Y-m-d'],
-                'epfLiable' => ['boolean'],
-                'epfNo' => [
-                    $this->epfLiable && $this->type !== EmploymentType::INTERN->value ? 'required' : 'nullable',
-                    'string',
-                    'max:20',
-                ],
                 'employeeCategoryId' => [
                     'required',
                     'integer',
@@ -768,13 +760,12 @@ class HireWizard extends Component
     private function employmentData(): array
     {
         $isIntern = $this->type === EmploymentType::INTERN->value;
-        $liable = ! $isIntern && $this->epfLiable;
 
         return [
             'type' => $this->type,
             'hire_date' => $this->hireDate,
-            'epf_liable' => $liable,
-            'epf_no' => $liable && trim($this->epfNo) !== '' ? trim($this->epfNo) : null,
+            'epf_liable' => ! $isIntern,
+            'epf_no' => null,
             'confirmation_due_date' => $this->type === EmploymentType::PROBATION->value && $this->confirmationDueDate !== ''
                 ? $this->confirmationDueDate
                 : null,
@@ -852,7 +843,6 @@ class HireWizard extends Component
         $this->step = 5;
 
         $field = match (true) {
-            str_contains($message, 'EPF') => 'epfNo',
             str_contains($message, 'Device user ID') => 'deviceUserId',
             str_contains($message, 'Hire date') => 'hireDate',
             str_contains($message, 'Basic salary') || str_contains($message, 'intern must have a basic salary') => 'basicSalary',
@@ -897,6 +887,7 @@ class HireWizard extends Component
             'selectedManager' => $this->selectedManager(),
             'managerResults' => $this->managerResults($companyId),
             'employeeNoPreview' => $this->employeeNoPreview(),
+            'epfNoPreview' => $this->epfNoPreview(),
             'plannedResignDate' => $this->plannedResignDate(),
             'review' => $this->step === 5 ? $this->reviewData() : [],
         ])->layout('components.layouts.module', [
@@ -918,6 +909,24 @@ class HireWizard extends Component
         }
 
         return app(EmployeeNumberGenerator::class)->peek($company);
+    }
+
+    public function epfNoPreview(): string
+    {
+        if ($this->type === EmploymentType::INTERN->value) {
+            return '—';
+        }
+
+        if ($this->companyId === null || $this->companyId === '') {
+            return '—';
+        }
+
+        $company = Company::query()->find((int) $this->companyId);
+        if ($company === null) {
+            return '—';
+        }
+
+        return app(EpfNumberGenerator::class)->peek($company);
     }
 
     public function plannedResignDate(): string
@@ -1018,7 +1027,7 @@ class HireWizard extends Component
             'Type' => ucfirst(strtolower($this->type)),
             'Hire date' => $this->hireDate,
             'Confirmation due' => $this->confirmationDueDate !== '' ? $this->confirmationDueDate : '—',
-            'EPF' => $this->employmentData()['epf_liable'] ? 'Liable · '.($this->epfNo !== '' ? $this->epfNo : '—') : 'Not liable',
+            'EPF' => $this->employmentData()['epf_liable'] ? 'Liable · '.$this->epfNoPreview() : 'Not liable',
             'Employee category' => $name(EmployeeCategory::class, $this->employeeCategoryId),
             'Office / shop category' => $name(StaffWorkCategory::class, $this->staffWorkCategoryId),
             'Department / section' => $name(OrgUnit::class, $this->orgUnitId),
