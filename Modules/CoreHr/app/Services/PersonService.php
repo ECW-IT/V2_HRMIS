@@ -5,6 +5,7 @@ namespace Modules\CoreHr\Services;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Modules\CoreHr\Enums\AddressType;
+use Modules\CoreHr\Enums\ArriveWorkFrom;
 use Modules\CoreHr\Enums\ContactType;
 use Modules\CoreHr\Enums\Gender;
 use Modules\CoreHr\Enums\MaritalStatus;
@@ -42,6 +43,7 @@ final class PersonService
                 'nic_as_entered',
                 'passport_no',
                 'title',
+                'full_name',
                 'first_name',
                 'middle_name',
                 'last_name',
@@ -51,9 +53,17 @@ final class PersonService
                 'gender',
                 'marital_status',
                 'nationality',
+                'driving_licence_no',
+                'landline_no',
+                'office_no',
+                'region',
+                'arrive_work_from',
+                'province',
                 'electorate',
                 'polling_division',
                 'gn_division',
+                'electorate_district',
+                'distance_km',
                 'photo_path',
                 'nic_mismatch',
             ]), $data);
@@ -112,6 +122,15 @@ final class PersonService
             $marital = MaritalStatus::from($marital);
         }
 
+        $arriveWorkFrom = array_key_exists('arrive_work_from', $data)
+            ? $data['arrive_work_from']
+            : $existing?->arrive_work_from;
+        if ($arriveWorkFrom === '' || $arriveWorkFrom === null) {
+            $arriveWorkFrom = null;
+        } elseif (is_string($arriveWorkFrom)) {
+            $arriveWorkFrom = ArriveWorkFrom::from($arriveWorkFrom);
+        }
+
         $dob = $data['date_of_birth'] ?? $existing?->date_of_birth;
         if ($dob instanceof \DateTimeInterface) {
             $dob = CarbonImmutable::instance($dob)->toDateString();
@@ -124,6 +143,9 @@ final class PersonService
                 ? (($data['passport_no'] === '' || $data['passport_no'] === null) ? null : $data['passport_no'])
                 : $existing?->passport_no,
             'title' => $data['title'] ?? $existing?->title,
+            'full_name' => array_key_exists('full_name', $data)
+                ? (($data['full_name'] === '' || $data['full_name'] === null) ? null : $data['full_name'])
+                : $existing?->full_name,
             'first_name' => $data['first_name'] ?? $existing->first_name,
             'middle_name' => array_key_exists('middle_name', $data) ? $data['middle_name'] : $existing?->middle_name,
             'last_name' => $data['last_name'] ?? $existing->last_name,
@@ -133,6 +155,22 @@ final class PersonService
             'gender' => $gender,
             'marital_status' => $marital,
             'nationality' => $data['nationality'] ?? $existing?->nationality ?? 'Sri Lankan',
+            'driving_licence_no' => array_key_exists('driving_licence_no', $data)
+                ? (($data['driving_licence_no'] === '' || $data['driving_licence_no'] === null) ? null : $data['driving_licence_no'])
+                : $existing?->driving_licence_no,
+            'landline_no' => array_key_exists('landline_no', $data)
+                ? (($data['landline_no'] === '' || $data['landline_no'] === null) ? null : $data['landline_no'])
+                : $existing?->landline_no,
+            'office_no' => array_key_exists('office_no', $data)
+                ? (($data['office_no'] === '' || $data['office_no'] === null) ? null : $data['office_no'])
+                : $existing?->office_no,
+            'region' => array_key_exists('region', $data)
+                ? (($data['region'] === '' || $data['region'] === null) ? null : $data['region'])
+                : $existing?->region,
+            'arrive_work_from' => $arriveWorkFrom,
+            'province' => array_key_exists('province', $data)
+                ? (($data['province'] === '' || $data['province'] === null) ? null : $data['province'])
+                : $existing?->province,
             'electorate' => array_key_exists('electorate', $data)
                 ? (($data['electorate'] === '' || $data['electorate'] === null) ? null : $data['electorate'])
                 : $existing?->electorate,
@@ -142,6 +180,12 @@ final class PersonService
             'gn_division' => array_key_exists('gn_division', $data)
                 ? (($data['gn_division'] === '' || $data['gn_division'] === null) ? null : $data['gn_division'])
                 : $existing?->gn_division,
+            'electorate_district' => array_key_exists('electorate_district', $data)
+                ? (($data['electorate_district'] === '' || $data['electorate_district'] === null) ? null : $data['electorate_district'])
+                : $existing?->electorate_district,
+            'distance_km' => array_key_exists('distance_km', $data)
+                ? (($data['distance_km'] === '' || $data['distance_km'] === null) ? null : $data['distance_km'])
+                : $existing?->distance_km,
             'photo_path' => array_key_exists('photo_path', $data) ? $data['photo_path'] : $existing?->photo_path,
             'nic_mismatch' => $data['nic_mismatch'] ?? $existing?->nic_mismatch ?? false,
         ];

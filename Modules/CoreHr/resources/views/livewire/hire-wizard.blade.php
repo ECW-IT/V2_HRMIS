@@ -85,24 +85,10 @@
             @endif
 
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Title</label>
-                    <input wire:model="title" type="text" maxlength="20" class="{{ $input }}" />
-                    @error('title')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">First name <span class="text-red-500">*</span></label>
-                    <input wire:model="firstName" type="text" maxlength="100" class="{{ $input }} @error('firstName') border-red-400 @enderror" />
-                    @error('firstName')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Middle name</label>
-                    <input wire:model="middleName" type="text" maxlength="100" class="{{ $input }}" />
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Last name <span class="text-red-500">*</span></label>
-                    <input wire:model="lastName" type="text" maxlength="100" class="{{ $input }} @error('lastName') border-red-400 @enderror" />
-                    @error('lastName')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                <div class="md:col-span-2">
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Full name <span class="text-red-500">*</span></label>
+                    <input wire:model.live.debounce.400ms="fullName" type="text" maxlength="150" class="{{ $input }} @error('fullName') border-red-400 @enderror" />
+                    @error('fullName')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Name with initials <span class="text-red-500">*</span></label>
@@ -110,14 +96,19 @@
                     @error('nameWithInitials')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Calling name</label>
-                    <input wire:model="callingName" type="text" maxlength="100" class="{{ $input }}" />
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Calling name <span class="text-red-500">*</span></label>
+                    <input wire:model="callingName" type="text" maxlength="100" class="{{ $input }} @error('callingName') border-red-400 @enderror" />
+                    @error('callingName')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Date of birth <span class="text-red-500">*</span></label>
-                    <input wire:model="dateOfBirth" type="date" @readonly($identityLocked)
+                    <input wire:model.live="dateOfBirth" type="date" @readonly($identityLocked)
                         class="{{ $input }} {{ $identityLocked ? 'bg-gray-100' : '' }} @error('dateOfBirth') border-red-400 @enderror" />
                     @error('dateOfBirth')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Planned resign date</label>
+                    <input type="text" value="{{ $plannedResignDate }}" readonly class="{{ $input }} bg-gray-100" />
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Gender <span class="text-red-500">*</span></label>
@@ -130,22 +121,63 @@
                     @error('gender')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Marital status</label>
-                    <select wire:model="maritalStatus" class="{{ $input }}">
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Marital status <span class="text-red-500">*</span></label>
+                    <select wire:model="maritalStatus" class="{{ $input }} @error('maritalStatus') border-red-400 @enderror">
                         <option value="">Select</option>
                         @foreach($maritalStatuses as $option)
                             <option value="{{ $option->value }}">{{ ucfirst(strtolower($option->value)) }}</option>
                         @endforeach
                     </select>
+                    @error('maritalStatus')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Nationality</label>
-                    <input wire:model="nationality" type="text" maxlength="50" class="{{ $input }}" />
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Nationality <span class="text-red-500">*</span></label>
+                    <select wire:model="nationality" class="{{ $input }} @error('nationality') border-red-400 @enderror">
+                        @foreach($nationalities as $option)
+                            <option value="{{ $option }}">{{ $option }}</option>
+                        @endforeach
+                    </select>
+                    @error('nationality')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Region <span class="text-red-500">*</span></label>
+                    <select wire:model="region" class="{{ $input }} @error('region') border-red-400 @enderror">
+                        <option value="">Select</option>
+                        @foreach($regions as $option)
+                            <option value="{{ $option }}">{{ $option }}</option>
+                        @endforeach
+                    </select>
+                    @error('region')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Arrive work from <span class="text-red-500">*</span></label>
+                    <select wire:model="arriveWorkFrom" class="{{ $input }} @error('arriveWorkFrom') border-red-400 @enderror">
+                        <option value="">Select</option>
+                        @foreach($arriveWorkFromOptions as $option)
+                            <option value="{{ $option->value }}">{{ $option->label() }}</option>
+                        @endforeach
+                    </select>
+                    @error('arriveWorkFrom')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Driving licence no.</label>
+                    <input wire:model="drivingLicenceNo" type="text" maxlength="50" class="{{ $input }} @error('drivingLicenceNo') border-red-400 @enderror" />
+                    @error('drivingLicenceNo')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Mobile <span class="text-red-500">*</span></label>
                     <input wire:model="mobile" type="text" maxlength="20" class="{{ $input }} @error('mobile') border-red-400 @enderror" />
                     @error('mobile')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Landline no.</label>
+                    <input wire:model="landlineNo" type="text" maxlength="20" class="{{ $input }} @error('landlineNo') border-red-400 @enderror" />
+                    @error('landlineNo')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Office no.</label>
+                    <input wire:model="officeNo" type="text" maxlength="20" class="{{ $input }} @error('officeNo') border-red-400 @enderror" />
+                    @error('officeNo')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Email</label>
@@ -157,63 +189,92 @@
             <h4 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-500">Permanent address</h4>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div class="md:col-span-2">
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Address line 1 <span class="text-red-500">*</span></label>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Address <span class="text-red-500">*</span></label>
                     <input wire:model="addressLine1" type="text" maxlength="150" class="{{ $input }} @error('addressLine1') border-red-400 @enderror" />
                     @error('addressLine1')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Address line 2</label>
-                    <input wire:model="addressLine2" type="text" maxlength="150" class="{{ $input }}" />
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">City <span class="text-red-500">*</span></label>
                     <input wire:model="city" type="text" maxlength="80" class="{{ $input }} @error('city') border-red-400 @enderror" />
                     @error('city')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">District</label>
-                    <input wire:model="district" type="text" maxlength="50" class="{{ $input }}" />
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Postal code</label>
-                    <input wire:model="postalCode" type="text" maxlength="10" class="{{ $input }}" />
-                </div>
             </div>
 
             <h4 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-500">Electorate information</h4>
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
                 <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Electorate</label>
-                    <input wire:model="electorate" type="text" maxlength="100" class="{{ $input }} @error('electorate') border-red-400 @enderror" />
-                    @error('electorate')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Province <span class="text-red-500">*</span></label>
+                    <select wire:model.live="province" class="{{ $input }} @error('province') border-red-400 @enderror">
+                        <option value="">Select</option>
+                        @foreach($provinces as $option)
+                            <option value="{{ $option }}">{{ $option }}</option>
+                        @endforeach
+                    </select>
+                    @error('province')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Polling division</label>
-                    <input wire:model="pollingDivision" type="text" maxlength="100" class="{{ $input }} @error('pollingDivision') border-red-400 @enderror" />
-                    @error('pollingDivision')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    <label class="mb-1 block text-xs font-medium text-gray-600">District <span class="text-red-500">*</span></label>
+                    <select wire:model.live="electorateDistrict" class="{{ $input }} @error('electorateDistrict') border-red-400 @enderror">
+                        <option value="">Select</option>
+                        @foreach($electorateDistricts as $option)
+                            <option value="{{ $option }}">{{ $option }}</option>
+                        @endforeach
+                    </select>
+                    @error('electorateDistrict')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">GN division</label>
-                    <input wire:model="gnDivision" type="text" maxlength="100" class="{{ $input }} @error('gnDivision') border-red-400 @enderror" />
+                    <label class="mb-1 block text-xs font-medium text-gray-600">GN division <span class="text-red-500">*</span></label>
+                    <x-gn-division-picker
+                        :suggestions="$gnDivisionSuggestions"
+                        :value="$gnDivision"
+                        :input-class="$input"
+                    />
                     @error('gnDivision')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Distance (km)</label>
+                    <input wire:model="distanceKm" type="number" min="0" step="0.1" class="{{ $input }} @error('distanceKm') border-red-400 @enderror" />
+                    @error('distanceKm')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
             </div>
 
-            <h4 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-500">Emergency contact</h4>
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Name</label>
-                    <input wire:model="emergencyName" type="text" maxlength="150" class="{{ $input }} @error('emergencyName') border-red-400 @enderror" />
-                    @error('emergencyName')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Relationship</label>
-                    <input wire:model="emergencyRelationship" type="text" maxlength="50" class="{{ $input }}" />
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Phone</label>
-                    <input wire:model="emergencyPhone" type="text" maxlength="20" class="{{ $input }}" />
-                </div>
+            <div class="mb-2 mt-6 flex items-center justify-between">
+                <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Emergency contacts <span class="text-red-500">*</span></h4>
+                <button type="button" wire:click="addEmergencyContact" class="rounded border border-blue-600 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">Add emergency contact</button>
+            </div>
+            @error('emergencyContacts')<p class="mb-2 text-xs text-red-500">{{ $message }}</p>@enderror
+            <div class="space-y-3">
+                @foreach($emergencyContacts as $index => $contact)
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-3" wire:key="emergency-contact-{{ $index }}">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-600">Name @if($index === 0)<span class="text-red-500">*</span>@endif</label>
+                            <input wire:model="emergencyContacts.{{ $index }}.name" type="text" maxlength="150" class="{{ $input }} @error('emergencyContacts.'.$index.'.name') border-red-400 @enderror" />
+                            @error('emergencyContacts.'.$index.'.name')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-600">Relationship @if($index === 0)<span class="text-red-500">*</span>@endif</label>
+                            <select wire:model="emergencyContacts.{{ $index }}.relationship" class="{{ $input }} @error('emergencyContacts.'.$index.'.relationship') border-red-400 @enderror">
+                                <option value="">Select</option>
+                                @foreach($relationships as $option)
+                                    <option value="{{ $option }}">{{ $option }}</option>
+                                @endforeach
+                            </select>
+                            @error('emergencyContacts.'.$index.'.relationship')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="min-w-0 flex-1">
+                                <label class="mb-1 block text-xs font-medium text-gray-600">Phone @if($index === 0)<span class="text-red-500">*</span>@endif</label>
+                                <input wire:model="emergencyContacts.{{ $index }}.phone" type="text" maxlength="20" class="{{ $input }} @error('emergencyContacts.'.$index.'.phone') border-red-400 @enderror" />
+                                @error('emergencyContacts.'.$index.'.phone')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                            </div>
+                            @if(count($emergencyContacts) > 1)
+                                <div class="flex items-end pb-0.5">
+                                    <button type="button" wire:click="removeEmergencyContact({{ $index }})" class="rounded border px-2 py-1.5 text-xs text-red-600 hover:bg-red-50" title="Remove">Remove</button>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
             </div>
         @endif
 
@@ -222,6 +283,11 @@
             <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Employment</h3>
 
             <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Employee no.</label>
+                    <input type="text" value="{{ $employeeNoPreview }}" readonly class="{{ $input }} bg-gray-100 font-mono" />
+                    <p class="mt-1 text-xs text-gray-500">Issued when you save.</p>
+                </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Type <span class="text-red-500">*</span></label>
                     <select wire:model.live="type" class="{{ $input }} @error('type') border-red-400 @enderror">
@@ -260,8 +326,7 @@
                 @endif
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">
-                        Employee category
-                        @if($employeeCategories->isNotEmpty()) <span class="text-red-500">*</span> @endif
+                        Employee category <span class="text-red-500">*</span>
                     </label>
                     <select wire:model="employeeCategoryId" class="{{ $input }} @error('employeeCategoryId') border-red-400 @enderror">
                         <option value="">Select</option>
@@ -302,26 +367,6 @@
                     @error('jobId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Grade <span class="text-red-500">*</span></label>
-                    <select wire:model="gradeId" class="{{ $input }} @error('gradeId') border-red-400 @enderror">
-                        <option value="">Select</option>
-                        @foreach($grades as $grade)
-                            <option value="{{ $grade->id }}">{{ $grade->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('gradeId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Location <span class="text-red-500">*</span></label>
-                    <select wire:model="locationId" class="{{ $input }} @error('locationId') border-red-400 @enderror">
-                        <option value="">Select</option>
-                        @foreach($locations as $location)
-                            <option value="{{ $location->id }}">{{ $location->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('locationId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                </div>
-                <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Shift <span class="text-red-500">*</span></label>
                     <select wire:model="shiftId" class="{{ $input }} @error('shiftId') border-red-400 @enderror">
                         <option value="">Select</option>
@@ -330,15 +375,6 @@
                         @endforeach
                     </select>
                     @error('shiftId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Attendance mode <span class="text-red-500">*</span></label>
-                    <select wire:model="attendanceMode" class="{{ $input }} @error('attendanceMode') border-red-400 @enderror">
-                        @foreach($attendanceModes as $mode)
-                            <option value="{{ $mode->value }}">{{ $mode->value }}</option>
-                        @endforeach
-                    </select>
-                    @error('attendanceMode')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">OT mode <span class="text-red-500">*</span></label>

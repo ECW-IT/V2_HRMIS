@@ -2,6 +2,33 @@
     @include('corehr::partials.action-feedback')
 
     <div class="rounded bg-white p-5 shadow">
+        <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Photo</h3>
+        <div class="flex flex-wrap items-center gap-4">
+            @if($person->photo_path)
+                <img src="{{ route('persons.photo', $person) }}" alt="Employee photo"
+                    class="h-20 w-20 rounded-full object-cover ring-1 ring-gray-200" />
+            @else
+                <div class="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 text-sm text-gray-500">No photo</div>
+            @endif
+            @if($canEdit)
+                <div class="min-w-0 flex-1 space-y-2">
+                    <input type="file" wire:model="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                        class="block w-full text-sm text-gray-600 file:mr-3 file:rounded file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-blue-700" />
+                    @error('photo')<p class="text-xs text-red-500">{{ $message }}</p>@enderror
+                    <div class="flex flex-wrap gap-2">
+                        <button type="button" wire:click="uploadPhoto" wire:loading.attr="disabled" wire:target="uploadPhoto,photo"
+                            class="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">Upload photo</button>
+                        @if($person->photo_path)
+                            <button type="button" wire:click="removePhoto" wire:confirm="Remove this photo?"
+                                class="rounded border px-3 py-1.5 text-xs text-red-600 hover:bg-red-50">Remove</button>
+                        @endif
+                    </div>
+                </div>
+            @endif
+        </div>
+    </div>
+
+    <div class="rounded bg-white p-5 shadow">
         <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Names</h3>
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
@@ -55,18 +82,72 @@
                     class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
             </div>
             <div>
-                <label class="mb-1 block text-xs font-medium text-gray-600">Electorate</label>
-                <input wire:model="electorate" type="text" maxlength="100" @disabled(! $canEdit)
-                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                <label class="mb-1 block text-xs font-medium text-gray-600">Region</label>
+                <select wire:model="region" @disabled(! $canEdit) class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('region') border-red-400 @enderror">
+                    <option value="">— Select —</option>
+                    @foreach($regions as $option)
+                        <option value="{{ $option }}">{{ $option }}</option>
+                    @endforeach
+                </select>
+                @error('region')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
             </div>
             <div>
-                <label class="mb-1 block text-xs font-medium text-gray-600">Polling division</label>
-                <input wire:model="pollingDivision" type="text" maxlength="100" @disabled(! $canEdit)
-                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                <label class="mb-1 block text-xs font-medium text-gray-600">Arrive work from</label>
+                <select wire:model="arriveWorkFrom" @disabled(! $canEdit) class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('arriveWorkFrom') border-red-400 @enderror">
+                    <option value="">— Select —</option>
+                    @foreach($arriveWorkFromOptions as $option)
+                        <option value="{{ $option->value }}">{{ $option->label() }}</option>
+                    @endforeach
+                </select>
+                @error('arriveWorkFrom')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Driving licence no.</label>
+                <input wire:model="drivingLicenceNo" type="text" maxlength="50" @disabled(! $canEdit)
+                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('drivingLicenceNo') border-red-400 @enderror" />
+                @error('drivingLicenceNo')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Landline no.</label>
+                <input wire:model="landlineNo" type="text" maxlength="20" @disabled(! $canEdit)
+                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('landlineNo') border-red-400 @enderror" />
+                @error('landlineNo')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Office no.</label>
+                <input wire:model="officeNo" type="text" maxlength="20" @disabled(! $canEdit)
+                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('officeNo') border-red-400 @enderror" />
+                @error('officeNo')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Province</label>
+                <select wire:model.live="province" @disabled(! $canEdit) class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <option value="">— Select —</option>
+                    @foreach($provinces as $option)
+                        <option value="{{ $option }}">{{ $option }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Electorate district</label>
+                <select wire:model.live="electorateDistrict" @disabled(! $canEdit) class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                    <option value="">— Select —</option>
+                    @foreach($electorateDistricts as $option)
+                        <option value="{{ $option }}">{{ $option }}</option>
+                    @endforeach
+                </select>
             </div>
             <div>
                 <label class="mb-1 block text-xs font-medium text-gray-600">GN division</label>
-                <input wire:model="gnDivision" type="text" maxlength="100" @disabled(! $canEdit)
+                <x-gn-division-picker
+                    :suggestions="$gnDivisionSuggestions"
+                    :value="$gnDivision"
+                    :disabled="! $canEdit"
+                />
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Distance (km)</label>
+                <input wire:model="distanceKm" type="number" min="0" step="0.1" @disabled(! $canEdit)
                     class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
             </div>
             <div class="rounded border bg-gray-50 px-3 py-1.5 text-sm text-gray-700">
@@ -137,8 +218,12 @@
                                 class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error("addresses.$type.city") border-red-400 @enderror" />
                             @error("addresses.$type.city")<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                         </div>
-                        <input wire:model="addresses.{{ $type }}.district" type="text" maxlength="50" placeholder="District" @disabled(! $canEdit)
-                            class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        <select wire:model="addresses.{{ $type }}.district" @disabled(! $canEdit) class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                            <option value="">District</option>
+                            @foreach($districts as $option)
+                                <option value="{{ $option }}">{{ $option }}</option>
+                            @endforeach
+                        </select>
                         <input wire:model="addresses.{{ $type }}.postal_code" type="text" maxlength="10" placeholder="Postal code" @disabled(! $canEdit)
                             class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
                     </div>
@@ -336,7 +421,12 @@
                         </div>
                         <div>
                             <label class="mb-1 block text-xs font-medium text-gray-600">Relationship <span class="text-red-500">*</span></label>
-                            <input type="text" wire:model="childRelationship" maxlength="50" class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('childRelationship') border-red-400 @enderror" />
+                            <select wire:model="childRelationship" class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('childRelationship') border-red-400 @enderror">
+                                <option value="">Select</option>
+                                @foreach($relationships as $option)
+                                    <option value="{{ $option }}">{{ $option }}</option>
+                                @endforeach
+                            </select>
                             @error('childRelationship')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                         </div>
                         <div>
@@ -357,7 +447,12 @@
                         </div>
                         <div>
                             <label class="mb-1 block text-xs font-medium text-gray-600">Relationship <span class="text-red-500">*</span></label>
-                            <input type="text" wire:model="childRelationship" maxlength="50" class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('childRelationship') border-red-400 @enderror" />
+                            <select wire:model="childRelationship" class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('childRelationship') border-red-400 @enderror">
+                                <option value="">Select</option>
+                                @foreach($relationships as $option)
+                                    <option value="{{ $option }}">{{ $option }}</option>
+                                @endforeach
+                            </select>
                             @error('childRelationship')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                         </div>
                         <div>

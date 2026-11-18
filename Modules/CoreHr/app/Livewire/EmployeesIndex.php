@@ -6,7 +6,6 @@ use App\Support\Company\CompanyContext;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\JoinClause;
-use Illuminate\Support\Collection;
 use Illuminate\View\View;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -16,12 +15,9 @@ use Modules\CoreHr\Enums\EmploymentType;
 use Modules\CoreHr\Exceptions\InvalidNic;
 use Modules\CoreHr\Exports\EmployeesExport;
 use Modules\CoreHr\Models\Employment;
-use Modules\CoreHr\Readiness\ReadinessService;
-use Modules\CoreHr\Readiness\Severity;
 use Modules\CoreHr\Support\EmployeesNav;
 use Modules\CoreHr\Support\Nic;
 use Modules\CoreHr\Support\OrgUnitOptions;
-use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Job;
 use Modules\Organisation\Models\OrgUnit;
@@ -155,7 +151,6 @@ class EmployeesIndex extends Component
 
         return view('corehr::livewire.employees-index', [
             'employees' => $employees,
-            'blockerIds' => $this->blockerIds($employees->getCollection()),
             'orgUnits' => OrgUnitOptions::forCompany(CompanyContext::id()),
             'jobs' => Job::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'grades' => Grade::query()->where('is_active', true)->orderBy('rank')->get(['id', 'name']),
@@ -171,6 +166,35 @@ class EmployeesIndex extends Component
             'title' => 'Employees',
             'moduleNav' => EmployeesNav::items('employees'),
         ]);
+    }
+
+    public function servicePeriod(Employment $employment): string
+    {
+        $from = CarbonImmutable::parse($employment->hire_date->toDateString());
+        $to = $employment->exit_date !== null
+            ? CarbonImmutable::parse($employment->exit_date->toDateString())
+            : CarbonImmutable::now(config('app.timezone'))->startOfDay();
+
+        if ($to->lessThan($from)) {
+            return 'Starts '.$from->format('Y-m-d');
+        }
+
+        $years = $from->diffInYears($to);
+        $months = $from->addYears((int) $years)->diffInMonths($to);
+        $days = $from->addYears((int) $years)->addMonths((int) $months)->diffInDays($to);
+
+        $parts = [];
+        if ((int) $years > 0) {
+            $parts[] = (int) $years.' '.((int) $years === 1 ? 'year' : 'years');
+        }
+        if ((int) $months > 0) {
+            $parts[] = (int) $months.' '.((int) $months === 1 ? 'month' : 'months');
+        }
+        if ($parts === []) {
+            $parts[] = (int) $days.' '.((int) $days === 1 ? 'day' : 'days');
+        }
+
+        return implode(' ', $parts);
     }
 
     private function applySearch(Builder $query): void
@@ -199,33 +223,5 @@ class EmployeesIndex extends Component
                 $inner->orWhere('p.nic', 'like', $like);
             }
         });
-    }
-
-    /**
-     * Employment ids on this page that have a payroll blocker today.
-     *
-     * @param  Collection<int, Employment>  $rows
-     * @return list<int>
-     */
-    private function blockerIds($rows): array
-    {
-        $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
-        $readiness = app(ReadinessService::class);
-        $ids = [];
-
-        foreach ($rows->pluck('company_id')->unique() as $companyId) {
-            $company = Company::query()->find($companyId);
-            if ($company === null) {
-                continue;
-            }
-
-            foreach ($readiness->run($company, $today) as $issue) {
-                if ($issue->severity === Severity::BLOCKER) {
-                    $ids[] = $issue->employmentId;
-                }
-            }
-        }
-
-        return array_values(array_unique($ids));
     }
 }

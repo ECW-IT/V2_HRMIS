@@ -2,23 +2,32 @@
 
 namespace Modules\CoreHr\Livewire\Tabs;
 
+use App\Exceptions\Domain\DomainException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Modules\CoreHr\Enums\ArriveWorkFrom;
 use Modules\CoreHr\Enums\ContactType;
 use Modules\CoreHr\Enums\MaritalStatus;
 use Modules\CoreHr\Livewire\Concerns\SubmitsEmploymentRequests;
 use Modules\CoreHr\Models\Employment;
+use Modules\CoreHr\Models\GnDivision;
 use Modules\CoreHr\Models\Person;
 use Modules\CoreHr\Models\PersonDependent;
 use Modules\CoreHr\Models\PersonEmergencyContact;
 use Modules\CoreHr\Models\PersonExperience;
 use Modules\CoreHr\Models\PersonQualification;
+use Modules\CoreHr\Models\Region;
+use Modules\CoreHr\Models\Relationship;
+use Modules\CoreHr\Services\PersonPhotoService;
+use Modules\CoreHr\Support\SriLankaGeo;
 
 class Personal extends Component
 {
     use SubmitsEmploymentRequests;
+    use WithFileUploads;
 
     private const ADDRESS_TYPES = ['PERMANENT', 'CURRENT'];
 
@@ -42,11 +51,23 @@ class Personal extends Component
 
     public string $nationality = '';
 
-    public string $electorate = '';
+    public string $drivingLicenceNo = '';
 
-    public string $pollingDivision = '';
+    public string $landlineNo = '';
+
+    public string $officeNo = '';
+
+    public string $region = '';
+
+    public string $arriveWorkFrom = '';
+
+    public string $province = '';
+
+    public string $electorateDistrict = '';
 
     public string $gnDivision = '';
+
+    public string $distanceKm = '';
 
     /** @var array<string, array{line1: string, line2: string, city: string, district: string, postal_code: string}> */
     public array $addresses = [];
@@ -89,6 +110,9 @@ class Personal extends Component
 
     public string $childToDate = '';
 
+    /** @var mixed */
+    public $photo = null;
+
     public function mount(Employment $employment): void
     {
         $this->employment = $employment;
@@ -110,13 +134,19 @@ class Personal extends Component
             'callingName' => ['nullable', 'string', 'max:100'],
             'maritalStatus' => ['nullable', Rule::enum(MaritalStatus::class)],
             'nationality' => ['nullable', 'string', 'max:50'],
-            'electorate' => ['nullable', 'string', 'max:100'],
-            'pollingDivision' => ['nullable', 'string', 'max:100'],
+            'drivingLicenceNo' => ['nullable', 'string', 'max:50'],
+            'landlineNo' => ['nullable', 'string', 'max:20'],
+            'officeNo' => ['nullable', 'string', 'max:20'],
+            'region' => ['nullable', 'string', 'max:50', Rule::in(array_merge([''], Region::activeNames()))],
+            'arriveWorkFrom' => ['nullable', Rule::enum(ArriveWorkFrom::class)],
+            'province' => ['nullable', 'string', 'max:50', Rule::in(SriLankaGeo::provinces())],
+            'electorateDistrict' => ['nullable', 'string', 'max:50', Rule::in(SriLankaGeo::districts())],
             'gnDivision' => ['nullable', 'string', 'max:100'],
+            'distanceKm' => ['nullable', 'numeric', 'min:0'],
             'addresses.*.line1' => ['nullable', 'string', 'max:150'],
             'addresses.*.line2' => ['nullable', 'string', 'max:150'],
             'addresses.*.city' => ['nullable', 'string', 'max:80'],
-            'addresses.*.district' => ['nullable', 'string', 'max:50'],
+            'addresses.*.district' => ['nullable', 'string', 'max:50', Rule::in(array_merge([''], SriLankaGeo::districts()))],
             'addresses.*.postal_code' => ['nullable', 'string', 'max:10'],
             'newContactType' => ['required', Rule::enum(ContactType::class)],
             'newContactValue' => ['nullable', 'string', 'max:150'],
@@ -137,9 +167,15 @@ class Personal extends Component
         if ($this->nationality !== '') {
             $person['nationality'] = $this->nationality;
         }
-        $person['electorate'] = $this->electorate !== '' ? $this->electorate : null;
-        $person['polling_division'] = $this->pollingDivision !== '' ? $this->pollingDivision : null;
+        $person['driving_licence_no'] = $this->drivingLicenceNo !== '' ? $this->drivingLicenceNo : null;
+        $person['landline_no'] = $this->landlineNo !== '' ? $this->landlineNo : null;
+        $person['office_no'] = $this->officeNo !== '' ? $this->officeNo : null;
+        $person['region'] = $this->region !== '' ? $this->region : null;
+        $person['arrive_work_from'] = $this->arriveWorkFrom !== '' ? $this->arriveWorkFrom : null;
+        $person['province'] = $this->province !== '' ? $this->province : null;
+        $person['electorate_district'] = $this->electorateDistrict !== '' ? $this->electorateDistrict : null;
         $person['gn_division'] = $this->gnDivision !== '' ? $this->gnDivision : null;
+        $person['distance_km'] = $this->distanceKm !== '' ? $this->distanceKm : null;
 
         $addresses = [];
         foreach (self::ADDRESS_TYPES as $type) {
@@ -186,6 +222,44 @@ class Personal extends Component
                 $this->fillFromPerson();
             }
         }
+    }
+
+    public function uploadPhoto(PersonPhotoService $photos): void
+    {
+        $this->authorize('employee.update');
+        $this->flashOnParent = false;
+        $this->message = '';
+        $this->errorMessage = '';
+
+        $this->validate([
+            'photo' => ['required', 'image', 'mimes:jpg,jpeg,png', 'max:2048'],
+        ]);
+
+        try {
+            $photos->store($this->employment->person()->firstOrFail(), $this->photo);
+        } catch (DomainException $e) {
+            $this->errorMessage = $e->getMessage();
+
+            return;
+        }
+
+        $this->reset('photo');
+        $this->employment = $this->employment->fresh(['person']) ?? $this->employment;
+        $this->message = 'Photo saved.';
+        $this->dispatch('employment-updated', message: '');
+    }
+
+    public function removePhoto(PersonPhotoService $photos): void
+    {
+        $this->authorize('employee.update');
+        $this->flashOnParent = false;
+        $this->message = '';
+        $this->errorMessage = '';
+
+        $photos->delete($this->employment->person()->firstOrFail());
+        $this->employment = $this->employment->fresh(['person']) ?? $this->employment;
+        $this->message = 'Photo removed.';
+        $this->dispatch('employment-updated', message: '');
     }
 
     public function openAddEmergency(): void
@@ -343,7 +417,7 @@ class Personal extends Component
     {
         $validated = $this->validate([
             'childName' => ['required', 'string', 'max:150'],
-            'childRelationship' => ['required', 'string', 'max:50'],
+            'childRelationship' => ['required', 'string', 'max:50', Rule::in(Relationship::activeNames())],
             'childPhone' => ['required', 'string', 'max:20'],
             'childAddress' => ['nullable', 'string', 'max:255'],
         ]);
@@ -361,7 +435,7 @@ class Personal extends Component
     {
         $validated = $this->validate([
             'childName' => ['required', 'string', 'max:150'],
-            'childRelationship' => ['required', 'string', 'max:50'],
+            'childRelationship' => ['required', 'string', 'max:50', Rule::in(Relationship::activeNames())],
             'childDateOfBirth' => $this->childDateOfBirth === ''
                 ? ['nullable']
                 : ['date'],
@@ -457,9 +531,15 @@ class Personal extends Component
         $this->callingName = (string) $person->calling_name;
         $this->maritalStatus = $person->marital_status?->value ?? '';
         $this->nationality = (string) $person->nationality;
-        $this->electorate = (string) $person->electorate;
-        $this->pollingDivision = (string) $person->polling_division;
+        $this->drivingLicenceNo = (string) $person->driving_licence_no;
+        $this->landlineNo = (string) $person->landline_no;
+        $this->officeNo = (string) $person->office_no;
+        $this->region = (string) $person->region;
+        $this->arriveWorkFrom = $person->arrive_work_from?->value ?? '';
+        $this->province = (string) $person->province;
+        $this->electorateDistrict = (string) $person->electorate_district;
         $this->gnDivision = (string) $person->gn_division;
+        $this->distanceKm = $person->distance_km !== null ? (string) $person->distance_km : '';
 
         $this->addresses = [];
         foreach (self::ADDRESS_TYPES as $type) {
@@ -486,7 +566,33 @@ class Personal extends Component
             'person' => $person,
             'maritalStatuses' => MaritalStatus::cases(),
             'contactTypes' => ContactType::cases(),
+            'provinces' => SriLankaGeo::provinces(),
+            'districts' => SriLankaGeo::districts(),
+            'electorateDistricts' => $this->province !== ''
+                ? SriLankaGeo::districtsForProvince($this->province)
+                : SriLankaGeo::districts(),
+            'gnDivisionSuggestions' => GnDivision::namesForDistrictName($this->electorateDistrict),
+            'relationships' => Relationship::activeNames(),
+            'regions' => Region::activeNames(),
+            'arriveWorkFromOptions' => ArriveWorkFrom::cases(),
             'canEdit' => auth()->user()->can('employee.update'),
         ]);
+    }
+
+    public function updatedProvince(): void
+    {
+        $allowed = SriLankaGeo::districtsForProvince($this->province);
+        if ($this->electorateDistrict !== '' && ! in_array($this->electorateDistrict, $allowed, true)) {
+            $this->electorateDistrict = '';
+            $this->gnDivision = '';
+        }
+    }
+
+    public function updatedElectorateDistrict(): void
+    {
+        $suggestions = GnDivision::namesForDistrictName($this->electorateDistrict);
+        if ($this->gnDivision !== '' && $suggestions !== [] && ! in_array($this->gnDivision, $suggestions, true)) {
+            $this->gnDivision = '';
+        }
     }
 }

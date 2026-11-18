@@ -4,6 +4,7 @@ namespace Modules\LegacyImport\Providers;
 
 use Livewire\Livewire;
 use Modules\LegacyImport\Console\ExportLegacySyncCommand;
+use Modules\LegacyImport\Console\ImportGeoCommand;
 use Modules\LegacyImport\Console\LoadCommand;
 use Modules\LegacyImport\Console\PayCompareCommand;
 use Modules\LegacyImport\Console\PayLoadCommand;
@@ -27,6 +28,7 @@ class LegacyImportServiceProvider extends ModuleServiceProvider
         LoadCommand::class,
         ReportCommand::class,
         ExportLegacySyncCommand::class,
+        ImportGeoCommand::class,
         PayStageCommand::class,
         PayValidateCommand::class,
         PayLoadCommand::class,

@@ -18,7 +18,7 @@ class PersonDependentFactory extends Factory
         return [
             'person_id' => Person::factory(),
             'name' => fake()->name(),
-            'relationship' => 'Child',
+            'relationship' => 'Son',
             'date_of_birth' => fake()->optional()->date(),
         ];
     }

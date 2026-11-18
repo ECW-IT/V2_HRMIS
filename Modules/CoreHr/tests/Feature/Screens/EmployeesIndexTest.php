@@ -56,6 +56,41 @@ class EmployeesIndexTest extends TestCase
             ->assertSee('Hire employee');
     }
 
+    public function test_list_shows_epf_service_period_and_actions_columns(): void
+    {
+        $a = $this->company();
+        $active = $this->hired('2025-01-01', $a, $this->emp(['epf_no' => 'EPF-4421']));
+
+        $this->loginAs('hr-officer', $a);
+
+        Livewire::test(EmployeesIndex::class)
+            ->assertSee('EPF no')
+            ->assertSee('Service period')
+            ->assertSee('Actions')
+            ->assertSee('Department / subsection')
+            ->assertSee('EPF-4421')
+            ->assertSee($active->employee_no)
+            ->assertSeeHtml('aria-label="View profile"')
+            ->assertSeeHtml('aria-label="Edit"')
+            ->assertSeeHtml('tab=personal')
+            ->assertDontSeeHtml('>Grade</th>')
+            ->assertDontSeeHtml('>Status</th>')
+            ->assertDontSeeHtml('>Ready</th>');
+    }
+
+    public function test_view_only_user_sees_view_action_but_not_edit(): void
+    {
+        $a = $this->company();
+        $this->hired(c: $a);
+
+        $user = User::factory()->forCompanies([$a])->withPermissions('employee.view')->create(['must_change_password' => false]);
+        $this->actingAs($user);
+
+        Livewire::test(EmployeesIndex::class)
+            ->assertSeeHtml('aria-label="View profile"')
+            ->assertDontSeeHtml('aria-label="Edit"');
+    }
+
     public function test_status_filter_shows_exited(): void
     {
         $a = $this->company();

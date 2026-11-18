@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\CoreHr\Http\Controllers\DocumentDownloadController;
+use Modules\CoreHr\Http\Controllers\PersonPhotoController;
 use Modules\CoreHr\Livewire\BankBranchesIndex;
 use Modules\CoreHr\Livewire\BanksIndex;
 use Modules\CoreHr\Livewire\DocumentTypesIndex;
@@ -14,6 +15,11 @@ use Modules\CoreHr\Livewire\ReadinessDashboard;
 Route::middleware(['auth', 'password.changed', 'can:employee.document.view'])
     ->get('/documents/{document}', DocumentDownloadController::class)
     ->name('documents.download');
+
+Route::middleware(['auth', 'password.changed', 'can:employee.view'])
+    ->get('/persons/{person}/photo', PersonPhotoController::class)
+    ->whereNumber('person')
+    ->name('persons.photo');
 
 Route::middleware(['auth', 'password.changed', 'can:employee.view'])
     ->get('/employees/readiness', ReadinessDashboard::class)

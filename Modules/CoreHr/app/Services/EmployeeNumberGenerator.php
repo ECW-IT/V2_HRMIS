@@ -35,6 +35,16 @@ final class EmployeeNumberGenerator
         return $candidate;
     }
 
+    /** Preview of the next employee number without locking or consuming the sequence. */
+    public function peek(Company $company): string
+    {
+        $prefix = (string) $company->employee_no_prefix;
+        $padding = (int) $company->employee_no_padding;
+        $seq = (int) $company->next_employee_seq;
+
+        return $prefix.str_pad((string) $seq, $padding, '0', STR_PAD_LEFT);
+    }
+
     /** Upper-case; remove spaces, underscores, hyphens and dots. */
     public static function normalise(string $raw): string
     {

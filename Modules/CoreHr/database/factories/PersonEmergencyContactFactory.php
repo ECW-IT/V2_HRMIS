@@ -18,7 +18,7 @@ class PersonEmergencyContactFactory extends Factory
         return [
             'person_id' => Person::factory(),
             'name' => fake()->name(),
-            'relationship' => 'Spouse',
+            'relationship' => 'Wife',
             'phone' => '07'.fake()->numerify('########'),
             'address' => null,
         ];

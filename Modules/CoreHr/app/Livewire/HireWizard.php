@@ -17,6 +17,7 @@ use Modules\Attendance\Models\Device;
 use Modules\Attendance\Models\Shift;
 use Modules\Attendance\Services\EnrolmentService;
 use Modules\Attendance\Services\TimeProfileService;
+use Modules\CoreHr\Enums\ArriveWorkFrom;
 use Modules\CoreHr\Enums\ContactType;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Enums\EmploymentType;
@@ -27,12 +28,17 @@ use Modules\CoreHr\Livewire\Concerns\LoadsAssignmentOptions;
 use Modules\CoreHr\Livewire\Concerns\LoadsBankOptions;
 use Modules\CoreHr\Livewire\Concerns\SearchesManagers;
 use Modules\CoreHr\Models\Employment;
+use Modules\CoreHr\Models\GnDivision;
 use Modules\CoreHr\Models\Person;
+use Modules\CoreHr\Models\Region;
+use Modules\CoreHr\Models\Relationship;
 use Modules\CoreHr\Services\BankAccountService;
+use Modules\CoreHr\Services\EmployeeNumberGenerator;
 use Modules\CoreHr\Services\EmploymentService;
 use Modules\CoreHr\Services\PersonService;
 use Modules\CoreHr\Support\EmployeesNav;
 use Modules\CoreHr\Support\Nic;
+use Modules\CoreHr\Support\SriLankaGeo;
 use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\Grade;
@@ -75,14 +81,11 @@ class HireWizard extends Component
     /** @var list<array{company: string, employee_no: string, hire_date: string, exit_date: string, exit_reason: string}> */
     public array $pastEmployments = [];
 
+    /** @var list<string> */
+    public const NATIONALITIES = ['Sri Lankan', 'Nepalese', 'Indian'];
+
     // Step 2: personal
-    public string $title = '';
-
-    public string $firstName = '';
-
-    public string $middleName = '';
-
-    public string $lastName = '';
+    public string $fullName = '';
 
     public string $nameWithInitials = '';
 
@@ -96,11 +99,23 @@ class HireWizard extends Component
 
     public string $nationality = 'Sri Lankan';
 
-    public string $electorate = '';
+    public string $drivingLicenceNo = '';
 
-    public string $pollingDivision = '';
+    public string $landlineNo = '';
+
+    public string $officeNo = '';
+
+    public string $region = '';
+
+    public string $arriveWorkFrom = '';
+
+    public string $province = '';
+
+    public string $electorateDistrict = '';
 
     public string $gnDivision = '';
+
+    public string $distanceKm = '';
 
     public string $mobile = '';
 
@@ -108,19 +123,12 @@ class HireWizard extends Component
 
     public string $addressLine1 = '';
 
-    public string $addressLine2 = '';
-
     public string $city = '';
 
-    public string $district = '';
-
-    public string $postalCode = '';
-
-    public string $emergencyName = '';
-
-    public string $emergencyRelationship = '';
-
-    public string $emergencyPhone = '';
+    /** @var list<array{name: string, relationship: string, phone: string}> */
+    public array $emergencyContacts = [
+        ['name' => '', 'relationship' => '', 'phone' => ''],
+    ];
 
     // Step 3: employment
     public string $type = '';
@@ -207,6 +215,45 @@ class HireWizard extends Component
         $this->setConfirmationDueDate();
     }
 
+    public function updatedFullName(): void
+    {
+        $this->nameWithInitials = $this->initialsFromFullName($this->fullName);
+    }
+
+    public function updatedProvince(): void
+    {
+        $allowed = SriLankaGeo::districtsForProvince($this->province);
+        if ($this->electorateDistrict !== '' && ! in_array($this->electorateDistrict, $allowed, true)) {
+            $this->electorateDistrict = '';
+            $this->gnDivision = '';
+        }
+    }
+
+    public function addEmergencyContact(): void
+    {
+        $this->emergencyContacts[] = ['name' => '', 'relationship' => '', 'phone' => ''];
+    }
+
+    public function removeEmergencyContact(int $index): void
+    {
+        if (count($this->emergencyContacts) <= 1) {
+            $this->emergencyContacts = [['name' => '', 'relationship' => '', 'phone' => '']];
+
+            return;
+        }
+
+        unset($this->emergencyContacts[$index]);
+        $this->emergencyContacts = array_values($this->emergencyContacts);
+    }
+
+    public function updatedElectorateDistrict(): void
+    {
+        $suggestions = GnDivision::namesForDistrictName($this->electorateDistrict);
+        if ($this->gnDivision !== '' && $suggestions !== [] && ! in_array($this->gnDivision, $suggestions, true)) {
+            $this->gnDivision = '';
+        }
+    }
+
     public function next(): void
     {
         $this->authorize('employee.create');
@@ -256,11 +303,11 @@ class HireWizard extends Component
                     ]);
                 }
 
-                if ($this->emergencyName !== '') {
+                foreach ($this->filledEmergencyContacts() as $contact) {
                     $person->emergencyContacts()->create([
-                        'name' => $this->emergencyName,
-                        'relationship' => $this->emergencyRelationship,
-                        'phone' => $this->emergencyPhone,
+                        'name' => $contact['name'],
+                        'relationship' => $contact['relationship'],
+                        'phone' => $contact['phone'],
                     ]);
                 }
 
@@ -279,7 +326,7 @@ class HireWizard extends Component
                 $timeProfiles->set($employment, [
                     'effective_from' => $this->hireDate,
                     'shift_id' => (int) $this->shiftId,
-                    'attendance_mode' => $this->attendanceMode,
+                    'attendance_mode' => AttendanceMode::PUNCH->value,
                     'ot_mode' => $this->otMode,
                     'late_deduction' => $this->lateDeduction,
                 ]);
@@ -396,9 +443,10 @@ class HireWizard extends Component
         if ($this->prefilledPersonId !== null) {
             // The earlier lookup matched somebody else; their details must not stay in the form.
             $this->reset([
-                'title', 'firstName', 'middleName', 'lastName', 'nameWithInitials', 'callingName', 'maritalStatus',
-                'electorate', 'pollingDivision', 'gnDivision',
-                'mobile', 'email', 'addressLine1', 'addressLine2', 'city', 'district', 'postalCode',
+                'fullName', 'nameWithInitials', 'callingName', 'maritalStatus',
+                'drivingLicenceNo', 'landlineNo', 'officeNo', 'region', 'arriveWorkFrom',
+                'province', 'electorateDistrict', 'gnDivision', 'distanceKm',
+                'mobile', 'email', 'addressLine1', 'city',
             ]);
             $this->nationality = 'Sri Lankan';
         }
@@ -420,19 +468,26 @@ class HireWizard extends Component
     {
         $person->load(['contacts', 'addresses']);
 
-        $this->title = (string) $person->title;
-        $this->firstName = $person->first_name;
-        $this->middleName = (string) $person->middle_name;
-        $this->lastName = $person->last_name;
+        $this->fullName = trim((string) ($person->full_name ?: implode(' ', array_filter([
+            $person->first_name,
+            $person->middle_name,
+            $person->last_name,
+        ]))));
         $this->nameWithInitials = $person->name_with_initials;
         $this->callingName = (string) $person->calling_name;
         $this->dateOfBirth = $person->date_of_birth->toDateString();
         $this->gender = $person->gender->value;
         $this->maritalStatus = $person->marital_status?->value ?? '';
         $this->nationality = (string) ($person->nationality ?: 'Sri Lankan');
-        $this->electorate = (string) $person->electorate;
-        $this->pollingDivision = (string) $person->polling_division;
+        $this->drivingLicenceNo = (string) $person->driving_licence_no;
+        $this->landlineNo = (string) $person->landline_no;
+        $this->officeNo = (string) $person->office_no;
+        $this->region = (string) $person->region;
+        $this->arriveWorkFrom = $person->arrive_work_from?->value ?? '';
+        $this->province = (string) $person->province;
+        $this->electorateDistrict = (string) $person->electorate_district;
         $this->gnDivision = (string) $person->gn_division;
+        $this->distanceKm = $person->distance_km !== null ? (string) $person->distance_km : '';
         $this->identityLocked = $person->nic !== null;
 
         $mobile = $person->contacts->where('type', ContactType::MOBILE)->sortByDesc('is_primary')->first();
@@ -442,20 +497,21 @@ class HireWizard extends Component
 
         $address = $person->addresses->first(fn ($a) => $a->type->value === 'PERMANENT');
         $this->addressLine1 = (string) $address?->line1;
-        $this->addressLine2 = (string) $address?->line2;
         $this->city = (string) $address?->city;
-        $this->district = (string) $address?->district;
-        $this->postalCode = (string) $address?->postal_code;
     }
 
     private function completePersonal(): void
     {
         $this->validateStep(2);
+        $this->attendanceMode = AttendanceMode::PUNCH->value;
+        $this->ensureDefaultGradeAndLocation();
         $this->step = 3;
     }
 
     private function completeEmployment(): void
     {
+        $this->attendanceMode = AttendanceMode::PUNCH->value;
+        $this->ensureDefaultGradeAndLocation();
         $this->validateStep(3);
         $this->step = 4;
 
@@ -486,31 +542,29 @@ class HireWizard extends Component
     private function rulesFor(int $step): array
     {
         return match ($step) {
-            2 => [
-                'title' => ['nullable', 'string', 'max:20'],
-                'firstName' => ['required', 'string', 'max:100'],
-                'middleName' => ['nullable', 'string', 'max:100'],
-                'lastName' => ['required', 'string', 'max:100'],
+            2 => array_merge([
+                'fullName' => ['required', 'string', 'max:150'],
                 'nameWithInitials' => ['required', 'string', 'max:150'],
-                'callingName' => ['nullable', 'string', 'max:100'],
+                'callingName' => ['required', 'string', 'max:100'],
                 'dateOfBirth' => ['required', 'date_format:Y-m-d'],
                 'gender' => ['required', Rule::enum(Gender::class)],
-                'maritalStatus' => ['nullable', Rule::enum(MaritalStatus::class)],
-                'nationality' => ['nullable', 'string', 'max:50'],
-                'electorate' => ['nullable', 'string', 'max:100'],
-                'pollingDivision' => ['nullable', 'string', 'max:100'],
-                'gnDivision' => ['nullable', 'string', 'max:100'],
+                'maritalStatus' => ['required', Rule::enum(MaritalStatus::class)],
+                'nationality' => ['required', 'string', 'max:50', Rule::in(self::NATIONALITIES)],
+                'drivingLicenceNo' => ['nullable', 'string', 'max:50'],
+                'landlineNo' => ['nullable', 'string', 'max:20'],
+                'officeNo' => ['nullable', 'string', 'max:20'],
+                'region' => ['required', 'string', 'max:50', Rule::in(Region::activeNames())],
+                'arriveWorkFrom' => ['required', Rule::enum(ArriveWorkFrom::class)],
+                'province' => ['required', 'string', 'max:50', Rule::in(SriLankaGeo::provinces())],
+                'electorateDistrict' => ['required', 'string', 'max:50', Rule::in(SriLankaGeo::districts())],
+                'gnDivision' => $this->gnDivisionRules(),
+                'distanceKm' => ['nullable', 'numeric', 'min:0'],
                 'mobile' => ['required', 'string', 'regex:/^\+?[0-9][0-9\s-]{6,19}$/'],
                 'email' => ['nullable', 'email', 'max:150'],
                 'addressLine1' => ['required', 'string', 'max:150'],
-                'addressLine2' => ['nullable', 'string', 'max:150'],
                 'city' => ['required', 'string', 'max:80'],
-                'district' => ['nullable', 'string', 'max:50'],
-                'postalCode' => ['nullable', 'string', 'max:10'],
-                'emergencyName' => ['nullable', 'string', 'max:150', 'required_with:emergencyRelationship,emergencyPhone'],
-                'emergencyRelationship' => ['nullable', 'string', 'max:50', 'required_with:emergencyName,emergencyPhone'],
-                'emergencyPhone' => ['nullable', 'string', 'max:20', 'required_with:emergencyName,emergencyRelationship'],
-            ],
+                'emergencyContacts' => ['required', 'array', 'min:1'],
+            ], $this->emergencyContactRules()),
             3 => [
                 'type' => ['required', Rule::enum(EmploymentType::class)],
                 'hireDate' => ['required', 'date_format:Y-m-d'],
@@ -522,8 +576,7 @@ class HireWizard extends Component
                     'max:20',
                 ],
                 'employeeCategoryId' => [
-                    Rule::requiredIf(fn () => EmployeeCategory::query()->where('is_active', true)->exists()),
-                    'nullable',
+                    'required',
                     'integer',
                     Rule::exists('employee_categories', 'id')->where('is_active', true),
                 ],
@@ -537,7 +590,6 @@ class HireWizard extends Component
                 'gradeId' => ['required', 'integer', Rule::exists('grades', 'id')],
                 'locationId' => ['required', 'integer', Rule::exists('locations', 'id')],
                 'shiftId' => ['required', 'integer', Rule::exists('shifts', 'id')->where('is_active', true)],
-                'attendanceMode' => ['required', Rule::enum(AttendanceMode::class)],
                 'otMode' => ['required', Rule::enum(OtMode::class)],
                 'lateDeduction' => ['boolean'],
             ],
@@ -568,9 +620,25 @@ class HireWizard extends Component
         return match ($step) {
             2 => [
                 'mobile.regex' => 'Enter a valid mobile number.',
-                'emergencyName.required_with' => 'Enter the name, relationship and phone of the emergency contact together.',
-                'emergencyRelationship.required_with' => 'Enter the name, relationship and phone of the emergency contact together.',
-                'emergencyPhone.required_with' => 'Enter the name, relationship and phone of the emergency contact together.',
+                'callingName.required' => 'Enter the calling name.',
+                'maritalStatus.required' => 'Select the marital status.',
+                'nationality.required' => 'Select the nationality.',
+                'region.required' => 'Select the region.',
+                'arriveWorkFrom.required' => 'Select where the employee arrives to work from.',
+                'province.required' => 'Select the province.',
+                'electorateDistrict.required' => 'Select the district.',
+                'gnDivision.required' => 'Enter or select the GN division.',
+                'emergencyContacts.required' => 'Enter at least one emergency contact.',
+                'emergencyContacts.min' => 'Enter at least one emergency contact.',
+                'emergencyContacts.0.name.required' => 'Enter the emergency contact name.',
+                'emergencyContacts.0.relationship.required' => 'Select the emergency contact relationship.',
+                'emergencyContacts.0.phone.required' => 'Enter the emergency contact phone.',
+                'emergencyContacts.*.name.required_with' => 'Enter the name, relationship and phone of the emergency contact together.',
+                'emergencyContacts.*.relationship.required_with' => 'Enter the name, relationship and phone of the emergency contact together.',
+                'emergencyContacts.*.phone.required_with' => 'Enter the name, relationship and phone of the emergency contact together.',
+            ],
+            3 => [
+                'employeeCategoryId.required' => 'Select the employee category.',
             ],
             4 => [
                 'basicSalary.required' => 'Enter the basic salary.',
@@ -582,35 +650,94 @@ class HireWizard extends Component
         };
     }
 
+    /** @return list<mixed> */
+    private function gnDivisionRules(): array
+    {
+        $rules = ['required', 'string', 'max:100'];
+        $suggestions = GnDivision::namesForDistrictName($this->electorateDistrict);
+        if ($suggestions !== []) {
+            $rules[] = Rule::in($suggestions);
+        }
+
+        return $rules;
+    }
+
+    /** @return array<string, list<mixed>> */
+    private function emergencyContactRules(): array
+    {
+        $relationshipNames = Relationship::activeNames();
+        $rules = [];
+
+        foreach (array_keys($this->emergencyContacts) as $index) {
+            if ((int) $index === 0) {
+                $rules["emergencyContacts.{$index}.name"] = ['required', 'string', 'max:150'];
+                $rules["emergencyContacts.{$index}.relationship"] = ['required', 'string', 'max:50', Rule::in($relationshipNames)];
+                $rules["emergencyContacts.{$index}.phone"] = ['required', 'string', 'max:20'];
+
+                continue;
+            }
+
+            $rules["emergencyContacts.{$index}.name"] = [
+                'nullable',
+                'string',
+                'max:150',
+                "required_with:emergencyContacts.{$index}.relationship,emergencyContacts.{$index}.phone",
+            ];
+            $rules["emergencyContacts.{$index}.relationship"] = [
+                'nullable',
+                'string',
+                'max:50',
+                "required_with:emergencyContacts.{$index}.name,emergencyContacts.{$index}.phone",
+                Rule::in(array_merge([''], $relationshipNames)),
+            ];
+            $rules["emergencyContacts.{$index}.phone"] = [
+                'nullable',
+                'string',
+                'max:20',
+                "required_with:emergencyContacts.{$index}.name,emergencyContacts.{$index}.relationship",
+            ];
+        }
+
+        return $rules;
+    }
+
     /** @return array<string, mixed> */
     private function personData(): array
     {
+        [$firstName, $lastName] = $this->splitFullName($this->fullName);
+
         $data = [
-            'title' => $this->title !== '' ? $this->title : null,
-            'first_name' => $this->firstName,
-            'middle_name' => $this->middleName !== '' ? $this->middleName : null,
-            'last_name' => $this->lastName,
+            'title' => null,
+            'full_name' => trim($this->fullName),
+            'first_name' => $firstName,
+            'middle_name' => null,
+            'last_name' => $lastName,
             'name_with_initials' => $this->nameWithInitials,
-            'calling_name' => $this->callingName !== '' ? $this->callingName : null,
+            'calling_name' => $this->callingName,
             'date_of_birth' => $this->dateOfBirth,
             'gender' => $this->gender,
-            'nationality' => $this->nationality !== '' ? $this->nationality : 'Sri Lankan',
-            'electorate' => $this->electorate !== '' ? $this->electorate : null,
-            'polling_division' => $this->pollingDivision !== '' ? $this->pollingDivision : null,
-            'gn_division' => $this->gnDivision !== '' ? $this->gnDivision : null,
+            'marital_status' => $this->maritalStatus,
+            'nationality' => $this->nationality,
+            'driving_licence_no' => $this->drivingLicenceNo !== '' ? $this->drivingLicenceNo : null,
+            'landline_no' => $this->landlineNo !== '' ? $this->landlineNo : null,
+            'office_no' => $this->officeNo !== '' ? $this->officeNo : null,
+            'region' => $this->region,
+            'arrive_work_from' => $this->arriveWorkFrom,
+            'province' => $this->province,
+            'electorate' => null,
+            'polling_division' => null,
+            'gn_division' => $this->gnDivision,
+            'electorate_district' => $this->electorateDistrict,
+            'distance_km' => $this->distanceKm !== '' ? $this->distanceKm : null,
         ];
-
-        if ($this->maritalStatus !== '') {
-            $data['marital_status'] = $this->maritalStatus;
-        }
 
         $data['addresses'] = [[
             'type' => 'PERMANENT',
             'line1' => $this->addressLine1,
-            'line2' => $this->addressLine2 !== '' ? $this->addressLine2 : null,
+            'line2' => null,
             'city' => $this->city,
-            'district' => $this->district !== '' ? $this->district : null,
-            'postal_code' => $this->postalCode !== '' ? $this->postalCode : null,
+            'district' => null,
+            'postal_code' => null,
         ]];
 
         $contacts = [];
@@ -751,22 +878,107 @@ class HireWizard extends Component
             'types' => EmploymentType::cases(),
             'genders' => Gender::cases(),
             'maritalStatuses' => MaritalStatus::cases(),
+            'nationalities' => self::NATIONALITIES,
+            'provinces' => SriLankaGeo::provinces(),
+            'electorateDistricts' => $this->province !== ''
+                ? SriLankaGeo::districtsForProvince($this->province)
+                : SriLankaGeo::districts(),
+            'gnDivisionSuggestions' => GnDivision::namesForDistrictName($this->electorateDistrict),
+            'relationships' => Relationship::activeNames(),
+            'regions' => Region::activeNames(),
+            'arriveWorkFromOptions' => ArriveWorkFrom::cases(),
             'employeeCategories' => EmployeeCategory::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
             'staffWorkCategories' => StaffWorkCategory::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
             'shifts' => Shift::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
-            'attendanceModes' => AttendanceMode::cases(),
             'otModes' => OtMode::cases(),
             'otRateModes' => OtRateMode::cases(),
             'attendanceTiers' => AttendanceAllowanceTier::query()->orderBy('code')->pluck('code')->unique()->values(),
             'deviceGroups' => Device::query()->whereNotNull('device_group')->distinct()->orderBy('device_group')->pluck('device_group'),
             'selectedManager' => $this->selectedManager(),
             'managerResults' => $this->managerResults($companyId),
+            'employeeNoPreview' => $this->employeeNoPreview(),
+            'plannedResignDate' => $this->plannedResignDate(),
             'review' => $this->step === 5 ? $this->reviewData() : [],
         ])->layout('components.layouts.module', [
             'moduleName' => 'Employees',
             'title' => 'Hire employee',
             'moduleNav' => EmployeesNav::items('hire'),
         ]);
+    }
+
+    public function employeeNoPreview(): string
+    {
+        if ($this->companyId === null || $this->companyId === '') {
+            return '—';
+        }
+
+        $company = Company::query()->find((int) $this->companyId);
+        if ($company === null) {
+            return '—';
+        }
+
+        return app(EmployeeNumberGenerator::class)->peek($company);
+    }
+
+    public function plannedResignDate(): string
+    {
+        if ($this->dateOfBirth === '') {
+            return '—';
+        }
+
+        try {
+            return CarbonImmutable::createFromFormat('Y-m-d', $this->dateOfBirth)
+                ->addYears(60)
+                ->toDateString();
+        } catch (\Throwable) {
+            return '—';
+        }
+    }
+
+    /** @return array{0: string, 1: string} */
+    private function splitFullName(string $fullName): array
+    {
+        $parts = preg_split('/\s+/', trim($fullName), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if ($parts === []) {
+            return ['', ''];
+        }
+
+        if (count($parts) === 1) {
+            return [$parts[0], $parts[0]];
+        }
+
+        return [$parts[0], implode(' ', array_slice($parts, 1))];
+    }
+
+    private function initialsFromFullName(string $fullName): string
+    {
+        $parts = preg_split('/\s+/', trim($fullName), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if ($parts === []) {
+            return '';
+        }
+
+        if (count($parts) === 1) {
+            return $parts[0];
+        }
+
+        $last = array_pop($parts);
+        $initials = [];
+        foreach ($parts as $part) {
+            $initials[] = mb_strtoupper(mb_substr($part, 0, 1)).'.';
+        }
+
+        return implode(' ', $initials).' '.$last;
+    }
+
+    private function ensureDefaultGradeAndLocation(): void
+    {
+        if ($this->gradeId === null || $this->gradeId === '') {
+            $this->gradeId = Grade::query()->where('is_active', true)->orderBy('rank')->value('id');
+        }
+
+        if ($this->locationId === null || $this->locationId === '') {
+            $this->locationId = Location::query()->where('is_active', true)->orderBy('name')->value('id');
+        }
     }
 
     /** @return array<string, string> */
@@ -780,18 +992,29 @@ class HireWizard extends Component
             'Mode' => $this->mode === 'REJOIN' ? 'Rejoin' : 'New hire',
             'NIC' => trim($this->nic) !== '' ? trim($this->nic) : '—',
             'Passport no.' => trim($this->passportNo) !== '' ? trim($this->passportNo) : '—',
-            'Name' => trim($this->title.' '.$this->firstName.' '.$this->middleName.' '.$this->lastName),
+            'Full name' => trim($this->fullName) !== '' ? trim($this->fullName) : '—',
             'Name with initials' => $this->nameWithInitials,
             'Calling name' => $this->callingName !== '' ? $this->callingName : '—',
             'Date of birth' => $this->dateOfBirth,
+            'Planned resign date' => $this->plannedResignDate(),
             'Gender' => ucfirst(strtolower($this->gender)),
+            'Nationality' => $this->nationality !== '' ? $this->nationality : '—',
+            'Driving licence no.' => $this->drivingLicenceNo !== '' ? $this->drivingLicenceNo : '—',
+            'Landline no.' => $this->landlineNo !== '' ? $this->landlineNo : '—',
+            'Office no.' => $this->officeNo !== '' ? $this->officeNo : '—',
+            'Region' => $this->region !== '' ? $this->region : '—',
+            'Arrive work from' => $this->arriveWorkFrom !== ''
+                ? (ArriveWorkFrom::tryFrom($this->arriveWorkFrom)?->label() ?? $this->arriveWorkFrom)
+                : '—',
             'Mobile' => $this->mobile,
             'Email' => $this->email !== '' ? $this->email : '—',
-            'Permanent address' => implode(', ', array_filter([$this->addressLine1, $this->addressLine2, $this->city, $this->district, $this->postalCode])),
-            'Electorate' => $this->electorate !== '' ? $this->electorate : '—',
-            'Polling division' => $this->pollingDivision !== '' ? $this->pollingDivision : '—',
+            'Permanent address' => implode(', ', array_filter([$this->addressLine1, $this->city])),
+            'Province' => $this->province !== '' ? $this->province : '—',
+            'Electorate district' => $this->electorateDistrict !== '' ? $this->electorateDistrict : '—',
             'GN division' => $this->gnDivision !== '' ? $this->gnDivision : '—',
-            'Emergency contact' => $this->emergencyName !== '' ? "{$this->emergencyName} ({$this->emergencyRelationship}) {$this->emergencyPhone}" : '—',
+            'Distance (km)' => $this->distanceKm !== '' ? $this->distanceKm : '—',
+            'Emergency contacts' => $this->emergencyContactsSummary(),
+            'Employee no.' => $this->employeeNoPreview(),
             'Type' => ucfirst(strtolower($this->type)),
             'Hire date' => $this->hireDate,
             'Confirmation due' => $this->confirmationDueDate !== '' ? $this->confirmationDueDate : '—',
@@ -800,8 +1023,6 @@ class HireWizard extends Component
             'Office / shop category' => $name(StaffWorkCategory::class, $this->staffWorkCategoryId),
             'Department / section' => $name(OrgUnit::class, $this->orgUnitId),
             'Designation' => $name(Job::class, $this->jobId),
-            'Grade' => $name(Grade::class, $this->gradeId),
-            'Location' => $name(Location::class, $this->locationId),
             'Reports to' => $manager ? $manager->employee_no.' · '.$manager->person->name_with_initials : '—',
             'Basic salary' => $this->basicSalary !== '' ? $this->basicSalary : '—',
             'OT rate mode' => $this->otRateMode,
@@ -810,5 +1031,42 @@ class HireWizard extends Component
             'Payment' => $this->isCash ? 'Cash' : 'Bank account '.$this->accountNo,
             'Fingerprint' => trim($this->deviceGroup) !== '' ? trim($this->deviceGroup).' · ID '.$this->deviceUserId : 'Not enrolled yet',
         ];
+    }
+
+    /** @return list<array{name: string, relationship: string, phone: string}> */
+    private function filledEmergencyContacts(): array
+    {
+        $filled = [];
+
+        foreach ($this->emergencyContacts as $row) {
+            $name = trim((string) ($row['name'] ?? ''));
+            $relationship = trim((string) ($row['relationship'] ?? ''));
+            $phone = trim((string) ($row['phone'] ?? ''));
+
+            if ($name === '' && $relationship === '' && $phone === '') {
+                continue;
+            }
+
+            $filled[] = [
+                'name' => $name,
+                'relationship' => $relationship,
+                'phone' => $phone,
+            ];
+        }
+
+        return $filled;
+    }
+
+    private function emergencyContactsSummary(): string
+    {
+        $filled = $this->filledEmergencyContacts();
+        if ($filled === []) {
+            return '—';
+        }
+
+        return implode('; ', array_map(
+            fn (array $row) => "{$row['name']} ({$row['relationship']}) {$row['phone']}",
+            $filled,
+        ));
     }
 }

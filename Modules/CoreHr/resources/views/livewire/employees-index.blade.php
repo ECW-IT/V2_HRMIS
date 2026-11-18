@@ -79,22 +79,22 @@
                             Employee no. @if($sortBy === 'employee_no'){{ $sortDir === 'asc' ? '▲' : '▼' }}@endif
                         </button>
                     </th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">EPF no</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">
                         <button type="button" wire:click="sort('name')" class="hover:underline">
                             Name @if($sortBy === 'name'){{ $sortDir === 'asc' ? '▲' : '▼' }}@endif
                         </button>
                     </th>
-                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Department / section</th>
-                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Designation</th>
-                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Grade</th>
-                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Type</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Department / subsection</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">
                         <button type="button" wire:click="sort('hire_date')" class="hover:underline">
                             Hire date @if($sortBy === 'hire_date'){{ $sortDir === 'asc' ? '▲' : '▼' }}@endif
                         </button>
                     </th>
-                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Status</th>
-                    <th class="px-3 py-2 text-center text-xs font-semibold text-gray-600">Ready</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Service period</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Designation</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Type</th>
+                    <th class="px-3 py-2 text-center text-xs font-semibold text-gray-600">Actions</th>
                 </tr>
             </thead>
             <tbody class="divide-y">
@@ -104,6 +104,7 @@
                         <td class="px-3 py-1.5 font-mono text-xs">
                             <a href="{{ route('employees.show', $employee) }}" class="text-blue-600 hover:underline">{{ $employee->employee_no }}</a>
                         </td>
+                        <td class="px-3 py-1.5 font-mono text-xs text-gray-600">{{ $employee->epf_no ?: '—' }}</td>
                         <td class="px-3 py-1.5 text-xs text-gray-700">{{ $employee->name_with_initials }}</td>
                         <td class="px-3 py-1.5 text-xs text-gray-600">
                             @if($employee->parent_unit_name)
@@ -112,18 +113,17 @@
                                 {{ $employee->department_name ?: '—' }}
                             @endif
                         </td>
-                        <td class="px-3 py-1.5 text-xs text-gray-600">{{ $employee->job_name ?: '—' }}</td>
-                        <td class="px-3 py-1.5 text-xs text-gray-600">{{ $employee->grade_name ?: '—' }}</td>
-                        <td class="px-3 py-1.5">@include('corehr::partials.type-badge', ['type' => $employee->type])</td>
                         <td class="px-3 py-1.5 text-xs text-gray-600">{{ $employee->hire_date->format('Y-m-d') }}</td>
-                        <td class="px-3 py-1.5">@include('corehr::partials.status-badge', ['status' => $employee->status])</td>
-                        <td class="px-3 py-1.5 text-center">
-                            @if(in_array($employee->id, $blockerIds, true))
-                                <span class="inline-block h-2.5 w-2.5 rounded-full bg-red-500" title="Has a payroll blocker today"></span>
-                                <span class="sr-only">Not ready</span>
-                            @else
-                                <span class="text-xs text-green-600">✓</span>
-                            @endif
+                        <td class="px-3 py-1.5 text-xs text-gray-600">{{ $this->servicePeriod($employee) }}</td>
+                        <td class="px-3 py-1.5 text-xs text-gray-600">{{ $employee->job_name ?: '—' }}</td>
+                        <td class="px-3 py-1.5">@include('corehr::partials.type-badge', ['type' => $employee->type])</td>
+                        <td class="px-3 py-1.5 text-center" onclick="event.stopPropagation()">
+                            <div class="inline-flex items-center justify-center gap-1">
+                                <x-action-icon-button variant="view" label="View profile" :href="route('employees.show', $employee)" />
+                                @can('employee.update')
+                                    <x-action-icon-button variant="edit" label="Edit" :href="route('employees.show', ['employment' => $employee, 'tab' => 'personal'])" />
+                                @endcan
+                            </div>
                         </td>
                     </tr>
                 @empty

@@ -11,6 +11,9 @@ class CoreHrDatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // $this->call([]);
+        $this->call([
+            RelationshipSeeder::class,
+            RegionSeeder::class,
+        ]);
     }
 }

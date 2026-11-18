@@ -8,6 +8,9 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Livewire;
 use Modules\CoreHr\Database\Seeders\DocumentTypeSeeder;
+use Modules\CoreHr\Database\Seeders\RegionSeeder;
+use Modules\CoreHr\Database\Seeders\RelationshipSeeder;
+use Modules\CoreHr\Enums\ArriveWorkFrom;
 use Modules\CoreHr\Livewire\EmployeeProfile;
 use Modules\CoreHr\Livewire\Tabs\Personal;
 use Modules\CoreHr\Models\EmployeeDocument;
@@ -241,6 +244,29 @@ class EmployeeProfileTest extends TestCase
         $this->assertSame('Sunil', $e->person->fresh()->calling_name);
     }
 
+    public function test_personal_tab_saves_region_and_arrive_work_from(): void
+    {
+        $this->seed(RegionSeeder::class);
+        $e = $this->hired();
+        $this->loginAs('hr-manager', $e->company);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->set('drivingLicenceNo', 'B7654321')
+            ->set('landlineNo', '0111111111')
+            ->set('officeNo', '0112222222')
+            ->set('region', 'Hindu')
+            ->set('arriveWorkFrom', ArriveWorkFrom::HOME->value)
+            ->call('save')
+            ->assertSee('Saved.');
+
+        $person = $e->person->fresh();
+        $this->assertSame('B7654321', $person->driving_licence_no);
+        $this->assertSame('0111111111', $person->landline_no);
+        $this->assertSame('0112222222', $person->office_no);
+        $this->assertSame('Hindu', $person->region);
+        $this->assertSame(ArriveWorkFrom::HOME, $person->arrive_work_from);
+    }
+
     public function test_personal_tab_viewer_cannot_mutate_sub_records(): void
     {
         $e = $this->hired();
@@ -254,13 +280,14 @@ class EmployeeProfileTest extends TestCase
 
     public function test_personal_tab_can_add_edit_and_remove_sub_records(): void
     {
+        $this->seed(RelationshipSeeder::class);
         $e = $this->hired();
         $this->loginAs('hr-manager', $e->company);
 
         Livewire::test(Personal::class, ['employment' => $e])
             ->call('openAddEmergency')
             ->set('childName', 'Kamala')
-            ->set('childRelationship', 'Spouse')
+            ->set('childRelationship', 'Wife')
             ->set('childPhone', '0771234567')
             ->set('childAddress', 'Colombo')
             ->call('saveChild')
@@ -281,7 +308,7 @@ class EmployeeProfileTest extends TestCase
         Livewire::test(Personal::class, ['employment' => $e])
             ->call('openAddDependent')
             ->set('childName', 'Nimal')
-            ->set('childRelationship', 'Child')
+            ->set('childRelationship', 'Son')
             ->set('childDateOfBirth', '2015-04-01')
             ->call('saveChild');
 

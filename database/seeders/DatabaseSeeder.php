@@ -6,6 +6,8 @@ use Illuminate\Database\Seeder;
 use Modules\Attendance\Database\Seeders\ShiftSeeder;
 use Modules\CoreHr\Database\Seeders\BankSeeder;
 use Modules\CoreHr\Database\Seeders\DocumentTypeSeeder;
+use Modules\CoreHr\Database\Seeders\RegionSeeder;
+use Modules\CoreHr\Database\Seeders\RelationshipSeeder;
 use Modules\Leave\Database\Seeders\LeaveSeeder;
 use Modules\Organisation\Database\Seeders\EmployeeCategoriesSeeder;
 use Modules\Organisation\Database\Seeders\JobsSeeder;
@@ -29,6 +31,8 @@ class DatabaseSeeder extends Seeder
             StaffWorkCategorySeeder::class,
             ApprovalDefinitionSeeder::class,
             DocumentTypeSeeder::class,
+            RelationshipSeeder::class,
+            RegionSeeder::class,
             BankSeeder::class,
             ShiftSeeder::class,
             LeaveSeeder::class,

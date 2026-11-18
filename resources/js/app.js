@@ -34,6 +34,36 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('gnDivisionPicker', (config = {}) => ({
+        open: false,
+        query: '',
+        selected: config.selected ?? '',
+        options: config.options ?? [],
+        disabled: config.disabled ?? false,
+        wireProperty: config.wireProperty ?? 'gnDivision',
+
+        get selectedLabel() {
+            return this.selected !== '' ? this.selected : 'Select';
+        },
+
+        get filtered() {
+            const q = this.query.trim().toLowerCase();
+
+            if (q === '') {
+                return this.options;
+            }
+
+            return this.options.filter((name) => String(name).toLowerCase().includes(q));
+        },
+
+        select(name) {
+            this.selected = name ?? '';
+            this.query = '';
+            this.open = false;
+            this.$wire.set(this.wireProperty, this.selected);
+        },
+    }));
+
     Alpine.data('inlineTable', () => ({
         editingCell: null,
         editValue: '',

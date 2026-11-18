@@ -29,9 +29,14 @@
     {{-- Header --}}
     <div class="mb-4 rounded bg-white p-5 shadow">
         <div class="flex flex-wrap items-start gap-4">
-            <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[var(--color-erp-accent-soft)] text-xl font-semibold text-[var(--color-erp-accent)]">
-                {{ mb_strtoupper(mb_substr($employment->person->first_name, 0, 1).mb_substr($employment->person->last_name, 0, 1)) }}
-            </div>
+            @if($employment->person->photo_path)
+                <img src="{{ route('persons.photo', $employment->person) }}" alt="{{ $employment->person->name_with_initials }}"
+                    class="h-16 w-16 shrink-0 rounded-full object-cover ring-1 ring-gray-200" />
+            @else
+                <div class="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-[var(--color-erp-accent-soft)] text-xl font-semibold text-[var(--color-erp-accent)]">
+                    {{ mb_strtoupper(mb_substr($employment->person->first_name, 0, 1).mb_substr($employment->person->last_name, 0, 1)) }}
+                </div>
+            @endif
 
             <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">

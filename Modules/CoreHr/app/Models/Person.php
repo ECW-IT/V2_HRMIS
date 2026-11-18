@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\CoreHr\Database\Factories\PersonFactory;
+use Modules\CoreHr\Enums\ArriveWorkFrom;
 use Modules\CoreHr\Enums\Gender;
 use Modules\CoreHr\Enums\MaritalStatus;
 
@@ -22,6 +23,7 @@ class Person extends Model
         'nic_as_entered',
         'passport_no',
         'title',
+        'full_name',
         'first_name',
         'middle_name',
         'last_name',
@@ -31,9 +33,17 @@ class Person extends Model
         'gender',
         'marital_status',
         'nationality',
+        'driving_licence_no',
+        'landline_no',
+        'office_no',
+        'region',
+        'arrive_work_from',
+        'province',
         'electorate',
         'polling_division',
         'gn_division',
+        'electorate_district',
+        'distance_km',
         'photo_path',
         'nic_mismatch',
     ];
@@ -44,6 +54,8 @@ class Person extends Model
             'date_of_birth' => 'date',
             'gender' => Gender::class,
             'marital_status' => MaritalStatus::class,
+            'arrive_work_from' => ArriveWorkFrom::class,
+            'distance_km' => 'decimal:1',
             'nic_mismatch' => 'boolean',
         ];
     }
