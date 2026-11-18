@@ -383,9 +383,6 @@
                         <input wire:model="lateDeduction" type="checkbox" class="rounded border" /> Late deduction applies
                     </label>
                 </div>
-                <div class="md:col-span-2">
-                    @include('corehr::partials.manager-picker')
-                </div>
             </div>
         @endif
 

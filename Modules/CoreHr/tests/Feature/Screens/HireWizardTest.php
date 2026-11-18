@@ -145,6 +145,7 @@ class HireWizardTest extends TestCase
             ->assertDontSee('Address line 2')
             ->assertDontSee('Postal code')
             ->assertDontSee('EPF liable')
+            ->assertDontSee('Reports to')
             ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')
             ->assertSee('900')
             ->assertDontSeeHtml('wire:model="epfNo"')

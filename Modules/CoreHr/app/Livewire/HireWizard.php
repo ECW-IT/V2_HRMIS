@@ -26,7 +26,6 @@ use Modules\CoreHr\Enums\MaritalStatus;
 use Modules\CoreHr\Exceptions\InvalidNic;
 use Modules\CoreHr\Livewire\Concerns\LoadsAssignmentOptions;
 use Modules\CoreHr\Livewire\Concerns\LoadsBankOptions;
-use Modules\CoreHr\Livewire\Concerns\SearchesManagers;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Models\GnDivision;
 use Modules\CoreHr\Models\Person;
@@ -55,7 +54,6 @@ class HireWizard extends Component
 {
     use LoadsAssignmentOptions;
     use LoadsBankOptions;
-    use SearchesManagers;
 
     public int $step = 1;
 
@@ -786,9 +784,7 @@ class HireWizard extends Component
             'job_id' => (int) $this->jobId,
             'grade_id' => (int) $this->gradeId,
             'location_id' => (int) $this->locationId,
-            'manager_employment_id' => $this->managerEmploymentId === null || $this->managerEmploymentId === ''
-                ? null
-                : (int) $this->managerEmploymentId,
+            'manager_employment_id' => null,
         ];
     }
 
@@ -884,8 +880,6 @@ class HireWizard extends Component
             'otRateModes' => OtRateMode::cases(),
             'attendanceTiers' => AttendanceAllowanceTier::query()->orderBy('code')->pluck('code')->unique()->values(),
             'deviceGroups' => Device::query()->whereNotNull('device_group')->distinct()->orderBy('device_group')->pluck('device_group'),
-            'selectedManager' => $this->selectedManager(),
-            'managerResults' => $this->managerResults($companyId),
             'employeeNoPreview' => $this->employeeNoPreview(),
             'epfNoPreview' => $this->epfNoPreview(),
             'plannedResignDate' => $this->plannedResignDate(),
@@ -994,7 +988,6 @@ class HireWizard extends Component
     private function reviewData(): array
     {
         $name = fn (string $model, mixed $id) => $id === null || $id === '' ? '—' : ($model::query()->find((int) $id)?->name ?? '—');
-        $manager = $this->selectedManager();
 
         return [
             'Company' => $name(Company::class, $this->companyId),
@@ -1032,7 +1025,6 @@ class HireWizard extends Component
             'Office / shop category' => $name(StaffWorkCategory::class, $this->staffWorkCategoryId),
             'Department / section' => $name(OrgUnit::class, $this->orgUnitId),
             'Designation' => $name(Job::class, $this->jobId),
-            'Reports to' => $manager ? $manager->employee_no.' · '.$manager->person->name_with_initials : '—',
             'Basic salary' => $this->basicSalary !== '' ? $this->basicSalary : '—',
             'OT rate mode' => $this->otRateMode,
             'Fixed OT rate' => $this->otRateMode === OtRateMode::FIXED->value && $this->otRate !== '' ? $this->otRate : '—',
