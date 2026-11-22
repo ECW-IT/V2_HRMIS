@@ -8,9 +8,7 @@
             <label class="text-xs text-gray-600">Org unit
                 <select wire:model.live="orgUnitId" class="mt-1 block rounded border px-3 py-1 text-sm">
                     <option value="">Choose</option>
-                    @foreach($units as $unit)
-                        <option value="{{ $unit['id'] }}">{{ $unit['label'] }}</option>
-                    @endforeach
+                    <x-org-unit-options :units="$units" />
                 </select>
             </label>
         </div>

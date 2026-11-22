@@ -2,6 +2,7 @@
 
 namespace Modules\CoreHr\Tests\Feature\Screens;
 
+use App\Models\User;
 use Database\Seeders\ApprovalDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -19,8 +20,10 @@ use Modules\CoreHr\Livewire\Actions\Suspend;
 use Modules\CoreHr\Livewire\EmployeeProfile;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Services\EmploymentService;
+use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\Grade;
 use Modules\Workflow\Models\ApprovalRequest;
+use Modules\Workflow\Services\ApprovalService;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
 
@@ -52,18 +55,22 @@ class EmployeeActionsTest extends TestCase
         $this->assertSame(['grade_id' => $g2->id], $req->payload['changes']);
     }
 
-    public function test_hr_manager_change_is_applied_at_once(): void
+    public function test_hr_manager_change_creates_pending_request(): void
     {
         $e = $this->hired('2026-06-01');
+        $g1 = $e->currentAssignment()->grade_id;
         $g2 = Grade::factory()->create();
         $this->loginAs('hr-manager', $e->company);
 
         Livewire::test(ChangeAssignment::class, ['employment' => $e])
             ->set('effectiveFrom', '2026-09-01')->set('gradeId', $g2->id)->set('reason', 'Promotion')->call('save')
-            ->assertHasNoErrors()->assertSee('Saved');
+            ->assertHasNoErrors()->assertSee('Sent for approval');
 
+        $this->assertSame($g1, $e->assignmentOn('2026-09-01')->grade_id);
+        $this->assertSame(1, ApprovalRequest::count());
+
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), $this->approver($e->company));
         $this->assertSame($g2->id, $e->assignmentOn('2026-09-01')->grade_id);
-        $this->assertSame(0, ApprovalRequest::count());
     }
 
     public function test_change_without_a_reason_is_a_validation_error(): void
@@ -101,7 +108,7 @@ class EmployeeActionsTest extends TestCase
             ->assertHasErrors(['effectiveFrom']);
     }
 
-    public function test_confirm_applies_for_a_manager(): void
+    public function test_confirm_sends_for_approval_for_a_manager(): void
     {
         $e = $this->hired('2026-06-01', null, ['type' => 'PROBATION']);
         $this->loginAs('hr-manager', $e->company);
@@ -109,8 +116,11 @@ class EmployeeActionsTest extends TestCase
         Livewire::test(ConfirmEmployment::class, ['employment' => $e])
             ->assertSet('confirmedOn', $e->confirmation_due_date->toDateString())
             ->call('save')
-            ->assertSee('Saved');
+            ->assertSee('Sent for approval');
 
+        $this->assertSame(EmploymentType::PROBATION, $e->fresh()->type);
+
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), $this->approver($e->company));
         $this->assertSame(EmploymentType::PERMANENT, $e->fresh()->type);
     }
 
@@ -123,12 +133,18 @@ class EmployeeActionsTest extends TestCase
             ->set('from', '2026-10-01')->set('remarks', '')->call('save')
             ->assertHasErrors(['remarks'])
             ->set('remarks', 'Pending inquiry')->call('save')
-            ->assertSee('Saved');
+            ->assertSee('Sent for approval');
+        $this->assertSame(EmploymentStatus::ACTIVE, $e->fresh()->status);
+
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), $this->approver($e->company));
         $this->assertSame(EmploymentStatus::SUSPENDED, $e->fresh()->status);
 
         Livewire::test(Reinstate::class, ['employment' => $e->fresh()])
             ->set('on', '2026-10-15')->call('save')
-            ->assertSee('Saved');
+            ->assertSee('Sent for approval');
+        $this->assertSame(EmploymentStatus::SUSPENDED, $e->fresh()->status);
+
+        app(ApprovalService::class)->approve(ApprovalRequest::query()->orderByDesc('id')->first(), $this->approver($e->company));
         $this->assertSame(EmploymentStatus::ACTIVE, $e->fresh()->status);
     }
 
@@ -147,18 +163,22 @@ class EmployeeActionsTest extends TestCase
         $this->assertSame(EmploymentStatus::ACTIVE, $e->fresh()->status);
     }
 
-    public function test_exit_by_a_manager_is_applied(): void
+    public function test_exit_by_a_manager_sends_for_approval(): void
     {
         $e = $this->hired('2026-06-01');
         $this->loginAs('hr-manager', $e->company);
 
         Livewire::test(ExitEmployment::class, ['employment' => $e])
             ->set('lastWorkingDay', '2026-11-30')->set('reason', 'RESIGNATION')->set('remarks', 'Moved abroad')->call('save')
-            ->assertHasNoErrors()->assertSee('Saved');
+            ->assertHasNoErrors()->assertSee('Sent for approval');
 
+        $this->assertSame(EmploymentStatus::ACTIVE, $e->fresh()->status);
+
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), $this->approver($e->company));
         $e = $e->fresh();
         $this->assertSame(EmploymentStatus::EXITED, $e->status);
         $this->assertSame(ExitReason::RESIGNATION, $e->exit_reason);
+        $this->assertFalse($e->hrmis_active);
     }
 
     public function test_exit_needs_employee_exit_permission(): void
@@ -201,49 +221,56 @@ class EmployeeActionsTest extends TestCase
 
         Livewire::test(SisterTransfer::class, ['employment' => $e])
             ->set('targetCompanyId', $c->id)->set('lastWorkingDay', '2026-11-30')
-            ->set('orgUnitId', $asg['org_unit_id'])->set('jobId', $asg['job_id'])->set('gradeId', $asg['grade_id'])->set('locationId', $asg['location_id'])
-            ->set('epfNo', '77')->call('save')
+            ->set('orgUnitId', $asg['org_unit_id'])->set('designationId', $asg['designation_id'])->set('gradeId', $asg['grade_id'])->set('locationId', $asg['location_id'])
+            ->call('save')
             ->assertHasErrors(['targetCompanyId']);
 
         $this->assertSame(EmploymentStatus::ACTIVE, $e->fresh()->status);
     }
 
-    public function test_sister_transfer_by_hr_manager_creates_the_new_employment_and_redirects_to_it(): void
+    public function test_sister_transfer_by_hr_manager_sends_for_approval_then_creates_the_new_employment(): void
     {
         $this->travelTo('2026-12-01');
         $a = $this->company();
-        $b = $this->company();
+        $b = $this->company(['next_epf_seq' => 77]);
         $e = $this->hired('2024-03-01', $a);
         $asg = $this->asg($b);
         $this->loginAs('hr-manager', $a, $b);
 
         Livewire::test(SisterTransfer::class, ['employment' => $e])
             ->set('targetCompanyId', $b->id)->set('lastWorkingDay', '2026-11-30')
-            ->set('orgUnitId', $asg['org_unit_id'])->set('jobId', $asg['job_id'])->set('gradeId', $asg['grade_id'])->set('locationId', $asg['location_id'])
-            ->set('epfNo', '77')->call('save')
+            ->set('orgUnitId', $asg['org_unit_id'])->set('designationId', $asg['designation_id'])->set('gradeId', $asg['grade_id'])->set('locationId', $asg['location_id'])
+            ->assertDontSeeHtml('wire:model="epfNo"')
+            ->assertSee('77')
+            ->call('save')
             ->assertHasNoErrors()
-            ->assertRedirect(route('employees.show', Employment::query()->where('company_id', $b->id)->sole()));
+            ->assertSee('Sent for approval');
+
+        $this->assertSame(EmploymentStatus::ACTIVE, $e->fresh()->status);
+        $this->assertSame(0, Employment::query()->where('company_id', $b->id)->count());
+
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), $this->approver($a, $b));
 
         $new = Employment::query()->where('company_id', $b->id)->sole();
         $this->assertSame('2026-12-01', $new->hire_date->toDateString());
         $this->assertSame('77', $new->epf_no);
+        $this->assertSame(78, $b->fresh()->next_epf_seq);
         $this->assertSame($e->id, $new->previous_employment_id);
         $this->assertSame(EmploymentStatus::EXITED, $e->fresh()->status);
     }
 
-    public function test_sister_transfer_requires_an_epf_number_for_epf_liable_employees(): void
+    public function test_sister_transfer_shows_readonly_epf_preview_for_epf_liable_employees(): void
     {
         $a = $this->company();
-        $b = $this->company();
+        $b = $this->company(['next_epf_seq' => 42]);
         $e = $this->hired('2024-03-01', $a);
-        $asg = $this->asg($b);
         $this->loginAs('hr-manager', $a, $b);
 
         Livewire::test(SisterTransfer::class, ['employment' => $e])
-            ->set('targetCompanyId', $b->id)->set('lastWorkingDay', '2026-11-30')
-            ->set('orgUnitId', $asg['org_unit_id'])->set('jobId', $asg['job_id'])->set('gradeId', $asg['grade_id'])->set('locationId', $asg['location_id'])
-            ->call('save')
-            ->assertHasErrors(['epfNo']);
+            ->set('targetCompanyId', $b->id)
+            ->assertDontSeeHtml('wire:model="epfNo"')
+            ->assertSee('42')
+            ->assertSee('Cannot be edited');
     }
 
     public function test_enrol_adds_a_device_user_id(): void
@@ -350,5 +377,13 @@ class EmployeeActionsTest extends TestCase
         Livewire::test(EmployeeProfile::class, ['employment' => $e])
             ->call('openAction', 'exit')
             ->assertForbidden();
+    }
+
+    private function approver(Company ...$companies): User
+    {
+        return User::factory()
+            ->forCompanies($companies)
+            ->withRole('super-admin')
+            ->create(['must_change_password' => false]);
     }
 }

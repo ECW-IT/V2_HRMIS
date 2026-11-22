@@ -7,6 +7,8 @@ use App\Support\Company\CompanyContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
+use Modules\Attendance\Models\BiometricEnrolment;
+use Modules\Attendance\Models\DeviceGroup;
 use Modules\Attendance\Services\EnrolmentService;
 use Modules\Attendance\Services\TimeProfileService;
 use Modules\CoreHr\Database\Seeders\RegionSeeder;
@@ -21,9 +23,14 @@ use Modules\CoreHr\Models\GnDivision;
 use Modules\CoreHr\Models\Person;
 use Modules\CoreHr\Services\BankAccountService;
 use Modules\CoreHr\Services\EmploymentService;
+use Modules\Organisation\Enums\OrgUnitType;
 use Modules\Organisation\Models\Company;
+use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\EmployeeCategory;
+use Modules\Organisation\Models\OrgUnit;
+use Modules\Payroll\Database\Seeders\PayComponentSeeder;
 use Modules\Payroll\Enums\OtRateMode;
+use Modules\Payroll\Models\AttendanceAllowanceTier;
 use Modules\Payroll\Services\CompensationService;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
@@ -87,9 +94,11 @@ class HireWizardTest extends TestCase
         foreach (array_merge([
             'type' => 'PERMANENT',
             'hireDate' => '2026-12-01',
+            'attendanceActive' => false,
             'employeeCategoryId' => $categoryId,
+            'departmentId' => $a['org_unit_id'],
             'orgUnitId' => $a['org_unit_id'],
-            'jobId' => $a['job_id'],
+            'designationId' => $a['designation_id'],
             'shiftId' => $shift->id,
         ], $employment) as $property => $value) {
             $component->set($property, $value);
@@ -121,12 +130,14 @@ class HireWizardTest extends TestCase
         $district = District::factory()->create(['code' => 'GAM', 'name' => 'Gampaha']);
         GnDivision::factory()->create(['district_id' => $district->id, 'code' => 'GN-NIT', 'name' => 'Nittambuwa North']);
         $categoryId = $this->employeeCategoryId();
+        DeviceGroup::factory()->create(['code' => 'NIT', 'name' => 'Nittambuwa']);
         $this->loginAs('hr-manager', $c);
 
         $component = Livewire::test(HireWizard::class)
             ->set('companyId', $c->id)->set('nic', '853400937V')->call('next')
             ->assertSet('step', 2)->assertSet('dateOfBirth', '1985-12-05')->assertSet('gender', 'MALE')
-            ->assertSee('2045-12-05');
+            ->assertSee('2045-12-05')
+            ->assertSee('Identity');
 
         foreach ($this->requiredPersonalFields([
             'fullName' => 'Nimal S Perera',
@@ -150,10 +161,13 @@ class HireWizardTest extends TestCase
             ->assertSee('900')
             ->assertDontSeeHtml('wire:model="epfNo"')
             ->set('employeeCategoryId', $categoryId)
-            ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])
+            ->assertSeeHtml('searchableSelect')
+            ->assertSeeHtml('Search designation')
+            ->set('departmentId', $a['org_unit_id'])->set('orgUnitId', $a['org_unit_id'])->set('designationId', $a['designation_id'])
             ->set('shiftId', $this->shift()->id)->call('next')
             ->set('basicSalary', '55000.00')->set('otRateMode', OtRateMode::CALCULATED->value)
-            ->set('bankId', $bank->id)->set('bankBranchId', $branch->id)->set('accountNo', '0012345678')->set('deviceGroup', 'NIT')->set('deviceUserId', 116)->call('next')
+            ->set('bankId', $bank->id)->set('bankBranchId', $branch->id)->set('accountNo', '0012345678')
+            ->set('deviceGroup', 'NIT')->set('deviceUserId', 116)->call('next')
             ->assertSet('step', 5)->assertSee('The employee number will be issued when you save.')->assertSee('Western')->assertSee('Nimal S Perera')->call('hire')
             ->assertHasNoErrors()->assertRedirect();
 
@@ -220,9 +234,9 @@ class HireWizardTest extends TestCase
         }
 
         $component->call('next')
-            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')
+            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('attendanceActive', false)
             ->set('employeeCategoryId', $categoryId)
-            ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])
+            ->set('departmentId', $a['org_unit_id'])->set('orgUnitId', $a['org_unit_id'])->set('designationId', $a['designation_id'])
             ->set('shiftId', $this->shift()->id)->call('next')
             ->set('basicSalary', '55000.00')->set('otRateMode', OtRateMode::CALCULATED->value)
             ->set('isCash', true)->call('next')
@@ -263,9 +277,9 @@ class HireWizardTest extends TestCase
         }
 
         $component->call('next')
-            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')
+            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('attendanceActive', false)
             ->set('employeeCategoryId', $categoryId)
-            ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])
+            ->set('departmentId', $a['org_unit_id'])->set('orgUnitId', $a['org_unit_id'])->set('designationId', $a['designation_id'])
             ->set('shiftId', $this->shift()->id)->call('next')
             ->set('basicSalary', '55000.00')->set('otRateMode', OtRateMode::CALCULATED->value)
             ->set('isCash', true)->call('next')
@@ -323,9 +337,9 @@ class HireWizardTest extends TestCase
         }
 
         $component->call('next')
-            ->set('type', 'PERMANENT')->set('hireDate', '2026-11-20')
+            ->set('type', 'PERMANENT')->set('hireDate', '2026-11-20')->set('attendanceActive', false)
             ->set('employeeCategoryId', $categoryId)
-            ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])
+            ->set('departmentId', $a['org_unit_id'])->set('orgUnitId', $a['org_unit_id'])->set('designationId', $a['designation_id'])
             ->set('shiftId', $this->shift()->id)->call('next')
             ->set('basicSalary', '45000.00')->set('isCash', true)->call('next')
             ->call('hire')->assertHasNoErrors()->assertRedirect();
@@ -392,6 +406,51 @@ class HireWizardTest extends TestCase
             ->set('type', 'PERMANENT')->assertSet('epfLiable', true)->assertSet('basicSalary', '');
     }
 
+    public function test_choosing_intern_shows_epf_zero_on_employment_step(): void
+    {
+        $c = $this->company(['next_epf_seq' => 10]);
+        $this->loginAs('hr-manager', $c);
+
+        Livewire::test(HireWizard::class)
+            ->set('step', 3)
+            ->set('type', 'PERMANENT')
+            ->assertSee('EPF no.')
+            ->assertSee('10')
+            ->set('type', 'INTERN')
+            ->assertSee('EPF no.')
+            ->assertSee('0')
+            ->assertSee('Not issued for intern.')
+            ->assertSet('epfLiable', false);
+    }
+
+    public function test_designation_intern_shows_epf_zero_while_type_stays_permanent(): void
+    {
+        $c = $this->company(['next_epf_seq' => 10]);
+        $intern = Designation::factory()->create([
+            'code' => 'INT1',
+            'name' => 'Intern',
+            'name_key' => 'intern',
+        ]);
+        $other = Designation::factory()->create(['code' => 'DIR', 'name' => 'Director']);
+        $this->loginAs('hr-manager', $c);
+
+        Livewire::test(HireWizard::class)
+            ->set('step', 3)
+            ->set('type', 'PERMANENT')
+            ->assertSee('EPF no.')
+            ->assertSee('10')
+            ->set('designationId', $intern->id)
+            ->assertSee('EPF no.')
+            ->assertSee('0')
+            ->assertSee('Not issued for intern.')
+            ->assertSet('epfLiable', false)
+            ->set('designationId', $other->id)
+            ->assertSee('EPF no.')
+            ->assertSee('10')
+            ->assertSee('Issued when you save.')
+            ->assertSet('epfLiable', true);
+    }
+
     public function test_probation_defaults_the_confirmation_due_date_to_six_months(): void
     {
         $c = $this->company();
@@ -428,6 +487,28 @@ class HireWizardTest extends TestCase
             ]);
     }
 
+    public function test_invalid_mobile_stays_on_step_two(): void
+    {
+        $this->seedHireLookups();
+        $c = $this->company();
+        $this->loginAs('hr-manager', $c);
+
+        $component = Livewire::test(HireWizard::class)
+            ->set('companyId', $c->id)->set('nic', '853400937V')->call('next');
+
+        foreach ($this->requiredPersonalFields(['mobile' => '771234567']) as $property => $value) {
+            $component->set($property, $value);
+        }
+
+        $component->call('next')
+            ->assertSet('step', 2)
+            ->assertHasErrors(['mobile']);
+
+        $component->set('mobile', '94771234567')->call('next')
+            ->assertSet('step', 2)
+            ->assertHasErrors(['mobile']);
+    }
+
     public function test_missing_employee_category_blocks_step_three(): void
     {
         $this->seedHireLookups();
@@ -445,7 +526,7 @@ class HireWizardTest extends TestCase
 
         $component->call('next')
             ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')
-            ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])
+            ->set('departmentId', $a['org_unit_id'])->set('orgUnitId', $a['org_unit_id'])->set('designationId', $a['designation_id'])
             ->set('shiftId', $this->shift()->id)
             ->call('next')
             ->assertSet('step', 3)
@@ -529,5 +610,273 @@ class HireWizardTest extends TestCase
         $this->actingAs($user);
 
         Livewire::test(HireWizard::class)->call('hire')->assertForbidden();
+    }
+
+    public function test_hire_saves_pay_components_with_amounts(): void
+    {
+        $this->seed(PayComponentSeeder::class);
+        $c = $this->company(['employee_no_prefix' => 'ECW', 'next_employee_seq' => 700]);
+        $this->loginAs('hr-manager', $c);
+
+        $this->walkToReview((string) $c->id)
+            ->set('step', 4)
+            ->assertSeeHtml('Search earning')
+            ->assertSeeHtml('Search deduction')
+            ->assertSeeHtml('searchableSelect')
+            ->set('earningComponents', [
+                ['code' => 'PERF', 'amount' => '20000.00'],
+                ['code' => 'TRAVEL', 'amount' => '10000.00'],
+            ])
+            ->set('deductionComponents', [
+                ['code' => 'HOSTEL', 'amount' => '1500.00'],
+            ])
+            ->call('next')
+            ->assertSet('step', 5)
+            ->assertSee('Performance allowance 20,000.00')
+            ->assertSee('Travel allowance 10,000.00')
+            ->assertSee('Hostel 1,500.00')
+            ->call('hire')
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $e = Employment::sole();
+        $components = app(CompensationService::class)->componentsOn($e, '2026-12-01');
+        $this->assertSame(['PERF', 'TRAVEL', 'HOSTEL'], $components->pluck('payComponent.code')->all());
+        $this->assertSame(['20000.00', '10000.00', '1500.00'], $components->pluck('amount')->map(fn ($a) => number_format((float) $a, 2, '.', ''))->all());
+    }
+
+    public function test_hire_without_extra_pay_components_still_passes(): void
+    {
+        $this->seed(PayComponentSeeder::class);
+        $c = $this->company(['employee_no_prefix' => 'ECW', 'next_employee_seq' => 701]);
+        $this->loginAs('hr-manager', $c);
+
+        $this->walkToReview((string) $c->id)->call('hire')->assertHasNoErrors()->assertRedirect();
+
+        $e = Employment::sole();
+        $this->assertTrue(app(CompensationService::class)->componentsOn($e, '2026-12-01')->isEmpty());
+    }
+
+    public function test_invalid_or_duplicate_pay_components_block_step_four(): void
+    {
+        $this->seed(PayComponentSeeder::class);
+        $c = $this->company();
+        $this->loginAs('hr-manager', $c);
+
+        $this->walkToReview((string) $c->id)
+            ->set('step', 4)
+            ->set('earningComponents', [
+                ['code' => 'PERF', 'amount' => '0'],
+            ])
+            ->call('next')
+            ->assertSet('step', 4)
+            ->assertHasErrors(['earningComponents.0.amount']);
+
+        $this->walkToReview((string) $c->id)
+            ->set('step', 4)
+            ->set('earningComponents', [
+                ['code' => 'PERF', 'amount' => '20000.00'],
+                ['code' => 'PERF', 'amount' => '15000.00'],
+            ])
+            ->call('next')
+            ->assertSet('step', 4)
+            ->assertHasErrors(['earningComponents.1.code']);
+    }
+
+    public function test_cascading_department_selects_section_as_org_unit(): void
+    {
+        $this->seedHireLookups();
+        $c = $this->company();
+        $department = OrgUnit::factory()->create([
+            'company_id' => $c->id,
+            'type' => OrgUnitType::DEPARTMENT,
+            'name' => 'Operations',
+        ]);
+        $section = OrgUnit::factory()->create([
+            'company_id' => $c->id,
+            'parent_id' => $department->id,
+            'type' => OrgUnitType::SECTION,
+            'name' => 'Cutting',
+        ]);
+        $a = $this->asg($c, ['org_unit_id' => $section->id]);
+        $categoryId = $this->employeeCategoryId();
+        $this->loginAs('hr-manager', $c);
+        $this->travelTo('2026-12-01');
+
+        $component = Livewire::test(HireWizard::class)
+            ->set('companyId', $c->id)->set('nic', '853400937V')->call('next');
+
+        foreach ($this->requiredPersonalFields() as $property => $value) {
+            $component->set($property, $value);
+        }
+
+        $component->call('next')
+            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('attendanceActive', false)
+            ->set('employeeCategoryId', $categoryId)
+            ->set('departmentId', $department->id)
+            ->assertSet('orgUnitId', null)
+            ->set('orgUnitId', $section->id)
+            ->set('designationId', $a['designation_id'])
+            ->set('shiftId', $this->shift()->id)
+            ->call('next')
+            ->assertSet('step', 4)
+            ->assertSet('orgUnitId', $section->id);
+    }
+
+    public function test_comma_formatted_amounts_round_trip_on_hire(): void
+    {
+        $c = $this->company(['employee_no_prefix' => 'ECW', 'next_employee_seq' => 720]);
+        $this->loginAs('hr-manager', $c);
+
+        $this->walkToReview((string) $c->id)
+            ->set('step', 4)
+            ->set('basicSalary', '55000')
+            ->assertSet('basicSalary', '55,000')
+            ->set('basicSalary', '55,000.5')
+            ->assertSet('basicSalary', '55,000.5')
+            ->set('isCash', true)
+            ->call('next')
+            ->assertSet('step', 5)
+            ->assertSee('55,000.50')
+            ->call('hire')
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $e = Employment::sole();
+        $this->assertSame('55000.50', app(CompensationService::class)->on($e, $e->hire_date)->basic_salary);
+    }
+
+    public function test_attendance_tier_option_shows_base_amount(): void
+    {
+        AttendanceAllowanceTier::factory()->create([
+            'code' => 'T1',
+            'name' => 'Tier 1',
+            'base_amount' => '5000.00',
+            'per_day_rate' => '1000.00',
+            'effective_from' => '2026-01-01',
+            'effective_to' => null,
+        ]);
+        $c = $this->company();
+        $this->loginAs('hr-manager', $c);
+
+        Livewire::test(HireWizard::class)
+            ->set('step', 4)
+            ->assertSee('T1 — 5,000');
+    }
+
+    public function test_device_group_must_exist_on_the_master_list(): void
+    {
+        $c = $this->company();
+        $this->loginAs('hr-manager', $c);
+
+        $this->walkToReview((string) $c->id)
+            ->set('step', 4)
+            ->set('attendanceActive', true)
+            ->set('deviceGroup', 'UNKNOWN')
+            ->set('deviceUserId', 99)
+            ->call('next')
+            ->assertSet('step', 4)
+            ->assertHasErrors(['deviceGroup']);
+    }
+
+    public function test_duplicate_fingerprint_id_fails_on_step_four(): void
+    {
+        $c = $this->company();
+        DeviceGroup::factory()->create(['code' => 'NIT', 'name' => 'Nittambuwa']);
+        $existing = $this->hired('2026-01-01', $c);
+        BiometricEnrolment::factory()->create([
+            'employment_id' => $existing->id,
+            'device_group' => 'NIT',
+            'device_user_id' => 116,
+            'valid_from' => '2026-01-01',
+            'valid_to' => null,
+        ]);
+        $this->loginAs('hr-manager', $c);
+
+        $this->walkToReview((string) $c->id)
+            ->set('step', 4)
+            ->set('attendanceActive', true)
+            ->set('deviceGroup', 'NIT')
+            ->set('deviceUserId', 116)
+            ->call('next')
+            ->assertSet('step', 4)
+            ->assertHasErrors(['deviceUserId']);
+    }
+
+    public function test_hostel_available_with_amount_saves_flag_and_hostel_component(): void
+    {
+        $this->seed(PayComponentSeeder::class);
+        $c = $this->company(['employee_no_prefix' => 'ECW', 'next_employee_seq' => 710]);
+        $this->loginAs('hr-manager', $c);
+
+        $this->walkToReview((string) $c->id)
+            ->set('step', 4)
+            ->set('hostelAvailable', true)
+            ->set('hostelPaidAmount', '2,500.00')
+            ->call('next')
+            ->assertSet('step', 5)
+            ->assertSee('Hostel available')
+            ->assertSee('2,500.00')
+            ->call('hire')
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $e = Employment::sole();
+        $this->assertTrue($e->hostel_available);
+        $this->assertFalse($e->food_breakfast);
+        $this->assertFalse($e->food_lunch);
+        $this->assertFalse($e->food_dinner);
+
+        $components = app(CompensationService::class)->componentsOn($e, '2026-12-01');
+        $this->assertSame(['HOSTEL'], $components->pluck('payComponent.code')->all());
+        $this->assertSame('2500.00', number_format((float) $components->first()->amount, 2, '.', ''));
+    }
+
+    public function test_hostel_unchecked_saves_no_hostel_component_and_false_flags(): void
+    {
+        $this->seed(PayComponentSeeder::class);
+        $c = $this->company(['employee_no_prefix' => 'ECW', 'next_employee_seq' => 711]);
+        $this->loginAs('hr-manager', $c);
+
+        $this->walkToReview((string) $c->id)
+            ->set('step', 4)
+            ->set('hostelAvailable', true)
+            ->set('hostelPaidAmount', '1,500.00')
+            ->set('hostelAvailable', false)
+            ->assertSet('hostelPaidAmount', '')
+            ->call('next')
+            ->assertSet('step', 5)
+            ->call('hire')
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $e = Employment::sole();
+        $this->assertFalse($e->hostel_available);
+        $this->assertTrue(app(CompensationService::class)->componentsOn($e, '2026-12-01')->isEmpty());
+    }
+
+    public function test_meal_checkboxes_persist_on_employment(): void
+    {
+        $this->seed(PayComponentSeeder::class);
+        $c = $this->company(['employee_no_prefix' => 'ECW', 'next_employee_seq' => 712]);
+        $this->loginAs('hr-manager', $c);
+
+        $this->walkToReview((string) $c->id)
+            ->set('step', 4)
+            ->set('foodBreakfast', true)
+            ->set('foodLunch', true)
+            ->set('foodDinner', false)
+            ->call('next')
+            ->assertSet('step', 5)
+            ->assertSee('Breakfast, Lunch')
+            ->call('hire')
+            ->assertHasNoErrors()
+            ->assertRedirect();
+
+        $e = Employment::sole();
+        $this->assertFalse($e->hostel_available);
+        $this->assertTrue($e->food_breakfast);
+        $this->assertTrue($e->food_lunch);
+        $this->assertFalse($e->food_dinner);
     }
 }

@@ -6,6 +6,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Livewire\Component;
 use Modules\Attendance\Models\Device;
+use Modules\Attendance\Models\DeviceGroup;
 use Modules\Attendance\Models\Punch;
 use Modules\Attendance\Services\DeviceService;
 use Modules\Organisation\Models\Location;
@@ -53,8 +54,15 @@ class DevicesIndex extends Component
             'serial_no' => ['required', 'string', 'max:50', Rule::unique('devices', 'serial_no')],
             'name' => ['required', 'string', 'max:100'],
             'location_id' => ['required', 'integer', 'exists:locations,id'],
-            'device_group' => ['required', 'string', 'max:20'],
+            'device_group' => [
+                'required',
+                'string',
+                'max:20',
+                Rule::exists('device_groups', 'code')->where('is_active', true),
+            ],
             'ip_address' => ['nullable', 'string', 'max:45'],
+        ], [
+            'device_group.exists' => 'Select an active device group.',
         ]);
 
         [, $token] = $devices->register([
@@ -101,6 +109,7 @@ class DevicesIndex extends Component
         return view('attendance::livewire.devices-index', [
             'devices' => $devices,
             'locations' => Location::query()->where('is_active', true)->orderBy('name')->get(),
+            'deviceGroups' => DeviceGroup::query()->where('is_active', true)->orderBy('code')->get(['code', 'name']),
         ])->layout('components.layouts.app', [
             'title' => 'Devices',
         ]);

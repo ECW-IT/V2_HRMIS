@@ -205,6 +205,7 @@ class EmploymentServiceTest extends TestCase
         $this->assertSame(EmploymentStatus::EXITED, $e->status);
         $this->assertSame('2026-10-31', $e->exit_date->toDateString());
         $this->assertSame(ExitReason::RESIGNATION, $e->exit_reason);
+        $this->assertFalse($e->hrmis_active);
         $this->assertSame('2026-10-31', $e->assignments()->sole()->effective_to->toDateString());
         $this->assertNull($e->assignmentOn('2026-11-01'));
         $this->assertSame(1, $e->events()->where('type', 'EXIT')->count());

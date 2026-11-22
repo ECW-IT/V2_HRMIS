@@ -14,12 +14,18 @@ final class EmployeesNav
                 'route' => route('employees.index'),
                 'active' => $active === 'employees',
             ],
+            [
+                'icon' => '📂',
+                'label' => 'Resigned',
+                'route' => route('employees.resigned'),
+                'active' => $active === 'resigned',
+            ],
         ];
 
         if (auth()->user()?->can('employee.create')) {
             $items[] = [
                 'icon' => '➕',
-                'label' => 'Hire employee',
+                'label' => 'Add employee',
                 'route' => route('employees.create'),
                 'active' => $active === 'hire',
             ];

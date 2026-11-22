@@ -3,10 +3,10 @@
 namespace Modules\Organisation\Database\Seeders;
 
 use Illuminate\Database\Seeder;
-use Modules\Organisation\Models\Job;
-use Modules\Organisation\Services\JobService;
+use Modules\Organisation\Models\Designation;
+use Modules\Organisation\Services\DesignationService;
 
-class JobsSeeder extends Seeder
+class DesignationsSeeder extends Seeder
 {
     public function run(): void
     {
@@ -43,11 +43,11 @@ class JobsSeeder extends Seeder
                 continue;
             }
 
-            Job::query()->updateOrCreate(
+            Designation::query()->updateOrCreate(
                 ['code' => $row['code']],
                 [
                     'name' => $row['name'],
-                    'name_key' => JobService::nameKey($row['name']),
+                    'name_key' => DesignationService::nameKey($row['name']),
                     'is_active' => true,
                 ],
             );

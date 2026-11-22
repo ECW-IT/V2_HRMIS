@@ -33,7 +33,7 @@ final class Hr002InactiveAssignmentTargets extends AbstractCheck
                     $q->selectRaw('1')
                         ->from('assignments')
                         ->join('org_units', 'org_units.id', '=', 'assignments.org_unit_id')
-                        ->join('hr_jobs', 'hr_jobs.id', '=', 'assignments.job_id')
+                        ->join('designations', 'designations.id', '=', 'assignments.designation_id')
                         ->join('grades', 'grades.id', '=', 'assignments.grade_id')
                         ->join('locations', 'locations.id', '=', 'assignments.location_id')
                         ->whereColumn('assignments.employment_id', 'employments.id')
@@ -44,7 +44,7 @@ final class Hr002InactiveAssignmentTargets extends AbstractCheck
                         })
                         ->where(function ($inner) {
                             $inner->where('org_units.is_active', false)
-                                ->orWhere('hr_jobs.is_active', false)
+                                ->orWhere('designations.is_active', false)
                                 ->orWhere('grades.is_active', false)
                                 ->orWhere('locations.is_active', false);
                         });

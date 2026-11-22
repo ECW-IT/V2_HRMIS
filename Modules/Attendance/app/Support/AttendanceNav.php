@@ -50,6 +50,12 @@ final class AttendanceNav
                 'active' => $active === 'time-profiles',
             ],
             [
+                'icon' => '🏷️',
+                'label' => 'Device groups',
+                'route' => route('attendance.device-groups.index'),
+                'active' => $active === 'device-groups',
+            ],
+            [
                 'icon' => '🖥️',
                 'label' => 'Devices',
                 'route' => route('attendance.devices.index'),

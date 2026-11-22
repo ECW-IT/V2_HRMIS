@@ -1,14 +1,94 @@
 code,name
-MD,MD
-CEO,CEO
-ADMIN,Admin
-SUPER_ADMIN,Super Admin
-ACCOUNTANT,Accountant
-EXECUTIVE,Executive
-MANAGER,Manager
-SALES,Sales
-GENERAL_MANAGER,General Manager
-TEAM_LEADER,Team Leader
-COORDINATOR,Coordinator
-DIRECTOR,Director
-EMPLOYEE,Employee
+ACCTANT,Accountant
+ACCT_ASST,Accounts Assistant
+ACCT_EXEC,Accounts Executive
+ADMIN_SEC_OFF,Administration & Security Officer
+ASST_APPL,Assistant Applicator
+ASST_AUTO_ELEC_TECH,Assistant Auto Electrical Technician
+ASST_CARPT_TECH,Assistant Carpet Technician
+ASST_EMB_TECH,Assistant Embroider Technician
+ASST_PAINT_TECH,Assistant Paint Technician
+ASST_STORES_MGR,Assistant Stores Manager
+ASST_UPHOL_TECH,Assistant Upholstery Technician
+ASST_WKSHP_MGR,Assistant Workshop Manager
+ASSOC_SWE,Associate Software Engineer
+AUTO_AC_TECH,Auto AC Technician
+AUTO_ELEC_TECH,Auto Electrical Technician
+CC_ADMIN,Call Center Administrator
+CC_EXEC,Call Center Executive
+CAR_AUDIO_TECH,Car Audio Technician
+CARP,Carpenter
+CARPT_TECH,Carpet Technician
+CHAIRMAN_MD,Chairman / Managing Director
+CEO,Chief Executive Officer
+CONS_OPS,Consultant - Operations
+CONS_SALES_MKT,Consultant - Sales & Marketing
+CRM_MGR,Customer Relationship Manager
+DIG_MKT_OFF,Digital Marketing Officer
+DIR,Director
+DIR_OPS,Director - Operations
+DIR_SALES_MKT,Director - Sales & Marketing
+DRV_ADMIN_ASST,Driver & Administration Assistant
+DRV_INSP_OFF,Driver & Inspection Officer
+EMB_TECH,Embroider Technician
+ER_EXEC,Employee Relations Executive
+FIBER_TECH,Fiber Technician
+HEAD_OF_HR,Head of Human Resources
+HEAD_OF_OPS,Head of Operations
+HEAD_OF_RD,Head of Research and Development
+HK_ASST,Housekeeping Assistant
+HR_OFF,HR Officer
+INTERN,Intern
+JNR_AUTO_ELEC_TECH,Junior Auto Electrical Technician
+JNR_CARP,Junior Carpenter
+JNR_CARPT_TECH,Junior Carpet Technician
+JNR_OEM_TECH,Junior OEM Technician
+JNR_PAINT_TECH,Junior Paint Technician
+JNR_TECH_INT_CLEAN,Junior Technician - Interior cleaner
+JNR_UPHOL_TECH,Junior Upholstery Technician
+JNR_WELD_TECH,Junior Welding Technician
+MAINT_ASST,Maintenance Assistant
+MAINT_OFF,Maintenance Officer
+OEM_TECH,OEM Technician
+PAINT_TECH,Paint Technician
+PROD_COORD,Production Coordinator
+PROD_EXEC,Production Executive
+PROD_MGR,Production Manager
+PROD_SUPV,Production Supervisor
+QA_EXEC,Quality Assurance Executive
+QA_OFF,Quality Assurance Officer
+RD_OFF,R&D Officer
+SALES_AND_SHWRM_MGR,Sales and Showroom Manager
+SALES_EXEC,Sales Executive
+SALES_OFF,Sales Officer
+SEC_OFF,Security officer
+SNR_APPL,Senior Applicator
+SNR_CARP,Senior Carpenter
+SNR_CARPT_TECH,Senior Carpet Technician
+SNR_EMB_TECH,Senior Embroider Technician
+SNR_FIBER_TECH,Senior Fiber Technician
+SNR_HR_EXEC,Senior Human Resources Executive
+SNR_PAINT_TECH,Senior Paint Technician
+SNR_PROD_EXEC,Senior Production Executive
+SNR_SALES_EXEC,Senior Sales Executive
+SNR_UPHOL_TECH,Senior Upholstery Technician
+SNR_WELD_TECH,Senior Welding Technician
+SHWRM_ASST,Showroom Assistant
+STAFF_ASST_QA,Staff Assistant - Quality Assurance
+STEER_TECH,Steering Wheel Technician
+STORES_ASST,Stores Assistant
+STORES_EXEC,Stores Executive
+STORES_OFF,Stores Officer
+SUPV,Supervisor
+TL_AUTO_ELEC,Team Leader - Auto Electrical
+TL_WELD,Team Leader - Welding
+TECH_INT_CLEAN,Technician - Interior Cleaning
+TRN_CARPT_TECH,Trainee - Carpet Technician
+TRN_INT_CLEAN,Trainee - Interior Cleaning
+TRN_OEM_TECH,Trainee - OEM Technician
+TRN_PAINT_TECH,Trainee - Paint Technician
+TRN_UPHOL_TECH,Trainee - Upholstery Technician
+TRN_CARP,Trainee Carpenter
+TRN_CNC_MCH_OPR,Trainee CNC Machine Operator
+UPHOL_TECH,Upholstery Technician
+WELD_TECH,Welding Technician

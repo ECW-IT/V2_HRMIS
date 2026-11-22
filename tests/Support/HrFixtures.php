@@ -22,8 +22,8 @@ use Modules\CoreHr\Models\Person;
 use Modules\CoreHr\Services\EmploymentService;
 use Modules\CoreHr\Services\PersonService;
 use Modules\Organisation\Models\Company;
+use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\Grade;
-use Modules\Organisation\Models\Job;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Payroll\Database\Seeders\PayComponentSeeder;
@@ -75,12 +75,12 @@ trait HrFixtures
         ], $attrs));
     }
 
-    /** @return array{org_unit_id: int, job_id: int, grade_id: int, location_id: int} */
+    /** @return array{org_unit_id: int, designation_id: int, grade_id: int, location_id: int} */
     protected function asg(Company $c, array $overrides = []): array
     {
         return array_merge([
             'org_unit_id' => OrgUnit::factory()->create(['company_id' => $c->id])->id,
-            'job_id' => Job::factory()->create()->id,
+            'designation_id' => Designation::factory()->create()->id,
             'grade_id' => Grade::factory()->create()->id,
             'location_id' => Location::factory()->create()->id,
         ], $overrides);

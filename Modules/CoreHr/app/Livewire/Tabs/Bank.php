@@ -7,6 +7,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\View\View;
 use Livewire\Component;
 use Modules\CoreHr\Livewire\Concerns\LoadsBankOptions;
+use Modules\CoreHr\Livewire\Concerns\RejectsResignedMutations;
 use Modules\CoreHr\Models\EmployeeBankAccount;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Services\BankAccountService;
@@ -14,6 +15,7 @@ use Modules\CoreHr\Services\BankAccountService;
 class Bank extends Component
 {
     use LoadsBankOptions;
+    use RejectsResignedMutations;
 
     public Employment $employment;
 
@@ -43,6 +45,7 @@ class Bank extends Component
     public function openForm(): void
     {
         $this->authorize('employee.bank.manage');
+        $this->ensureNotResigned();
 
         $this->reset(['isCash', 'bankId', 'bankBranchId', 'accountNo', 'message', 'errorMessage']);
         $this->resetErrorBag();
@@ -62,6 +65,7 @@ class Bank extends Component
     public function save(BankAccountService $accounts): void
     {
         $this->authorize('employee.bank.manage');
+        $this->ensureNotResigned();
 
         $this->message = '';
         $this->errorMessage = '';

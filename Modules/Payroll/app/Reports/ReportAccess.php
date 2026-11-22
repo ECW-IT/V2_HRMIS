@@ -59,7 +59,7 @@ final class ReportAccess
     public function okEmployees(PayRun $run, ?int $orgUnitId = null): Collection
     {
         $query = $run->employees()
-            ->with(['lines', 'job'])
+            ->with(['lines', 'designation'])
             ->where('status', PayRunEmployeeStatus::OK)
             ->orderBy('employee_no');
 

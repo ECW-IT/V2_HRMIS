@@ -22,8 +22,8 @@ use Modules\LegacyImport\Models\ImportRun;
 use Modules\LegacyImport\Models\StgEmployee;
 use Modules\LegacyImport\Models\StgIssue;
 use Modules\Organisation\Models\Company;
+use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\Grade;
-use Modules\Organisation\Models\Job;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 use RuntimeException;
@@ -223,13 +223,13 @@ final class Loader
             ->where('company_id', $company->id)
             ->where('code', $orgCode)
             ->firstOrFail();
-        $job = Job::query()->where('code', $jobCode)->firstOrFail();
+        $job = Designation::query()->where('code', $jobCode)->firstOrFail();
         $grade = Grade::query()->where('code', $gradeCode)->firstOrFail();
         $location = Location::query()->where('code', $locationCode)->firstOrFail();
 
         $employment = $this->employments->hire($person, $company, $employmentPayload, [
             'org_unit_id' => $orgUnit->id,
-            'job_id' => $job->id,
+            'designation_id' => $job->id,
             'grade_id' => $grade->id,
             'location_id' => $location->id,
         ]);

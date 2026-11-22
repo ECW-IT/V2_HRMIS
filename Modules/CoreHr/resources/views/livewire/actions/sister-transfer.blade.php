@@ -26,21 +26,22 @@
             <label class="mb-1 block text-xs font-medium text-gray-600">New department / section <span class="text-red-500">*</span></label>
             <select wire:model="orgUnitId" class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('orgUnitId') border-red-400 @enderror">
                 <option value="">— Select —</option>
-                @foreach($orgUnits as $unit)
-                    <option value="{{ $unit['id'] }}">{{ $unit['label'] }}</option>
-                @endforeach
+                <x-org-unit-options :units="$orgUnits" />
             </select>
             @error('orgUnitId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
         </div>
         <div>
             <label class="mb-1 block text-xs font-medium text-gray-600">Designation <span class="text-red-500">*</span></label>
-            <select wire:model="jobId" class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('jobId') border-red-400 @enderror">
-                <option value="">— Select —</option>
-                @foreach($jobs as $job)
-                    <option value="{{ $job->id }}">{{ $job->name }}</option>
-                @endforeach
-            </select>
-            @error('jobId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            <x-searchable-select
+                model="designationId"
+                :value="$designationId"
+                :options="$designations"
+                empty-label="— Select —"
+                aria-label="Designation"
+                search-placeholder="Search designation"
+                :input-class="'w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500'.($errors->has('designationId') ? ' border-red-400' : '')"
+            />
+            @error('designationId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
         </div>
         <div>
             <label class="mb-1 block text-xs font-medium text-gray-600">Grade <span class="text-red-500">*</span></label>
@@ -64,10 +65,10 @@
         </div>
         @if($employment->epf_liable)
             <div>
-                <label class="mb-1 block text-xs font-medium text-gray-600">New EPF no. <span class="text-red-500">*</span></label>
-                <input wire:model="epfNo" type="text" maxlength="20"
-                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('epfNo') border-red-400 @enderror" />
-                @error('epfNo')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                <label class="mb-1 block text-xs font-medium text-gray-600">New EPF no.</label>
+                <input type="text" value="{{ $epfNoPreview }}" readonly
+                    class="w-full rounded border bg-gray-100 px-3 py-1.5 font-mono text-sm focus:outline-none" />
+                <p class="mt-1 text-xs text-gray-500">Assigned automatically in the target company. Cannot be edited.</p>
             </div>
         @endif
     </div>

@@ -3,15 +3,15 @@
 namespace Modules\Organisation\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use Modules\Organisation\Models\Job;
-use Modules\Organisation\Services\JobService;
+use Modules\Organisation\Models\Designation;
+use Modules\Organisation\Services\DesignationService;
 
 /**
- * @extends Factory<Job>
+ * @extends Factory<Designation>
  */
-class JobFactory extends Factory
+class DesignationFactory extends Factory
 {
-    protected $model = Job::class;
+    protected $model = Designation::class;
 
     public function definition(): array
     {
@@ -20,7 +20,7 @@ class JobFactory extends Factory
         return [
             'code' => strtoupper(fake()->unique()->lexify('???')),
             'name' => $name,
-            'name_key' => JobService::nameKey($name),
+            'name_key' => DesignationService::nameKey($name),
             'is_active' => true,
         ];
     }

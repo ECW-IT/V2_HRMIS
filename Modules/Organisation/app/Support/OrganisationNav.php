@@ -25,8 +25,8 @@ final class OrganisationNav
             [
                 'icon' => '💼',
                 'label' => 'Designations',
-                'route' => route('org.jobs.index'),
-                'active' => $active === 'jobs',
+                'route' => route('org.designations.index'),
+                'active' => $active === 'designations',
             ],
             [
                 'icon' => '🏷️',

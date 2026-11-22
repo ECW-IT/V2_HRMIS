@@ -12,6 +12,7 @@ use Modules\Payroll\Enums\LoanStatus;
 use Modules\Payroll\Livewire\AttendanceTiersIndex;
 use Modules\Payroll\Livewire\CompanyPaySettingsIndex;
 use Modules\Payroll\Livewire\CompensationIndex;
+use Modules\Payroll\Livewire\EmployeeCompensationPanel;
 use Modules\Payroll\Livewire\GradePayRulesIndex;
 use Modules\Payroll\Livewire\LoansIndex;
 use Modules\Payroll\Livewire\LoanTypesIndex;
@@ -67,6 +68,7 @@ class PayrollServiceProvider extends ModuleServiceProvider
         Livewire::component('payroll.salary-advances-index', SalaryAdvancesIndex::class);
         Livewire::component('payroll.pay-entries-index', PayEntriesIndex::class);
         Livewire::component('payroll.compensation-index', CompensationIndex::class);
+        Livewire::component('payroll.employee-compensation-panel', EmployeeCompensationPanel::class);
         Livewire::component('payroll.ytd-openings-index', YtdOpeningsIndex::class);
 
         ApprovalService::registerHandler('COMPENSATION_CHANGE', CompensationChangeHandler::class);

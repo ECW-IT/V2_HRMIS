@@ -52,7 +52,7 @@
                                 {{ $row->orgUnit?->name ?? '—' }}
                             @endif
                         </td>
-                        <td class="px-3 py-1.5 text-xs text-gray-600">{{ $row->job?->name ?? '—' }}</td>
+                        <td class="px-3 py-1.5 text-xs text-gray-600">{{ $row->designation?->name ?? '—' }}</td>
                         <td class="px-3 py-1.5 text-xs text-gray-600">{{ $row->grade?->name ?? '—' }}</td>
                         <td class="px-3 py-1.5 text-xs text-gray-600">{{ $row->location?->name ?? '—' }}</td>
                         <td class="px-3 py-1.5 text-xs text-gray-600">{{ $row->manager?->person?->name_with_initials ?? '—' }}</td>

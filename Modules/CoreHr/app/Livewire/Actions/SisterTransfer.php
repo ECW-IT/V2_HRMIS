@@ -10,6 +10,7 @@ use Livewire\Component;
 use Modules\CoreHr\Livewire\Concerns\LoadsAssignmentOptions;
 use Modules\CoreHr\Livewire\Concerns\SubmitsEmploymentRequests;
 use Modules\CoreHr\Models\Employment;
+use Modules\CoreHr\Services\EpfNumberGenerator;
 use Modules\Organisation\Models\Company;
 
 class SisterTransfer extends Component
@@ -25,13 +26,11 @@ class SisterTransfer extends Component
 
     public string|int|null $orgUnitId = null;
 
-    public string|int|null $jobId = null;
+    public string|int|null $designationId = null;
 
     public string|int|null $gradeId = null;
 
     public string|int|null $locationId = null;
-
-    public string $epfNo = '';
 
     public function mount(Employment $employment): void
     {
@@ -59,6 +58,24 @@ class SisterTransfer extends Component
             ->get(['id', 'name']);
     }
 
+    public function epfNoPreview(): string
+    {
+        if (! $this->employment->epf_liable) {
+            return '—';
+        }
+
+        if ($this->targetCompanyId === null || $this->targetCompanyId === '') {
+            return '—';
+        }
+
+        $company = Company::query()->find((int) $this->targetCompanyId);
+        if ($company === null) {
+            return '—';
+        }
+
+        return app(EpfNumberGenerator::class)->peek($company);
+    }
+
     public function save(): void
     {
         $this->authorize('employee.exit');
@@ -69,10 +86,9 @@ class SisterTransfer extends Component
             'targetCompanyId' => ['required', 'integer', 'in:'.implode(',', $targets ?: [0])],
             'lastWorkingDay' => ['required', 'date_format:Y-m-d'],
             'orgUnitId' => ['required', 'integer'],
-            'jobId' => ['required', 'integer'],
+            'designationId' => ['required', 'integer'],
             'gradeId' => ['required', 'integer'],
             'locationId' => ['required', 'integer'],
-            'epfNo' => [$this->employment->epf_liable ? 'required' : 'nullable', 'string', 'max:20'],
         ], [
             'targetCompanyId.in' => 'Choose one of the companies in the list.',
             'targetCompanyId.required' => 'Choose a company.',
@@ -85,11 +101,11 @@ class SisterTransfer extends Component
             'last_day' => $this->lastWorkingDay,
             'assignment' => [
                 'org_unit_id' => (int) $this->orgUnitId,
-                'job_id' => (int) $this->jobId,
+                'designation_id' => (int) $this->designationId,
                 'grade_id' => (int) $this->gradeId,
                 'location_id' => (int) $this->locationId,
             ],
-            'new_employment' => ['epf_no' => $this->epfNo !== '' ? $this->epfNo : null],
+            'new_employment' => [],
             'reason' => 'Transfer to sister company',
         ]);
 
@@ -120,6 +136,7 @@ class SisterTransfer extends Component
         return view('corehr::livewire.actions.sister-transfer', [
             ...$options,
             'companies' => $this->targetCompanies(),
+            'epfNoPreview' => $this->epfNoPreview(),
         ]);
     }
 }

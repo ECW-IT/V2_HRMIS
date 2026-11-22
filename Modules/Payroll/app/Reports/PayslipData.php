@@ -7,7 +7,7 @@ use Modules\CoreHr\Models\Bank;
 use Modules\CoreHr\Models\BankBranch;
 use Modules\CoreHr\Models\Employment;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Job;
+use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Payroll\Enums\ComponentKind;
 use Modules\Payroll\Enums\FundCode;
@@ -101,7 +101,7 @@ final class PayslipData
             'period_label' => sprintf('%04d-%02d', (int) $period->year, (int) $period->month),
             'employee_no' => $e->employee_no,
             'name' => $e->name,
-            'job' => $e->job?->name ?? Job::query()->find($e->job_id)?->name,
+            'job' => $e->designation?->name ?? Designation::query()->find($e->designation_id)?->name,
             'org_unit' => OrgUnit::query()->find($e->org_unit_id)?->name,
             'epf_no' => $e->epf_no,
             'nic' => $employment?->person?->nic,

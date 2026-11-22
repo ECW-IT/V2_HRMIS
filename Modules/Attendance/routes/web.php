@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\Attendance\Livewire\DailyBoard;
+use Modules\Attendance\Livewire\DeviceGroupsIndex;
 use Modules\Attendance\Livewire\DevicesIndex;
 use Modules\Attendance\Livewire\EmployeeTimecards;
 use Modules\Attendance\Livewire\Exceptions;
@@ -41,6 +42,7 @@ Route::middleware(['auth', 'password.changed', 'can:employee.update'])->group(fu
 });
 
 Route::middleware(['auth', 'password.changed', 'can:attendance.device.manage'])->group(function () {
+    Route::get('/attendance/device-groups', DeviceGroupsIndex::class)->name('attendance.device-groups.index');
     Route::get('/attendance/devices', DevicesIndex::class)->name('attendance.devices.index');
     Route::get('/attendance/unresolved', UnresolvedPunches::class)->name('attendance.unresolved.index');
 });

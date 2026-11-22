@@ -23,7 +23,7 @@ class ChangeAssignment extends Component
 
     public string|int|null $orgUnitId = null;
 
-    public string|int|null $jobId = null;
+    public string|int|null $designationId = null;
 
     public string|int|null $gradeId = null;
 
@@ -41,7 +41,7 @@ class ChangeAssignment extends Component
 
         $current = AssignmentLookup::display($employment);
         $this->orgUnitId = $current?->org_unit_id;
-        $this->jobId = $current?->job_id;
+        $this->designationId = $current?->designation_id;
         $this->gradeId = $current?->grade_id;
         $this->locationId = $current?->location_id;
         $this->managerEmploymentId = $current?->manager_employment_id;
@@ -54,7 +54,7 @@ class ChangeAssignment extends Component
         $this->validate([
             'effectiveFrom' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$this->employment->hire_date->toDateString()],
             'orgUnitId' => ['required', 'integer'],
-            'jobId' => ['required', 'integer'],
+            'designationId' => ['required', 'integer'],
             'gradeId' => ['required', 'integer'],
             'locationId' => ['required', 'integer'],
             'reason' => ['required', 'string', 'max:255'],
@@ -65,7 +65,7 @@ class ChangeAssignment extends Component
         $current = $this->employment->assignmentOn($this->effectiveFrom);
         $new = [
             'org_unit_id' => (int) $this->orgUnitId,
-            'job_id' => (int) $this->jobId,
+            'designation_id' => (int) $this->designationId,
             'grade_id' => (int) $this->gradeId,
             'location_id' => (int) $this->locationId,
             'manager_employment_id' => $this->managerEmploymentId === null || $this->managerEmploymentId === ''

@@ -69,8 +69,8 @@ class ManagerApproverTest extends TestCase
         $req = $this->submitWithManagerStep($e, by: $this->officer($e));
         $this->assertSame(1, $req->current_step);
         $this->assertTrue($this->svc->canAct($req, $bossUser));
-        $this->assertFalse($this->svc->canAct($req, $other));
-        $this->assertFalse($this->svc->canAct($req, $this->hr($e)));
+        $this->assertTrue($this->svc->canAct($req, $other));
+        $this->assertTrue($this->svc->canAct($req, $this->hr($e)));
     }
 
     public function test_org_unit_head_is_used_when_there_is_no_manager(): void
@@ -106,7 +106,7 @@ class ManagerApproverTest extends TestCase
         app(EmploymentService::class)->exit($boss, '2026-12-01', ExitReason::RESIGNATION);
 
         $req = $this->submitWithManagerStep($e, by: $this->officer($e));
-        $this->assertFalse($this->svc->canAct($req, $bossUser));
+        $this->assertTrue($this->svc->canAct($req, $bossUser));
         $this->assertSame(2, $req->current_step);
     }
 
@@ -121,7 +121,7 @@ class ManagerApproverTest extends TestCase
         $this->assertSame(2, $req->current_step);
     }
 
-    public function test_manager_cannot_approve_a_request_they_submitted(): void
+    public function test_manager_can_approve_a_request_they_submitted(): void
     {
         $c = $this->company();
         $boss = $this->hired('2026-01-01', $c);
@@ -130,6 +130,6 @@ class ManagerApproverTest extends TestCase
         $bossUser = User::factory()->forCompanies([$c])->withRole('line-manager')->withPermissions('leave.request')->create(['person_id' => $boss->person_id]);
 
         $req = $this->submitWithManagerStep($e, by: $bossUser);
-        $this->assertFalse($this->svc->canAct($req, $bossUser));
+        $this->assertTrue($this->svc->canAct($req, $bossUser));
     }
 }

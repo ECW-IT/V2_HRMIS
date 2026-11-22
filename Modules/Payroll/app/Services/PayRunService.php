@@ -110,7 +110,14 @@ final class PayRunService
             $employer = '0.00';
             $cfOut = '0.00';
 
+            $included = 0;
             foreach ($summaries as $summary) {
+                $employment = Employment::query()->find($summary->employment_id);
+                if ($employment === null || ! $employment->payroll_active) {
+                    continue;
+                }
+
+                $included++;
                 $row = $this->calculateOne($run, $summary, $rules, $components);
                 if ($row->status === PayRunEmployeeStatus::ERROR) {
                     $errorCount++;
@@ -129,7 +136,7 @@ final class PayRunService
             $run->fill([
                 'status' => PayRunStatus::CALCULATED,
                 'time_summary_version' => $version,
-                'employee_count' => $summaries->count(),
+                'employee_count' => $included,
                 'error_count' => $errorCount,
                 'gross_sheet1' => $gross1,
                 'gross_sheet2' => $gross2,
@@ -377,7 +384,7 @@ final class PayRunService
                 'name' => 'Error',
                 'grade_id' => (int) $summary->grade_id,
                 'org_unit_id' => null,
-                'job_id' => null,
+                'designation_id' => null,
                 'employment_type' => 'PERMANENT',
                 'epf_liable' => false,
                 'epf_no' => null,

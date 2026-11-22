@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\CoreHr\Models\Employment;
+use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\Grade;
-use Modules\Organisation\Models\Job;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Payroll\Database\Factories\PayRunEmployeeFactory;
 use Modules\Payroll\Enums\ExtraDayMethod;
@@ -33,7 +33,7 @@ class PayRunEmployee extends Model
         'name',
         'grade_id',
         'org_unit_id',
-        'job_id',
+        'designation_id',
         'employment_type',
         'epf_liable',
         'epf_no',
@@ -110,9 +110,9 @@ class PayRunEmployee extends Model
         return $this->belongsTo(OrgUnit::class);
     }
 
-    public function job(): BelongsTo
+    public function designation(): BelongsTo
     {
-        return $this->belongsTo(Job::class);
+        return $this->belongsTo(Designation::class);
     }
 
     public function lines(): HasMany

@@ -9,8 +9,8 @@ use Modules\CoreHr\Enums\EventType;
 use Modules\CoreHr\Models\Assignment;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Models\EmploymentEvent;
+use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\Grade;
-use Modules\Organisation\Models\Job;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 
@@ -18,7 +18,7 @@ class EmploymentHistory extends Component
 {
     private const FIELD_LABELS = [
         'org_unit_id' => 'Department / section',
-        'job_id' => 'Designation',
+        'designation_id' => 'Designation',
         'grade_id' => 'Grade',
         'location_id' => 'Location',
         'manager_employment_id' => 'Reports to',
@@ -40,7 +40,7 @@ class EmploymentHistory extends Component
             ->get();
 
         $assignments = $this->employment->assignments()
-            ->with(['orgUnit.parent', 'job', 'grade', 'location', 'manager.person'])
+            ->with(['orgUnit.parent', 'designation', 'grade', 'location', 'manager.person'])
             ->orderByDesc('effective_from')
             ->get();
 
@@ -81,7 +81,7 @@ class EmploymentHistory extends Component
 
         return [
             'org_unit_id' => $lookup('org_unit_id', OrgUnit::class),
-            'job_id' => $lookup('job_id', Job::class),
+            'designation_id' => $lookup('designation_id', Designation::class),
             'grade_id' => $lookup('grade_id', Grade::class),
             'location_id' => $lookup('location_id', Location::class),
             'manager_employment_id' => $lookup('manager_employment_id', Employment::class, 'employee_no'),
@@ -170,7 +170,7 @@ class EmploymentHistory extends Component
                 'date' => $a->effective_from->toDateString(),
                 'order' => 0,
                 'title' => 'Assignment',
-                'detail' => trim(($a->job?->name ?? '').' · '.($a->grade?->name ?? '').($a->change_reason ? ', reason: '.$a->change_reason : '')),
+                'detail' => trim(($a->designation?->name ?? '').' · '.($a->grade?->name ?? '').($a->change_reason ? ', reason: '.$a->change_reason : '')),
                 'who' => '—',
                 'request' => null,
             ])

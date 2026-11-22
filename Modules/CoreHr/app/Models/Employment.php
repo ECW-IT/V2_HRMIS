@@ -14,6 +14,7 @@ use Modules\CoreHr\Database\Factories\EmploymentFactory;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Enums\EmploymentType;
 use Modules\CoreHr\Enums\ExitReason;
+use Modules\CoreHr\Exceptions\InvalidEmploymentData;
 use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\StaffWorkCategory;
 
@@ -21,6 +22,15 @@ class Employment extends Model
 {
     /** @use HasFactory<EmploymentFactory> */
     use Auditable, BelongsToCompany, HasFactory;
+
+    protected static function booted(): void
+    {
+        static::updating(function (self $employment): void {
+            if ($employment->isDirty(['employee_no', 'epf_no'])) {
+                throw new InvalidEmploymentData('Employee number and EPF number cannot be changed.');
+            }
+        });
+    }
 
     protected $fillable = [
         'person_id',
@@ -34,6 +44,13 @@ class Employment extends Model
         'confirmed_on',
         'epf_liable',
         'epf_no',
+        'hrmis_active',
+        'attendance_active',
+        'payroll_active',
+        'hostel_available',
+        'food_breakfast',
+        'food_lunch',
+        'food_dinner',
         'exit_date',
         'exit_reason',
         'exit_remarks',
@@ -53,6 +70,13 @@ class Employment extends Model
             'confirmed_on' => 'date',
             'exit_date' => 'date',
             'epf_liable' => 'boolean',
+            'hrmis_active' => 'boolean',
+            'attendance_active' => 'boolean',
+            'payroll_active' => 'boolean',
+            'hostel_available' => 'boolean',
+            'food_breakfast' => 'boolean',
+            'food_lunch' => 'boolean',
+            'food_dinner' => 'boolean',
         ];
     }
 
@@ -109,6 +133,11 @@ class Employment extends Model
     public function isActive(): bool
     {
         return $this->status === EmploymentStatus::ACTIVE;
+    }
+
+    public function isResigned(): bool
+    {
+        return ! (bool) $this->hrmis_active;
     }
 
     protected static function newFactory(): EmploymentFactory

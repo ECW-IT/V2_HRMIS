@@ -6,11 +6,11 @@ use App\Exceptions\Domain\DomainException;
 use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 use Livewire\Component;
-use Modules\Organisation\Models\Job;
-use Modules\Organisation\Services\JobService;
+use Modules\Organisation\Models\Designation;
+use Modules\Organisation\Services\DesignationService;
 use Modules\Organisation\Support\OrganisationNav;
 
-class JobsIndex extends Component
+class DesignationsIndex extends Component
 {
     public string $search = '';
 
@@ -31,13 +31,13 @@ class JobsIndex extends Component
         $this->showForm = true;
     }
 
-    public function openEdit(int $jobId): void
+    public function openEdit(int $designationId): void
     {
         $this->authorize('org.manage');
-        $job = Job::query()->findOrFail($jobId);
-        $this->editingId = $job->id;
-        $this->code = $job->code;
-        $this->name = $job->name;
+        $designation = Designation::query()->findOrFail($designationId);
+        $this->editingId = $designation->id;
+        $this->code = $designation->code;
+        $this->name = $designation->name;
         $this->showForm = true;
     }
 
@@ -49,21 +49,21 @@ class JobsIndex extends Component
         $this->name = '';
     }
 
-    public function save(JobService $jobs): void
+    public function save(DesignationService $designations): void
     {
         $this->authorize('org.manage');
 
         $validated = $this->validate([
-            'code' => ['required', 'string', 'max:20', Rule::unique('hr_jobs', 'code')->ignore($this->editingId)],
+            'code' => ['required', 'string', 'max:20', Rule::unique('designations', 'code')->ignore($this->editingId)],
             'name' => ['required', 'string', 'max:150'],
         ]);
 
         try {
             if ($this->editingId === null) {
-                $jobs->create($validated);
+                $designations->create($validated);
             } else {
-                $job = Job::query()->findOrFail($this->editingId);
-                $jobs->update($job, $validated);
+                $designation = Designation::query()->findOrFail($this->editingId);
+                $designations->update($designation, $validated);
             }
         } catch (DomainException $e) {
             $this->addError('name', $e->getMessage());
@@ -74,18 +74,18 @@ class JobsIndex extends Component
         $this->closeForm();
     }
 
-    public function toggleActive(int $jobId): void
+    public function toggleActive(int $designationId): void
     {
         $this->authorize('org.manage');
-        $job = Job::query()->findOrFail($jobId);
-        $job->update(['is_active' => ! $job->is_active]);
+        $designation = Designation::query()->findOrFail($designationId);
+        $designation->update(['is_active' => ! $designation->is_active]);
     }
 
     public function render(): View
     {
         $this->authorize('org.view');
 
-        $rows = Job::query()
+        $rows = Designation::query()
             ->when($this->search !== '', function ($query) {
                 $query->where(function ($inner) {
                     $inner->where('code', 'like', '%'.$this->search.'%')
@@ -95,12 +95,12 @@ class JobsIndex extends Component
             ->orderBy('code')
             ->get();
 
-        return view('organisation::livewire.jobs-index', [
-            'jobs' => $rows,
+        return view('organisation::livewire.designations-index', [
+            'designations' => $rows,
         ])->layout('components.layouts.module', [
             'moduleName' => 'Organisation',
             'title' => 'Designations',
-            'moduleNav' => OrganisationNav::items('jobs'),
+            'moduleNav' => OrganisationNav::items('designations'),
         ]);
     }
 }

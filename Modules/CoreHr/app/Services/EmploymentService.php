@@ -22,8 +22,8 @@ use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Models\EmploymentEvent;
 use Modules\CoreHr\Models\Person;
 use Modules\Organisation\Models\Company;
+use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\Grade;
-use Modules\Organisation\Models\Job;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 
@@ -36,7 +36,7 @@ final class EmploymentService
     ) {}
 
     /** $employment keys: type, hire_date, epf_liable?, epf_no?, legacy_employee_no?, employee_no? (import only), employee_category_id?, staff_work_category_id?.
-     *  $assignment keys: org_unit_id, job_id, grade_id, location_id, manager_employment_id? */
+     *  $assignment keys: org_unit_id, designation_id, grade_id, location_id, manager_employment_id? */
     public function hire(Person $person, Company $company, array $employment, array $assignment): Employment
     {
         return $this->createEmployment($person, $company, $employment, $assignment, EventType::HIRE, null);
@@ -102,12 +102,12 @@ final class EmploymentService
             throw new OutsideEmploymentPeriod('No assignment exists on this date.');
         }
 
-        $keys = ['org_unit_id', 'job_id', 'grade_id', 'location_id', 'manager_employment_id'];
+        $keys = ['org_unit_id', 'designation_id', 'grade_id', 'location_id', 'manager_employment_id'];
         $fromValues = [];
         $toValues = [];
         $merged = [
             'org_unit_id' => $current->org_unit_id,
-            'job_id' => $current->job_id,
+            'designation_id' => $current->designation_id,
             'grade_id' => $current->grade_id,
             'location_id' => $current->location_id,
             'manager_employment_id' => $current->manager_employment_id,
@@ -137,7 +137,7 @@ final class EmploymentService
                 'employment_id' => $e->id,
                 'effective_from' => $fromDate,
                 'org_unit_id' => $merged['org_unit_id'],
-                'job_id' => $merged['job_id'],
+                'designation_id' => $merged['designation_id'],
                 'grade_id' => $merged['grade_id'],
                 'location_id' => $merged['location_id'],
                 'manager_employment_id' => $merged['manager_employment_id'],
@@ -189,6 +189,55 @@ final class EmploymentService
         });
     }
 
+    /** $data keys: type, employee_category_id? (null clears the category). */
+    public function updateClassification(Employment $e, array $data): Employment
+    {
+        $type = $data['type'] instanceof EmploymentType
+            ? $data['type']
+            : EmploymentType::from((string) $data['type']);
+
+        $categoryId = array_key_exists('employee_category_id', $data)
+            ? ($data['employee_category_id'] !== null && $data['employee_category_id'] !== ''
+                ? (int) $data['employee_category_id']
+                : null)
+            : $e->employee_category_id;
+
+        return DB::transaction(function () use ($e, $type, $categoryId) {
+            $e->update([
+                'type' => $type,
+                'employee_category_id' => $categoryId,
+            ]);
+
+            return $e->fresh(['employeeCategory']);
+        });
+    }
+
+    /** @param  array{hrmis_active?: bool, attendance_active?: bool, payroll_active?: bool}  $flags */
+    public function updateModuleFlags(Employment $e, array $flags, \DateTimeInterface|string|null $on = null): Employment
+    {
+        return DB::transaction(function () use ($e, $flags, $on) {
+            $wasAttendanceActive = (bool) $e->attendance_active;
+            $hrmis = array_key_exists('hrmis_active', $flags) ? (bool) $flags['hrmis_active'] : (bool) $e->hrmis_active;
+            $attendance = array_key_exists('attendance_active', $flags) ? (bool) $flags['attendance_active'] : (bool) $e->attendance_active;
+            $payroll = array_key_exists('payroll_active', $flags) ? (bool) $flags['payroll_active'] : (bool) $e->payroll_active;
+
+            $e->update([
+                'hrmis_active' => $hrmis,
+                'attendance_active' => $attendance,
+                'payroll_active' => $payroll,
+            ]);
+
+            if ($wasAttendanceActive && ! $attendance) {
+                $onDate = $on === null
+                    ? CarbonImmutable::now(config('app.timezone'))->toDateString()
+                    : $this->dateString($on);
+                $this->enrolments->endAllFor($e, $onDate);
+            }
+
+            return $e->fresh();
+        });
+    }
+
     public function exit(Employment $e, \DateTimeInterface|string $on, ExitReason $reason, ?string $remarks = null): Employment
     {
         if ($e->status === EmploymentStatus::EXITED) {
@@ -211,6 +260,7 @@ final class EmploymentService
                 'exit_date' => $onDate,
                 'exit_reason' => $reason,
                 'exit_remarks' => $remarks,
+                'hrmis_active' => false,
             ]);
 
             EffectiveDating::close(Assignment::class, $e->id, $onDate);
@@ -396,6 +446,13 @@ final class EmploymentService
                     'confirmed_on' => $employment['confirmed_on'] ?? null,
                     'epf_liable' => $epfLiable,
                     'epf_no' => $epfNo,
+                    'hrmis_active' => (bool) ($employment['hrmis_active'] ?? true),
+                    'attendance_active' => (bool) ($employment['attendance_active'] ?? true),
+                    'payroll_active' => (bool) ($employment['payroll_active'] ?? true),
+                    'hostel_available' => (bool) ($employment['hostel_available'] ?? false),
+                    'food_breakfast' => (bool) ($employment['food_breakfast'] ?? false),
+                    'food_lunch' => (bool) ($employment['food_lunch'] ?? false),
+                    'food_dinner' => (bool) ($employment['food_dinner'] ?? false),
                     'previous_employment_id' => $previousEmploymentId,
                     'employee_category_id' => $employment['employee_category_id'] ?? null,
                     'staff_work_category_id' => $employment['staff_work_category_id'] ?? null,
@@ -412,7 +469,7 @@ final class EmploymentService
                 'employment_id' => $record->id,
                 'effective_from' => $hireDate,
                 'org_unit_id' => $assignment['org_unit_id'],
-                'job_id' => $assignment['job_id'],
+                'designation_id' => $assignment['designation_id'],
                 'grade_id' => $assignment['grade_id'],
                 'location_id' => $assignment['location_id'],
                 'manager_employment_id' => $assignment['manager_employment_id'] ?? null,
@@ -433,7 +490,7 @@ final class EmploymentService
             throw new InvalidEmploymentData('Organisation unit is invalid for this company.');
         }
 
-        $job = Job::query()->find($assignment['job_id'] ?? null);
+        $job = Designation::query()->find($assignment['designation_id'] ?? null);
         if ($job === null || ! $job->is_active) {
             throw new InvalidEmploymentData('Job is invalid.');
         }

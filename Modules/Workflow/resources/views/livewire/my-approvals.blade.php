@@ -66,7 +66,7 @@
 
     @if ($selected)
         <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-            <div class="w-full max-w-2xl rounded-lg bg-white p-4 shadow-xl">
+            <div class="w-full max-w-3xl rounded-lg bg-white p-4 shadow-xl">
                 <h2 class="text-base font-semibold text-slate-800">Request #{{ $selected->id }} — {{ $selected->definition->name }}</h2>
                 <p class="mt-1 text-sm text-slate-500">
                     {{ $selected->company?->name }} · by {{ $selected->requester?->name }}
@@ -85,14 +85,17 @@
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach (($selected->payload ?? []) as $key => $value)
-                                    @php($changed = ($currentValues[$key] ?? null) != $value)
-                                    <tr @class(['border-t', 'bg-amber-50' => $changed])>
-                                        <td class="px-3 py-2 font-medium">{{ $key }}</td>
-                                        <td class="px-3 py-2">{{ $currentValues[$key] ?? '—' }}</td>
-                                        <td class="px-3 py-2">{{ is_scalar($value) || $value === null ? $value : json_encode($value) }}</td>
+                                @forelse ($reviewRows as $row)
+                                    <tr @class(['border-t', 'bg-amber-50' => $row['changed']])>
+                                        <td class="px-3 py-2 font-medium">{{ $row['field'] }}</td>
+                                        <td class="px-3 py-2 break-words">{{ $row['current'] }}</td>
+                                        <td class="px-3 py-2 break-words">{{ $row['requested'] }}</td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="px-3 py-4 text-center text-slate-500">No change details.</td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     @endif

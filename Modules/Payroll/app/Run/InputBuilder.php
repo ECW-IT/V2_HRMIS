@@ -106,7 +106,7 @@ final class InputBuilder
             'name' => mb_substr($name, 0, 150),
             'grade_id' => (int) $s->grade_id,
             'org_unit_id' => $assignment?->org_unit_id,
-            'job_id' => $assignment?->job_id,
+            'designation_id' => $assignment?->designation_id,
             'employment_type' => $employment->type instanceof \BackedEnum ? $employment->type->value : (string) $employment->type,
             'epf_liable' => (bool) $employment->epf_liable,
             'epf_no' => $employment->epf_no,

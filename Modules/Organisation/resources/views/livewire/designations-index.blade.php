@@ -17,33 +17,31 @@
         <table class="min-w-full text-left text-sm">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
-                    {{-- <th class="px-3 py-2">Code</th> --}}
                     <th class="px-3 py-2">Name</th>
                     <th class="px-3 py-2">Status</th>
                     <th class="px-3 py-2"></th>
                 </tr>
             </thead>
             <tbody>
-                @forelse ($jobs as $job)
+                @forelse ($designations as $designation)
                     <tr class="border-t">
-                        {{-- <td class="px-3 py-2 font-medium">{{ $job->code }}</td> --}}
-                        <td class="px-3 py-2">{{ $job->name }}</td>
-                        <td class="px-3 py-2">{{ $job->is_active ? 'Active' : 'Inactive' }}</td>
+                        <td class="px-3 py-2">{{ $designation->name }}</td>
+                        <td class="px-3 py-2">{{ $designation->is_active ? 'Active' : 'Inactive' }}</td>
                         <td class="px-3 py-2 text-right whitespace-nowrap">
                             @can('org.manage')
                                 <div class="inline-flex items-center gap-1.5">
-                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $job->id }})" />
-                                    @if ($job->is_active)
-                                        <x-action-icon-button variant="deactivate" wire:click="toggleActive({{ $job->id }})" />
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $designation->id }})" />
+                                    @if ($designation->is_active)
+                                        <x-action-icon-button variant="deactivate" wire:click="toggleActive({{ $designation->id }})" />
                                     @else
-                                        <x-action-icon-button variant="activate" wire:click="toggleActive({{ $job->id }})" />
+                                        <x-action-icon-button variant="activate" wire:click="toggleActive({{ $designation->id }})" />
                                     @endif
                                 </div>
                             @endcan
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="4" class="px-3 py-6 text-center text-slate-500">No designations found.</td></tr>
+                    <tr><td colspan="3" class="px-3 py-6 text-center text-slate-500">No designations found.</td></tr>
                 @endforelse
             </tbody>
         </table>

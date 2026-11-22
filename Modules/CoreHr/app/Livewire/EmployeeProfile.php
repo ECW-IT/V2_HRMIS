@@ -56,6 +56,13 @@ class EmployeeProfile extends Component
         $this->action = null;
     }
 
+    #[On('open-exit-action')]
+    public function openExitFromModuleFlags(): void
+    {
+        $this->openAction('exit');
+        $this->flash = 'Complete the exit form to deactivate HRMIS.';
+    }
+
     #[On('employment-updated')]
     public function afterAction(string $message = ''): void
     {

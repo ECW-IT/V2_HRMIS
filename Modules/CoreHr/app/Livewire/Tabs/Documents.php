@@ -7,6 +7,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\View\View;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Modules\CoreHr\Livewire\Concerns\RejectsResignedMutations;
 use Modules\CoreHr\Models\DocumentType;
 use Modules\CoreHr\Models\EmployeeDocument;
 use Modules\CoreHr\Models\Employment;
@@ -14,6 +15,7 @@ use Modules\CoreHr\Services\DocumentService;
 
 class Documents extends Component
 {
+    use RejectsResignedMutations;
     use WithFileUploads;
 
     public Employment $employment;
@@ -42,6 +44,7 @@ class Documents extends Component
     public function openUpload(): void
     {
         $this->authorize('employee.document.manage');
+        $this->ensureNotResigned();
 
         $this->reset(['file', 'documentTypeId', 'issuedOn', 'expiresOn', 'remarks', 'message', 'errorMessage']);
         $this->resetErrorBag();
@@ -56,6 +59,7 @@ class Documents extends Component
     public function upload(DocumentService $documents): void
     {
         $this->authorize('employee.document.manage');
+        $this->ensureNotResigned();
 
         $this->message = '';
         $this->errorMessage = '';
@@ -90,6 +94,7 @@ class Documents extends Component
     public function archive(int $documentId, DocumentService $documents): void
     {
         $this->authorize('employee.document.manage');
+        $this->ensureNotResigned();
 
         $document = EmployeeDocument::query()
             ->where('person_id', $this->employment->person_id)

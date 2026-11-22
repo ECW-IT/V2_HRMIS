@@ -18,8 +18,8 @@ use Modules\LegacyImport\Exports\LegacySyncExport;
 use Modules\LegacyImport\Models\LegacySyncRun;
 use Modules\Organisation\Enums\OrgUnitType;
 use Modules\Organisation\Models\Company;
+use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\Grade;
-use Modules\Organisation\Models\Job;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 
@@ -46,7 +46,7 @@ final class LegacySyncExporter
 
     private const FIELD_LABELS = [
         'org_unit_id' => 'Department / section',
-        'job_id' => 'Job',
+        'designation_id' => 'Job',
         'grade_id' => 'Grade',
         'location_id' => 'Location',
         'manager_employment_id' => 'Reports to',
@@ -156,7 +156,7 @@ final class LegacySyncExporter
         $e = $event->employment;
         $person = $e->person;
         $assignment = $e->assignmentOn($e->hire_date) ?? $e->currentAssignment();
-        $assignment?->loadMissing(['orgUnit.parent', 'job', 'grade']);
+        $assignment?->loadMissing(['orgUnit.parent', 'designation', 'grade']);
         $orgUnit = $assignment?->orgUnit;
         [$department, $section] = $this->departmentSection($orgUnit);
 
@@ -195,7 +195,7 @@ final class LegacySyncExporter
             'Type' => $e->type->value,
             'Department' => $department,
             'Section' => $section,
-            'Job' => $assignment?->job?->name ?? '',
+            'Job' => $assignment?->designation?->name ?? '',
             'Grade' => $assignment?->grade?->name ?? '',
             'EPF no.' => $e->epf_no ?? '',
             'Bank' => $bank?->bank?->name ?? '',
@@ -338,7 +338,7 @@ final class LegacySyncExporter
 
         return match ($field) {
             'org_unit_id' => (string) (OrgUnit::query()->find($id)?->name ?? $id),
-            'job_id' => (string) (Job::query()->find($id)?->name ?? $id),
+            'designation_id' => (string) (Designation::query()->find($id)?->name ?? $id),
             'grade_id' => (string) (Grade::query()->find($id)?->name ?? $id),
             'location_id' => (string) (Location::query()->find($id)?->name ?? $id),
             'manager_employment_id' => (string) (DB::table('employments')->where('id', $id)->value('employee_no') ?? $id),

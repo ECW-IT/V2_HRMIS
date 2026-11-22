@@ -15,14 +15,14 @@ class ApprovalDefinitionSeeder extends Seeder
                 'code' => 'EMPLOYEE_CHANGE',
                 'name' => 'Employee data change',
                 'steps' => [
-                    ['sequence' => 1, 'approver_type' => ApproverType::ROLE, 'approver_ref' => 'hr-manager'],
+                    ['sequence' => 1, 'approver_type' => ApproverType::PERMISSION, 'approver_ref' => 'approval.act'],
                 ],
             ],
             [
                 'code' => 'EMPLOYEE_EXIT',
                 'name' => 'Employee exit or transfer',
                 'steps' => [
-                    ['sequence' => 1, 'approver_type' => ApproverType::ROLE, 'approver_ref' => 'hr-manager'],
+                    ['sequence' => 1, 'approver_type' => ApproverType::PERMISSION, 'approver_ref' => 'approval.act'],
                 ],
             ],
             [

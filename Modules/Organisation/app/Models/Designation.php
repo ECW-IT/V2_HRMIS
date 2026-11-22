@@ -5,14 +5,14 @@ namespace Modules\Organisation\Models;
 use App\Support\Audit\Auditable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Modules\Organisation\Database\Factories\JobFactory;
+use Modules\Organisation\Database\Factories\DesignationFactory;
 
-class Job extends Model
+class Designation extends Model
 {
-    /** @use HasFactory<JobFactory> */
+    /** @use HasFactory<DesignationFactory> */
     use Auditable, HasFactory;
 
-    protected $table = 'hr_jobs';
+    protected $table = 'designations';
 
     protected $fillable = [
         'code',
@@ -28,8 +28,8 @@ class Job extends Model
         ];
     }
 
-    protected static function newFactory(): JobFactory
+    protected static function newFactory(): DesignationFactory
     {
-        return JobFactory::new();
+        return DesignationFactory::new();
     }
 }

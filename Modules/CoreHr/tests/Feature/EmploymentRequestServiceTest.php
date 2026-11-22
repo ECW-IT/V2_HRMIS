@@ -42,13 +42,17 @@ class EmploymentRequestServiceTest extends TestCase
         return $factory->create(['must_change_password' => false]);
     }
 
-    public function test_hr_manager_change_is_applied_directly(): void
+    public function test_hr_manager_change_creates_a_pending_request(): void
     {
         $e = $this->hired('2026-06-01');
+        $g1 = $e->currentAssignment()->grade_id;
         $g2 = Grade::factory()->create()->id;
         $res = $this->req->request($this->user('hr-manager', $e), 'CHANGE_ASSIGNMENT', $e, ['from' => '2026-09-01', 'changes' => ['grade_id' => $g2], 'reason' => 'Promotion']);
-        $this->assertNull($res);
-        $this->assertSame($g2, $e->assignmentOn('2026-09-01')->grade_id);
+
+        $this->assertSame(ApprovalStatus::PENDING, $res->status);
+        $this->assertSame('EMPLOYEE_CHANGE', $res->definition->code);
+        $this->assertSame(1, $e->assignments()->count());
+        $this->assertSame($g1, $e->assignmentOn('2026-09-01')->grade_id);
     }
 
     public function test_hr_officer_change_creates_a_pending_request_and_changes_nothing(): void

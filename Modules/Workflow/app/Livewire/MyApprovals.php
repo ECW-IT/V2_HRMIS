@@ -6,6 +6,7 @@ use Illuminate\View\View;
 use Livewire\Component;
 use Modules\Workflow\Models\ApprovalRequest;
 use Modules\Workflow\Services\ApprovalService;
+use Modules\Workflow\Support\ApprovalReviewPresenter;
 
 class MyApprovals extends Component
 {
@@ -76,21 +77,15 @@ class MyApprovals extends Component
             && $selected->definition?->code === 'COMPENSATION_CHANGE'
             && ! $user->can('compensation.view');
 
-        $current = [];
-        if ($selected !== null && ! $hideCompensationPayload && $selected->subject_type && $selected->subject_id) {
-            $subject = $selected->subject_type::query()->find($selected->subject_id);
-            if ($subject !== null) {
-                foreach (array_keys($selected->payload ?? []) as $key) {
-                    $current[$key] = $subject->getAttribute($key);
-                }
-            }
-        }
+        $reviewRows = ($selected !== null && ! $hideCompensationPayload)
+            ? ApprovalReviewPresenter::rows($selected)
+            : [];
 
         return view('workflow::livewire.my-approvals', [
             'waiting' => $waiting,
             'mine' => $mine,
             'selected' => $selected,
-            'currentValues' => $current,
+            'reviewRows' => $reviewRows,
             'hideCompensationPayload' => $hideCompensationPayload,
         ])->layout('components.layouts.app', [
             'title' => 'My approvals',

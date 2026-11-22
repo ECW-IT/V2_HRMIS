@@ -141,8 +141,8 @@ Source list for import: [`docs/mapping/org_units.csv`](mapping/org_units.csv) (`
 
 Model helpers: `sections()`, `subSections()`, `department()`, scopes `departments()` / `sections()` / `subSections()`.
 
-### `hr_jobs`
-UI label: **Designations** (nav and screens). Table/model stay `hr_jobs` / `Job`; assignments use `job_id`.
+### `designations`
+UI label: **Designations** (nav and screens). Model `Designation`; assignments and pay-run lines use `designation_id`. (Laravel's queue table remains `jobs`.)
 
 | Field | Notes |
 |-------|-------|
@@ -328,7 +328,7 @@ UI label: **Designations** (nav and screens). Table/model stay `hr_jobs` / `Job`
 | employment_id | FK → `employments.id` (restrict) |
 | effective_from, effective_to | unique `(employment_id, effective_from)` |
 | org_unit_id | FK → `org_units.id` (restrict) |
-| job_id | FK → `hr_jobs.id` (restrict) |
+| designation_id | FK → `designations.id` (restrict) |
 | grade_id | FK → `grades.id` (restrict) |
 | location_id | FK → `locations.id` (restrict) |
 | manager_employment_id | FK → `employments.id` (restrict) |
@@ -757,7 +757,7 @@ UI label: **Designations** (nav and screens). Table/model stay `hr_jobs` / `Job`
 | employments.staff_work_category_id | staff_work_categories.id | restrict |
 | assignments.employment_id | employments.id | restrict |
 | assignments.org_unit_id | org_units.id | restrict |
-| assignments.job_id | hr_jobs.id | restrict |
+| assignments.designation_id | designations.id | restrict |
 | assignments.grade_id | grades.id | restrict |
 | assignments.location_id | locations.id | restrict |
 | assignments.manager_employment_id | employments.id | restrict |

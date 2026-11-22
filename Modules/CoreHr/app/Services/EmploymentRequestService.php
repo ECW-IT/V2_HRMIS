@@ -3,7 +3,6 @@
 namespace Modules\CoreHr\Services;
 
 use App\Models\User;
-use App\Support\Audit\AuditLogger;
 use Illuminate\Auth\Access\AuthorizationException;
 use Modules\CoreHr\Enums\ExitReason;
 use Modules\CoreHr\Models\Employment;
@@ -12,7 +11,7 @@ use Modules\Workflow\Enums\ApprovalActionType;
 use Modules\Workflow\Models\ApprovalRequest;
 use Modules\Workflow\Services\ApprovalService;
 
-/** Decides between applying directly and submitting for approval. */
+/** Submits employment changes for approval. */
 final class EmploymentRequestService
 {
     public function __construct(
@@ -22,8 +21,8 @@ final class EmploymentRequestService
     ) {}
 
     /** $operation: 'CONFIRM' | 'CHANGE_ASSIGNMENT' | 'UPDATE_PERSON' | 'SUSPEND' | 'REINSTATE' | 'EXIT' | 'SISTER_TRANSFER'.
-     *  Returns the ApprovalRequest when submitted, or null when applied directly. */
-    public function request(User $by, string $operation, Employment $e, array $data): ?ApprovalRequest
+     *  Always returns the pending ApprovalRequest. */
+    public function request(User $by, string $operation, Employment $e, array $data): ApprovalRequest
     {
         $permission = in_array($operation, ['EXIT', 'SISTER_TRANSFER', 'SUSPEND', 'REINSTATE'], true)
             ? 'employee.exit'
@@ -31,14 +30,6 @@ final class EmploymentRequestService
 
         if (! $by->can($permission)) {
             throw new AuthorizationException('This action is unauthorized.');
-        }
-
-        if ($by->can('employee.apply-directly')) {
-            AuditLogger::withReason($data['reason'] ?? $operation, function () use ($operation, $e, $data) {
-                $this->apply($operation, $e, $data);
-            });
-
-            return null;
         }
 
         $definition = in_array($operation, ['EXIT', 'SISTER_TRANSFER'], true)

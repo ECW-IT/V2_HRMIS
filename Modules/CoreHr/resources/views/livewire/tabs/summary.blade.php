@@ -63,6 +63,30 @@
                     Not liable
                 @endif
             </dd>
+            <dt class="text-xs text-gray-500">Module flags</dt>
+            <dd class="col-span-2 text-gray-700">
+                @can('employee.update')
+                    <div class="flex flex-wrap items-center gap-3">
+                        <label class="flex items-center gap-1.5 text-sm">
+                            <input type="checkbox" wire:model.live="hrmisActive" class="rounded border" @disabled($employment->isResigned()) /> HRMIS active
+                        </label>
+                        <label class="flex items-center gap-1.5 text-sm">
+                            <input type="checkbox" wire:model="attendanceActive" class="rounded border" @disabled($employment->isResigned()) /> Attendance active
+                        </label>
+                        <label class="flex items-center gap-1.5 text-sm">
+                            <input type="checkbox" wire:model="payrollActive" class="rounded border" /> Payroll active
+                        </label>
+                        <button type="button" wire:click="saveModuleFlags" class="text-xs text-[var(--color-erp-accent)] hover:underline">Save</button>
+                    </div>
+                    @if ($moduleFlagsMessage !== '')
+                        <p class="mt-1 text-xs text-emerald-600">{{ $moduleFlagsMessage }}</p>
+                    @endif
+                @else
+                    HRMIS {{ $employment->hrmis_active ? 'on' : 'off' }}
+                    · Attendance {{ $employment->attendance_active ? 'on' : 'off' }}
+                    · Payroll {{ $employment->payroll_active ? 'on' : 'off' }}
+                @endcan
+            </dd>
             <dt class="text-xs text-gray-500">Grade</dt>
             <dd class="col-span-2 text-gray-700">{{ $assignment?->grade?->name ?? '—' }}</dd>
             <dt class="text-xs text-gray-500">Location</dt>

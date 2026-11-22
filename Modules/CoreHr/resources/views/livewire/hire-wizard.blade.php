@@ -1,10 +1,10 @@
 @php
     $input = 'w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500';
-    $steps = [1 => 'Who', 2 => 'Personal details', 3 => 'Employment', 4 => 'Pay and bank', 5 => 'Review'];
+    $steps = [1 => 'Identity', 2 => 'Personal details', 3 => 'Employment', 4 => 'Pay and bank', 5 => 'Review'];
 @endphp
 
 <div class="mx-auto max-w-4xl">
-    <h2 class="mb-4 text-lg font-semibold text-gray-800">Hire employee</h2>
+    <h2 class="mb-4 text-lg font-semibold text-gray-800">Add employee</h2>
 
     <ol class="mb-6 flex flex-wrap gap-2 text-xs">
         @foreach($steps as $number => $label)
@@ -17,7 +17,7 @@
     <div class="rounded border bg-white p-5 shadow-sm">
         {{-- Step 1 --}}
         @if($step === 1)
-            <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Who is joining?</h3>
+            <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Identity</h3>
 
             @error('companyId')
                 <div class="mb-4 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900">{{ $message }}</div>
@@ -150,7 +150,7 @@
                     @error('region')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Arrive work from <span class="text-red-500">*</span></label>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Arrive from <span class="text-red-500">*</span></label>
                     <select wire:model="arriveWorkFrom" class="{{ $input }} @error('arriveWorkFrom') border-red-400 @enderror">
                         <option value="">Select</option>
                         @foreach($arriveWorkFromOptions as $option)
@@ -166,17 +166,17 @@
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Mobile <span class="text-red-500">*</span></label>
-                    <input wire:model="mobile" type="text" maxlength="20" class="{{ $input }} @error('mobile') border-red-400 @enderror" />
+                    <input wire:model="mobile" type="text" maxlength="10" class="{{ $input }} @error('mobile') border-red-400 @enderror" />
                     @error('mobile')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Landline no.</label>
-                    <input wire:model="landlineNo" type="text" maxlength="20" class="{{ $input }} @error('landlineNo') border-red-400 @enderror" />
+                    <input wire:model="landlineNo" type="text" maxlength="10" class="{{ $input }} @error('landlineNo') border-red-400 @enderror" />
                     @error('landlineNo')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Office no.</label>
-                    <input wire:model="officeNo" type="text" maxlength="20" class="{{ $input }} @error('officeNo') border-red-400 @enderror" />
+                    <input wire:model="officeNo" type="text" maxlength="10" class="{{ $input }} @error('officeNo') border-red-400 @enderror" />
                     @error('officeNo')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
@@ -264,7 +264,7 @@
                         <div class="flex gap-2">
                             <div class="min-w-0 flex-1">
                                 <label class="mb-1 block text-xs font-medium text-gray-600">Phone @if($index === 0)<span class="text-red-500">*</span>@endif</label>
-                                <input wire:model="emergencyContacts.{{ $index }}.phone" type="text" maxlength="20" class="{{ $input }} @error('emergencyContacts.'.$index.'.phone') border-red-400 @enderror" />
+                                <input wire:model="emergencyContacts.{{ $index }}.phone" type="text" maxlength="10" class="{{ $input }} @error('emergencyContacts.'.$index.'.phone') border-red-400 @enderror" />
                                 @error('emergencyContacts.'.$index.'.phone')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                             </div>
                             @if(count($emergencyContacts) > 1)
@@ -310,13 +310,24 @@
                         @error('confirmationDueDate')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                     </div>
                 @endif
-                @if($type !== 'INTERN')
-                    <div>
-                        <label class="mb-1 block text-xs font-medium text-gray-600">EPF no.</label>
-                        <input type="text" value="{{ $epfNoPreview }}" readonly class="{{ $input }} bg-gray-100 font-mono" />
-                        <p class="mt-1 text-xs text-gray-500">Issued when you save.</p>
-                    </div>
-                @endif
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">EPF no.</label>
+                    <input type="text" value="{{ $epfNoPreview }}" readonly class="{{ $input }} bg-gray-100 font-mono" />
+                    <p class="mt-1 text-xs text-gray-500">
+                        {{ $isInternForEpf ? 'Not issued for intern.' : 'Issued when you save.' }}
+                    </p>
+                </div>
+                <div class="md:col-span-3 flex flex-wrap gap-4">
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input wire:model.live="hrmisActive" type="checkbox" class="rounded border" /> HRMIS active
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input wire:model.live="attendanceActive" type="checkbox" class="rounded border" /> Attendance active
+                    </label>
+                    <label class="flex items-center gap-2 text-sm text-gray-700">
+                        <input wire:model.live="payrollActive" type="checkbox" class="rounded border" /> Payroll active
+                    </label>
+                </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">
                         Employee category <span class="text-red-500">*</span>
@@ -340,24 +351,52 @@
                     @error('staffWorkCategoryId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Department / section <span class="text-red-500">*</span></label>
-                    <select wire:model="orgUnitId" class="{{ $input }} @error('orgUnitId') border-red-400 @enderror">
-                        <option value="">Select</option>
-                        @foreach($orgUnits as $unit)
-                            <option value="{{ $unit['id'] }}">{{ $unit['label'] }}</option>
-                        @endforeach
-                    </select>
-                    @error('orgUnitId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Department <span class="text-red-500">*</span></label>
+                    <x-searchable-select
+                        model="departmentId"
+                        :value="$departmentId"
+                        :options="$departments"
+                        empty-label="Select"
+                        aria-label="Department"
+                        search-placeholder="Search department"
+                        :input-class="$input.($errors->has('departmentId') ? ' border-red-400' : '')"
+                    />
+                    @error('departmentId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Section / subsection <span class="text-red-500">*</span></label>
+                    @if($departmentId === null || $departmentId === '')
+                        <select disabled class="{{ $input }} bg-gray-100">
+                            <option value="">Select a department first</option>
+                        </select>
+                    @elseif(count($sectionOptions) === 0)
+                        <input type="text" readonly value="Department has no sections — using department" class="{{ $input }} bg-gray-100" />
+                        @error('orgUnitId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    @else
+                        <x-searchable-select
+                            model="orgUnitId"
+                            :value="$orgUnitId"
+                            :options="collect($sectionOptions)->map(fn ($unit) => ['id' => $unit['id'], 'label' => $unit['label']])->values()"
+                            empty-label="Select"
+                            aria-label="Section or subsection"
+                            search-placeholder="Search section"
+                            :input-class="$input.($errors->has('orgUnitId') ? ' border-red-400' : '')"
+                        />
+                        @error('orgUnitId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    @endif
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Designation <span class="text-red-500">*</span></label>
-                    <select wire:model="jobId" class="{{ $input }} @error('jobId') border-red-400 @enderror">
-                        <option value="">Select</option>
-                        @foreach($jobs as $job)
-                            <option value="{{ $job->id }}">{{ $job->name }}</option>
-                        @endforeach
-                    </select>
-                    @error('jobId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    <x-searchable-select
+                        model="designationId"
+                        :value="$designationId"
+                        :options="$designations"
+                        empty-label="Select"
+                        aria-label="Designation"
+                        search-placeholder="Search designation"
+                        :input-class="$input.($errors->has('designationId') ? ' border-red-400' : '')"
+                    />
+                    @error('designationId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Shift <span class="text-red-500">*</span></label>
@@ -394,7 +433,7 @@
             <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Basic salary <span class="text-red-500">*</span></label>
-                    <input wire:model="basicSalary" type="text" maxlength="20" @readonly($type === 'INTERN')
+                    <input wire:model.live="basicSalary" type="text" maxlength="25" inputmode="decimal" @readonly($type === 'INTERN')
                         class="{{ $input }} {{ $type === 'INTERN' ? 'bg-gray-100' : '' }} @error('basicSalary') border-red-400 @enderror" />
                     @if($type === 'INTERN')
                         <p class="mt-1 text-xs text-gray-500">Interns are hired at zero basic salary.</p>
@@ -413,7 +452,7 @@
                 @if($otRateMode === 'FIXED')
                     <div>
                         <label class="mb-1 block text-xs font-medium text-gray-600">Fixed OT rate <span class="text-red-500">*</span></label>
-                        <input wire:model="otRate" type="text" maxlength="20" class="{{ $input }} @error('otRate') border-red-400 @enderror" />
+                        <input wire:model.live="otRate" type="text" maxlength="25" inputmode="decimal" class="{{ $input }} @error('otRate') border-red-400 @enderror" />
                         @error('otRate')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                     </div>
                 @endif
@@ -421,11 +460,114 @@
                     <label class="mb-1 block text-xs font-medium text-gray-600">Attendance tier</label>
                     <select wire:model="attendanceTierCode" class="{{ $input }} @error('attendanceTierCode') border-red-400 @enderror">
                         <option value="">None</option>
-                        @foreach($attendanceTiers as $code)
-                            <option value="{{ $code }}">{{ $code }}</option>
+                        @foreach($attendanceTiers as $tier)
+                            <option value="{{ $tier['code'] }}">{{ $tier['label'] }}</option>
                         @endforeach
                     </select>
                     @error('attendanceTierCode')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+            </div>
+
+            <div class="mb-2 mt-2 flex items-center justify-between">
+                <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Earnings</h4>
+                <button type="button" wire:click="addEarningComponent" class="rounded border border-blue-600 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">Add earning</button>
+            </div>
+            <div class="mb-6 space-y-3">
+                @foreach($earningComponents as $index => $row)
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2" wire:key="earning-component-{{ $index }}">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-600">Earning</label>
+                            <x-searchable-select
+                                model="earningComponents.{{ $index }}.code"
+                                :value="$row['code'] ?? ''"
+                                :options="$attachableEarningComponents->map(fn ($c) => [
+                                    'id' => $c->code,
+                                    'label' => $c->code.' — '.$c->name,
+                                ])->values()"
+                                empty-label="Select"
+                                aria-label="Earning component"
+                                search-placeholder="Search earning"
+                                :input-class="$input.($errors->has('earningComponents.'.$index.'.code') ? ' border-red-400' : '')"
+                            />
+                            @error('earningComponents.'.$index.'.code')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="min-w-0 flex-1">
+                                <label class="mb-1 block text-xs font-medium text-gray-600">Amount</label>
+                                <input wire:model.live="earningComponents.{{ $index }}.amount" type="text" maxlength="25" inputmode="decimal" class="{{ $input }} @error('earningComponents.'.$index.'.amount') border-red-400 @enderror" />
+                                @error('earningComponents.'.$index.'.amount')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                            </div>
+                            @if(count($earningComponents) > 1)
+                                <div class="flex items-end pb-0.5">
+                                    <button type="button" wire:click="removeEarningComponent({{ $index }})" class="rounded border px-2 py-1.5 text-xs text-red-600 hover:bg-red-50" title="Remove">Remove</button>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <div class="mb-2 mt-2 flex items-center justify-between">
+                <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Deductions</h4>
+                <button type="button" wire:click="addDeductionComponent" class="rounded border border-blue-600 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">Add deduction</button>
+            </div>
+            <div class="mb-6 space-y-3">
+                @foreach($deductionComponents as $index => $row)
+                    <div class="grid grid-cols-1 gap-4 md:grid-cols-2" wire:key="deduction-component-{{ $index }}">
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-600">Deduction</label>
+                            <x-searchable-select
+                                model="deductionComponents.{{ $index }}.code"
+                                :value="$row['code'] ?? ''"
+                                :options="$attachableDeductionComponents->map(fn ($c) => [
+                                    'id' => $c->code,
+                                    'label' => $c->code.' — '.$c->name,
+                                ])->values()"
+                                empty-label="Select"
+                                aria-label="Deduction component"
+                                search-placeholder="Search deduction"
+                                :input-class="$input.($errors->has('deductionComponents.'.$index.'.code') ? ' border-red-400' : '')"
+                            />
+                            @error('deductionComponents.'.$index.'.code')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                        </div>
+                        <div class="flex gap-2">
+                            <div class="min-w-0 flex-1">
+                                <label class="mb-1 block text-xs font-medium text-gray-600">Amount</label>
+                                <input wire:model.live="deductionComponents.{{ $index }}.amount" type="text" maxlength="25" inputmode="decimal" class="{{ $input }} @error('deductionComponents.'.$index.'.amount') border-red-400 @enderror" />
+                                @error('deductionComponents.'.$index.'.amount')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                            </div>
+                            @if(count($deductionComponents) > 1)
+                                <div class="flex items-end pb-0.5">
+                                    <button type="button" wire:click="removeDeductionComponent({{ $index }})" class="rounded border px-2 py-1.5 text-xs text-red-600 hover:bg-red-50" title="Remove">Remove</button>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+
+            <h4 class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Hostel and meals</h4>
+            <div class="mb-6 space-y-3">
+                <label class="flex items-center gap-2 text-sm text-gray-700">
+                    <input wire:model.live="hostelAvailable" type="checkbox" class="rounded border" /> Hostel available
+                </label>
+                @if($hostelAvailable)
+                    <div class="max-w-xs">
+                        <label class="mb-1 block text-xs font-medium text-gray-600">Hostel paid amount <span class="text-red-500">*</span></label>
+                        <input wire:model.live="hostelPaidAmount" type="text" maxlength="25" inputmode="decimal" class="{{ $input }} @error('hostelPaidAmount') border-red-400 @enderror" />
+                        @error('hostelPaidAmount')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    </div>
+                @endif
+                <div class="flex flex-wrap gap-4 text-sm text-gray-700">
+                    <label class="flex items-center gap-2">
+                        <input wire:model="foodBreakfast" type="checkbox" class="rounded border" /> Breakfast
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input wire:model="foodLunch" type="checkbox" class="rounded border" /> Lunch
+                    </label>
+                    <label class="flex items-center gap-2">
+                        <input wire:model="foodDinner" type="checkbox" class="rounded border" /> Dinner
+                    </label>
                 </div>
             </div>
 
@@ -469,24 +611,29 @@
                 </div>
             @endunless
 
-            <h4 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-500">Fingerprint device (optional)</h4>
-            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Device group</label>
-                    <input wire:model="deviceGroup" type="text" maxlength="20" list="device-groups" class="{{ $input }} @error('deviceGroup') border-red-400 @enderror" />
-                    <datalist id="device-groups">
-                        @foreach($deviceGroups as $group)
-                            <option value="{{ $group }}"></option>
-                        @endforeach
-                    </datalist>
-                    @error('deviceGroup')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            @if($attendanceActive)
+                <h4 class="mb-2 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-500">Fingerprint device</h4>
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">Device group <span class="text-red-500">*</span></label>
+                        <x-searchable-select
+                            model="deviceGroup"
+                            :value="$deviceGroup"
+                            :options="$deviceGroups"
+                            empty-label="Select"
+                            aria-label="Device group"
+                            search-placeholder="Search device group"
+                            :input-class="$input.($errors->has('deviceGroup') ? ' border-red-400' : '')"
+                        />
+                        @error('deviceGroup')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">Fingerprint ID <span class="text-red-500">*</span></label>
+                        <input wire:model="deviceUserId" type="number" min="1" class="{{ $input }} @error('deviceUserId') border-red-400 @enderror" />
+                        @error('deviceUserId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    </div>
                 </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Device user ID</label>
-                    <input wire:model="deviceUserId" type="number" min="1" class="{{ $input }} @error('deviceUserId') border-red-400 @enderror" />
-                    @error('deviceUserId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                </div>
-            </div>
+            @endif
         @endif
 
         {{-- Step 5 --}}
@@ -522,7 +669,7 @@
                         class="rounded bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">Next</button>
                 @else
                     <button type="button" wire:click="hire" wire:loading.attr="disabled" wire:target="hire"
-                        class="rounded bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">Hire</button>
+                        class="rounded bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">Add</button>
                 @endif
             </div>
         </div>

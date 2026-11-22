@@ -11,6 +11,7 @@ use Livewire\Livewire;
 use Modules\Attendance\Livewire\DevicesIndex;
 use Modules\Attendance\Livewire\UnresolvedPunches;
 use Modules\Attendance\Models\Device;
+use Modules\Attendance\Models\DeviceGroup;
 use Modules\Attendance\Services\DeviceService;
 use Modules\Attendance\Services\PunchIngestService;
 use Modules\Organisation\Models\Location;
@@ -44,6 +45,7 @@ class DeviceScreensTest extends TestCase
     {
         $user = User::factory()->withPermissions('attendance.device.manage')->create(['must_change_password' => false]);
         $location = Location::factory()->create();
+        DeviceGroup::factory()->create(['code' => 'NIT', 'name' => 'Nittambuwa']);
 
         Livewire::actingAs($user)
             ->test(DevicesIndex::class)
@@ -63,6 +65,7 @@ class DeviceScreensTest extends TestCase
     {
         $user = User::factory()->withPermissions('attendance.device.manage')->create(['must_change_password' => false]);
         $location = Location::factory()->create();
+        DeviceGroup::factory()->create(['code' => 'NIT', 'name' => 'Nittambuwa']);
         app(DeviceService::class)->register([
             'serial_no' => 'GED7243600417',
             'name' => 'One',
@@ -78,6 +81,21 @@ class DeviceScreensTest extends TestCase
             ->set('device_group', 'NIT')
             ->call('register')
             ->assertHasErrors(['serial_no']);
+    }
+
+    public function test_registering_requires_a_known_device_group(): void
+    {
+        $user = User::factory()->withPermissions('attendance.device.manage')->create(['must_change_password' => false]);
+        $location = Location::factory()->create();
+
+        Livewire::actingAs($user)
+            ->test(DevicesIndex::class)
+            ->set('serial_no', 'GED7243600417')
+            ->set('name', 'Nittambuwa')
+            ->set('location_id', $location->id)
+            ->set('device_group', 'MISSING')
+            ->call('register')
+            ->assertHasErrors(['device_group']);
     }
 
     public function test_enrolling_from_the_unresolved_screen_clears_the_group(): void

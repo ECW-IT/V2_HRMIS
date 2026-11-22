@@ -126,7 +126,7 @@ class ReadinessDashboard extends Component
             }
 
             $employments = Employment::query()
-                ->with(['person', 'assignments' => fn ($q) => $q->effectiveOn($asOf)->with(['orgUnit', 'job'])])
+                ->with(['person', 'assignments' => fn ($q) => $q->effectiveOn($asOf)->with(['orgUnit', 'designation'])])
                 ->whereIn('id', $ids)
                 ->get();
 
@@ -136,7 +136,7 @@ class ReadinessDashboard extends Component
                     'employee_no' => $employment->employee_no,
                     'name' => trim($employment->person->first_name.' '.$employment->person->last_name),
                     'department' => $assignment?->orgUnit?->name ?? '—',
-                    'job' => $assignment?->job?->name ?? '—',
+                    'job' => $assignment?->designation?->name ?? '—',
                 ];
             }
         }

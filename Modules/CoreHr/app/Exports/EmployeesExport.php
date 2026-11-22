@@ -51,7 +51,7 @@ final class EmployeesExport implements FromQuery, WithHeadings, WithMapping
             $row->name_with_initials,
             $row->person_nic,
             $department,
-            $row->job_name,
+            $row->designation_name,
             $row->grade_name,
             $row->type->value,
             $row->hire_date?->toDateString(),

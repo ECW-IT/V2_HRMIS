@@ -8,9 +8,9 @@ use Database\Seeders\OrganisationSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Modules\Organisation\Enums\OrgUnitType;
+use Modules\Organisation\Livewire\DesignationsIndex;
 use Modules\Organisation\Livewire\EmployeeCategoriesIndex;
 use Modules\Organisation\Livewire\GradesIndex;
-use Modules\Organisation\Livewire\JobsIndex;
 use Modules\Organisation\Livewire\OrgTree;
 use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\EmployeeCategory;
@@ -41,7 +41,7 @@ class OrganisationScreensTest extends TestCase
         $routes = [
             'org.locations.index',
             'org.units.index',
-            'org.jobs.index',
+            'org.designations.index',
             'org.categories.index',
             'org.staff-work-categories.index',
             'org.grades.index',
@@ -79,7 +79,7 @@ class OrganisationScreensTest extends TestCase
         ]);
 
         Livewire::actingAs($user)
-            ->test(JobsIndex::class)
+            ->test(DesignationsIndex::class)
             ->set('code', 'DRV')
             ->set('name', 'Driver')
             ->call('save')

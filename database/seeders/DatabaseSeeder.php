@@ -3,14 +3,15 @@
 namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
+use Modules\Attendance\Database\Seeders\DeviceGroupSeeder;
 use Modules\Attendance\Database\Seeders\ShiftSeeder;
 use Modules\CoreHr\Database\Seeders\BankSeeder;
 use Modules\CoreHr\Database\Seeders\DocumentTypeSeeder;
 use Modules\CoreHr\Database\Seeders\RegionSeeder;
 use Modules\CoreHr\Database\Seeders\RelationshipSeeder;
 use Modules\Leave\Database\Seeders\LeaveSeeder;
+use Modules\Organisation\Database\Seeders\DesignationsSeeder;
 use Modules\Organisation\Database\Seeders\EmployeeCategoriesSeeder;
-use Modules\Organisation\Database\Seeders\JobsSeeder;
 use Modules\Organisation\Database\Seeders\OrgUnitsSeeder;
 use Modules\Organisation\Database\Seeders\StaffWorkCategorySeeder;
 use Modules\Payroll\Database\Seeders\LoanTypeSeeder;
@@ -26,7 +27,7 @@ class DatabaseSeeder extends Seeder
             AdminUserSeeder::class,
             OrganisationSeeder::class,
             OrgUnitsSeeder::class,
-            JobsSeeder::class,
+            DesignationsSeeder::class,
             EmployeeCategoriesSeeder::class,
             StaffWorkCategorySeeder::class,
             ApprovalDefinitionSeeder::class,
@@ -35,6 +36,7 @@ class DatabaseSeeder extends Seeder
             RegionSeeder::class,
             BankSeeder::class,
             ShiftSeeder::class,
+            DeviceGroupSeeder::class,
             LeaveSeeder::class,
             PayComponentSeeder::class,
             PayRuleSeeder::class,

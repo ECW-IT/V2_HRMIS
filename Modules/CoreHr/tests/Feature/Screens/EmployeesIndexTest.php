@@ -9,8 +9,10 @@ use Maatwebsite\Excel\Facades\Excel;
 use Modules\CoreHr\Enums\ExitReason;
 use Modules\CoreHr\Exports\EmployeesExport;
 use Modules\CoreHr\Livewire\EmployeesIndex;
+use Modules\CoreHr\Livewire\ResignedEmployeesIndex;
 use Modules\CoreHr\Services\EmploymentService;
 use Modules\Organisation\Enums\OrgUnitType;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\OrgUnit;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
@@ -53,29 +55,60 @@ class EmployeesIndexTest extends TestCase
         $this->get(route('employees.index'))
             ->assertOk()
             ->assertSee($active->employee_no)
-            ->assertSee('Hire employee');
+            ->assertSee('Add employee');
     }
 
     public function test_list_shows_epf_service_period_and_actions_columns(): void
     {
         $a = $this->company();
         $active = $this->hired('2025-01-01', $a, $this->emp(['epf_no' => 'EPF-4421']));
+        $active->person->update(['photo_path' => 'photos/'.$active->person_id.'/face.jpg']);
 
         $this->loginAs('hr-officer', $a);
 
         Livewire::test(EmployeesIndex::class)
             ->assertSee('EPF no')
             ->assertSee('Service period')
-            ->assertSee('Actions')
+            ->assertSee('Profile')
+            ->assertSeeHtml('>Actions</th>')
             ->assertSee('Department / subsection')
+            ->assertSeeHtml('searchableSelect')
+            ->assertSeeHtml('Search department')
+            ->assertSeeHtml('Search designation')
+            ->assertSeeHtml('for="employeeCategoryId"')
+            ->assertSeeHtml('>Category</label>')
+            ->assertDontSeeHtml('for="gradeId"')
             ->assertSee('EPF-4421')
             ->assertSee($active->employee_no)
-            ->assertSeeHtml('aria-label="View profile"')
+            ->assertSeeHtml('title="View profile"')
+            ->assertSeeHtml(route('persons.photo', $active->person_id, absolute: false).'?v=')
+            ->assertSeeHtml('aria-label="View"')
             ->assertSeeHtml('aria-label="Edit"')
-            ->assertSeeHtml('tab=personal')
+            ->assertSeeHtml('wire:click="openEdit('.$active->id.')"')
+            ->assertDontSeeHtml('tab=personal')
             ->assertDontSeeHtml('>Grade</th>')
             ->assertDontSeeHtml('>Status</th>')
             ->assertDontSeeHtml('>Ready</th>');
+    }
+
+    public function test_category_filter_limits_the_list(): void
+    {
+        $a = $this->company();
+        $catA = EmployeeCategory::factory()->create(['name' => 'Category A', 'is_active' => true]);
+        $catB = EmployeeCategory::factory()->create(['name' => 'Category B', 'is_active' => true]);
+
+        $inA = $this->hired(c: $a, emp: ['employee_category_id' => $catA->id]);
+        $inB = $this->hired(c: $a, emp: ['employee_category_id' => $catB->id]);
+
+        $this->loginAs('hr-officer', $a);
+
+        Livewire::test(EmployeesIndex::class)
+            ->set('employeeCategoryId', $catA->id)
+            ->assertSee($inA->employee_no)
+            ->assertDontSee($inB->employee_no)
+            ->set('employeeCategoryId', $catB->id)
+            ->assertSee($inB->employee_no)
+            ->assertDontSee($inA->employee_no);
     }
 
     public function test_view_only_user_sees_view_action_but_not_edit(): void
@@ -87,8 +120,67 @@ class EmployeesIndexTest extends TestCase
         $this->actingAs($user);
 
         Livewire::test(EmployeesIndex::class)
-            ->assertSeeHtml('aria-label="View profile"')
-            ->assertDontSeeHtml('aria-label="Edit"');
+            ->assertSeeHtml('title="View profile"')
+            ->assertSeeHtml('aria-label="View"')
+            ->assertDontSeeHtml('aria-label="Edit"')
+            ->assertDontSeeHtml('openEdit');
+    }
+
+    public function test_edit_opens_hire_style_modal_with_personal_step(): void
+    {
+        $a = $this->company();
+        $active = $this->hired(c: $a);
+
+        $this->loginAs('hr-officer', $a);
+
+        Livewire::test(EmployeesIndex::class)
+            ->call('openEdit', $active->id)
+            ->assertSet('editingEmploymentId', $active->id)
+            ->assertSet('editStep', 1)
+            ->assertSee('Edit employee')
+            ->assertSee('Personal details')
+            ->assertSee('Employment')
+            ->assertSee('Pay and bank')
+            ->assertSee('Full name')
+            ->assertSee('NIC');
+    }
+
+    public function test_edit_pay_step_shows_compensation_panel_when_permitted(): void
+    {
+        $a = $this->company();
+        $active = $this->paid('2026-01-01', $a);
+
+        $this->loginAs('hr-manager', $a);
+
+        Livewire::test(EmployeesIndex::class)
+            ->call('openEdit', $active->id)
+            ->call('setEditStep', 3)
+            ->assertSee('Payroll details')
+            ->assertSee('60000.00')
+            ->assertSee('New compensation')
+            ->assertSee('Add component');
+    }
+
+    public function test_edit_pay_step_hides_compensation_without_permission_but_bank_still_works(): void
+    {
+        $a = $this->company();
+        $active = $this->hired(c: $a);
+
+        $user = User::factory()->forCompanies([$a])->withPermissions(
+            'employee.view',
+            'employee.update',
+            'employee.bank.view',
+            'employee.bank.manage',
+        )->create(['must_change_password' => false]);
+        $this->actingAs($user);
+
+        Livewire::test(EmployeesIndex::class)
+            ->call('openEdit', $active->id)
+            ->call('setEditStep', 3)
+            ->assertSee('No permission to view compensation.')
+            ->assertDontSee('New compensation')
+            ->assertSee('Current account')
+            ->assertSee('Change bank account');
     }
 
     public function test_status_filter_shows_exited(): void
@@ -99,7 +191,7 @@ class EmployeesIndexTest extends TestCase
 
         $this->loginAs('hr-officer', $a);
 
-        Livewire::test(EmployeesIndex::class)
+        Livewire::test(ResignedEmployeesIndex::class)
             ->set('status', 'EXITED')
             ->assertSee($exited->employee_no)
             ->assertDontSee($active->employee_no);

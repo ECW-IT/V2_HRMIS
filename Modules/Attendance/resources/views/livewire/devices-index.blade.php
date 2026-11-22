@@ -102,7 +102,12 @@
                     </div>
                     <div>
                         <label class="mb-1 block text-xs text-slate-500">Device group</label>
-                        <input type="text" wire:model="device_group" class="w-full rounded border px-3 py-1.5 text-sm">
+                        <select wire:model="device_group" class="w-full rounded border px-3 py-1.5 text-sm">
+                            <option value="">Select</option>
+                            @foreach ($deviceGroups as $group)
+                                <option value="{{ $group->code }}">{{ $group->code }} — {{ $group->name }}</option>
+                            @endforeach
+                        </select>
                         @error('device_group') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                     <div>

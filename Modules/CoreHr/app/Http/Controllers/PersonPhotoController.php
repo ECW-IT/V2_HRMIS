@@ -27,7 +27,7 @@ final class PersonPhotoController
 
         return Storage::disk('private')->response($path, basename($path), [
             'Content-Type' => $mime,
-            'Cache-Control' => 'private, max-age=3600',
+            'Cache-Control' => 'private, no-cache',
         ]);
     }
 }

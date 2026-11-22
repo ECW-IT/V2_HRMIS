@@ -100,15 +100,16 @@ class ApprovalServiceTest extends TestCase
         $this->assertSame(1, ProbeApprovalHandler::$calls);
     }
 
-    public function test_requester_cannot_approve_own_request(): void
+    public function test_requester_can_approve_own_request(): void
     {
         $this->steps([['ROLE', 'hr-manager']]);
         $manager = $this->user('hr-manager');
         $req = $this->submitBy($manager);
 
-        $this->assertFalse($this->svc->canAct($req, $manager));
-        $this->expectException(NotAllowedToAct::class);
-        $this->svc->approve($req, $manager);
+        $this->assertTrue($this->svc->canAct($req, $manager));
+        $req = $this->svc->approve($req, $manager);
+        $this->assertSame(ApprovalStatus::APPROVED, $req->status);
+        $this->assertSame('B', $this->probe->fresh()->name);
     }
 
     public function test_two_step_request_needs_both_steps_in_order(): void
@@ -117,9 +118,9 @@ class ApprovalServiceTest extends TestCase
         $req = $this->submitBy($this->user('hr-officer'));
         $admin = $this->user('super-admin');
 
-        $this->assertFalse($this->svc->canAct($req, $admin));          // not their step yet
+        $this->assertTrue($this->svc->canAct($req, $admin));
 
-        $req = $this->svc->approve($req, $this->user('hr-manager'));
+        $req = $this->svc->approve($req, $admin);
         $this->assertSame(ApprovalStatus::PENDING, $req->status);
         $this->assertSame(2, $req->current_step);
         $this->assertSame(0, ProbeApprovalHandler::$calls);
@@ -130,12 +131,14 @@ class ApprovalServiceTest extends TestCase
         $this->assertSame(2, $req->actions()->count());
     }
 
-    public function test_user_without_the_step_role_cannot_act(): void
+    public function test_user_without_approval_act_cannot_act(): void
     {
         $this->steps([['ROLE', 'hr-manager']]);
         $req = $this->submitBy($this->user('hr-officer'));
+        $outsider = User::factory()->forCompanies([$this->c])->withRole('payroll-officer')->create();
+        $this->assertFalse($this->svc->canAct($req, $outsider));
         $this->expectException(NotAllowedToAct::class);
-        $this->svc->approve($req, $this->user('payroll-officer'));
+        $this->svc->approve($req, $outsider);
     }
 
     public function test_user_of_another_company_cannot_act(): void
@@ -261,5 +264,29 @@ class ApprovalServiceTest extends TestCase
         }
 
         $this->assertSame(ApprovalStatus::APPROVED, $req->fresh()->status);
+    }
+
+    public function test_permission_step_allows_any_user_with_that_permission(): void
+    {
+        $this->steps([['PERMISSION', 'approval.act']]);
+        $req = $this->submitBy($this->user('hr-officer'));
+
+        $admin = $this->user('super-admin');
+        $this->assertTrue($this->svc->canAct($req, $admin));
+
+        $this->svc->approve($req, $admin);
+
+        $this->assertSame(ApprovalStatus::APPROVED, $req->fresh()->status);
+        $this->assertSame('B', $this->probe->fresh()->name);
+        $this->assertSame(1, ProbeApprovalHandler::$calls);
+    }
+
+    public function test_permission_step_rejects_user_without_the_permission(): void
+    {
+        $this->steps([['PERMISSION', 'approval.act']]);
+        $req = $this->submitBy($this->user('hr-officer'));
+
+        $outsider = User::factory()->forCompanies([$this->c])->withRole('hr-officer')->create();
+        $this->assertFalse($this->svc->canAct($req, $outsider));
     }
 }

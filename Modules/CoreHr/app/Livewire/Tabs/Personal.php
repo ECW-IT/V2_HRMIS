@@ -11,10 +11,12 @@ use Livewire\WithFileUploads;
 use Modules\CoreHr\Enums\ArriveWorkFrom;
 use Modules\CoreHr\Enums\ContactType;
 use Modules\CoreHr\Enums\MaritalStatus;
+use Modules\CoreHr\Livewire\Concerns\RejectsResignedMutations;
 use Modules\CoreHr\Livewire\Concerns\SubmitsEmploymentRequests;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Models\GnDivision;
 use Modules\CoreHr\Models\Person;
+use Modules\CoreHr\Models\PersonContact;
 use Modules\CoreHr\Models\PersonDependent;
 use Modules\CoreHr\Models\PersonEmergencyContact;
 use Modules\CoreHr\Models\PersonExperience;
@@ -26,22 +28,17 @@ use Modules\CoreHr\Support\SriLankaGeo;
 
 class Personal extends Component
 {
+    use RejectsResignedMutations;
     use SubmitsEmploymentRequests;
     use WithFileUploads;
 
-    private const ADDRESS_TYPES = ['PERMANENT', 'CURRENT'];
+    private const ADDRESS_TYPES = ['PERMANENT'];
 
     private const CHILD_KINDS = ['emergency', 'dependent', 'qualification', 'experience'];
 
     public Employment $employment;
 
-    public string $title = '';
-
-    public string $firstName = '';
-
-    public string $middleName = '';
-
-    public string $lastName = '';
+    public string $fullName = '';
 
     public string $nameWithInitials = '';
 
@@ -77,6 +74,10 @@ class Personal extends Component
     public string $newContactValue = '';
 
     public bool $newContactPrimary = false;
+
+    public bool $showContactForm = false;
+
+    public ?int $editingContactId = null;
 
     public bool $showChildForm = false;
 
@@ -123,13 +124,11 @@ class Personal extends Component
     public function save(): void
     {
         $this->authorize('employee.update');
+        $this->ensureNotResigned();
         $this->flashOnParent = false;
 
         $this->validate([
-            'title' => ['nullable', 'string', 'max:20'],
-            'firstName' => ['required', 'string', 'max:100'],
-            'middleName' => ['nullable', 'string', 'max:100'],
-            'lastName' => ['required', 'string', 'max:100'],
+            'fullName' => ['required', 'string', 'max:150'],
             'nameWithInitials' => ['required', 'string', 'max:150'],
             'callingName' => ['nullable', 'string', 'max:100'],
             'maritalStatus' => ['nullable', Rule::enum(MaritalStatus::class)],
@@ -146,17 +145,16 @@ class Personal extends Component
             'addresses.*.line1' => ['nullable', 'string', 'max:150'],
             'addresses.*.line2' => ['nullable', 'string', 'max:150'],
             'addresses.*.city' => ['nullable', 'string', 'max:80'],
-            'addresses.*.district' => ['nullable', 'string', 'max:50', Rule::in(array_merge([''], SriLankaGeo::districts()))],
-            'addresses.*.postal_code' => ['nullable', 'string', 'max:10'],
-            'newContactType' => ['required', Rule::enum(ContactType::class)],
-            'newContactValue' => ['nullable', 'string', 'max:150'],
         ]);
 
+        [$firstName, $lastName] = $this->splitFullName($this->fullName);
+
         $person = [
-            'title' => $this->title !== '' ? $this->title : null,
-            'first_name' => $this->firstName,
-            'middle_name' => $this->middleName !== '' ? $this->middleName : null,
-            'last_name' => $this->lastName,
+            'title' => null,
+            'full_name' => trim($this->fullName),
+            'first_name' => $firstName,
+            'middle_name' => null,
+            'last_name' => $lastName,
             'name_with_initials' => $this->nameWithInitials,
             'calling_name' => $this->callingName !== '' ? $this->callingName : null,
         ];
@@ -196,37 +194,122 @@ class Personal extends Component
             $addresses[] = [
                 'type' => $type,
                 'line1' => $line1,
-                'line2' => ($row['line2'] ?? '') !== '' ? $row['line2'] : null,
+                'line2' => null,
                 'city' => $city,
-                'district' => ($row['district'] ?? '') !== '' ? $row['district'] : null,
-                'postal_code' => ($row['postal_code'] ?? '') !== '' ? $row['postal_code'] : null,
+                'district' => null,
+                'postal_code' => null,
             ];
         }
         if ($addresses !== []) {
             $person['addresses'] = $addresses;
         }
 
-        if (trim($this->newContactValue) !== '') {
-            $person['contacts'] = [[
-                'type' => $this->newContactType,
-                'value' => trim($this->newContactValue),
-                'is_primary' => $this->newContactPrimary,
-            ]];
-        }
-
         if ($this->submitRequest('UPDATE_PERSON', ['person' => $person, 'reason' => 'Personal details update'])) {
-            $this->newContactValue = '';
-            $this->newContactPrimary = false;
-
             if ($this->appliedAtOnce) {
                 $this->fillFromPerson();
             }
         }
     }
 
+    public function openAddContact(): void
+    {
+        $this->authorize('employee.update');
+        $this->ensureNotResigned();
+        $this->resetContactForm();
+        $this->showContactForm = true;
+    }
+
+    public function openEditContact(int $id): void
+    {
+        $this->authorize('employee.update');
+        $this->ensureNotResigned();
+        $contact = $this->findContact($id);
+        $this->resetContactForm();
+        $this->editingContactId = $contact->id;
+        $this->newContactType = $contact->type->value;
+        $this->newContactValue = $contact->value;
+        $this->newContactPrimary = (bool) $contact->is_primary;
+        $this->showContactForm = true;
+    }
+
+    public function closeContactForm(): void
+    {
+        $this->showContactForm = false;
+        $this->resetContactForm();
+    }
+
+    public function saveContact(): void
+    {
+        $this->authorize('employee.update');
+        $this->ensureNotResigned();
+
+        $this->validate([
+            'newContactType' => ['required', Rule::enum(ContactType::class)],
+            'newContactValue' => ['required', 'string', 'max:150'],
+            'newContactPrimary' => ['boolean'],
+        ]);
+
+        $type = ContactType::from($this->newContactType);
+        $value = trim($this->newContactValue);
+        $isPrimary = $this->newContactPrimary;
+        $person = $this->person();
+
+        if ($isPrimary) {
+            $person->contacts()
+                ->where('type', $type->value)
+                ->when($this->editingContactId !== null, fn ($query) => $query->where('id', '!=', $this->editingContactId))
+                ->where('is_primary', true)
+                ->update(['is_primary' => false]);
+        }
+
+        if ($this->editingContactId === null) {
+            $person->contacts()->create([
+                'type' => $type,
+                'value' => $value,
+                'is_primary' => $isPrimary,
+            ]);
+        } else {
+            $this->findContact($this->editingContactId)->update([
+                'type' => $type,
+                'value' => $value,
+                'is_primary' => $isPrimary,
+            ]);
+        }
+
+        $this->message = 'Saved.';
+        $this->errorMessage = '';
+        $this->closeContactForm();
+    }
+
+    public function removeContact(int $id): void
+    {
+        $this->authorize('employee.update');
+        $this->ensureNotResigned();
+        $this->findContact($id)->delete();
+        $this->message = 'Removed.';
+        $this->errorMessage = '';
+    }
+
+    private function resetContactForm(): void
+    {
+        $this->editingContactId = null;
+        $this->newContactType = 'MOBILE';
+        $this->newContactValue = '';
+        $this->newContactPrimary = false;
+        $this->resetValidation(['newContactType', 'newContactValue', 'newContactPrimary']);
+    }
+
+    private function findContact(int $id): PersonContact
+    {
+        return PersonContact::query()
+            ->where('person_id', $this->employment->person_id)
+            ->findOrFail($id);
+    }
+
     public function uploadPhoto(PersonPhotoService $photos): void
     {
         $this->authorize('employee.update');
+        $this->ensureNotResigned();
         $this->flashOnParent = false;
         $this->message = '';
         $this->errorMessage = '';
@@ -252,6 +335,7 @@ class Personal extends Component
     public function removePhoto(PersonPhotoService $photos): void
     {
         $this->authorize('employee.update');
+        $this->ensureNotResigned();
         $this->flashOnParent = false;
         $this->message = '';
         $this->errorMessage = '';
@@ -285,6 +369,7 @@ class Personal extends Component
     public function openEditEmergency(int $id): void
     {
         $this->authorize('employee.update');
+        $this->ensureNotResigned();
         $row = $this->findChild('emergency', $id);
         $this->resetChildForm();
         $this->childKind = 'emergency';
@@ -299,6 +384,7 @@ class Personal extends Component
     public function openEditDependent(int $id): void
     {
         $this->authorize('employee.update');
+        $this->ensureNotResigned();
         $row = $this->findChild('dependent', $id);
         $this->resetChildForm();
         $this->childKind = 'dependent';
@@ -312,6 +398,7 @@ class Personal extends Component
     public function openEditQualification(int $id): void
     {
         $this->authorize('employee.update');
+        $this->ensureNotResigned();
         $row = $this->findChild('qualification', $id);
         $this->resetChildForm();
         $this->childKind = 'qualification';
@@ -326,6 +413,7 @@ class Personal extends Component
     public function openEditExperience(int $id): void
     {
         $this->authorize('employee.update');
+        $this->ensureNotResigned();
         $row = $this->findChild('experience', $id);
         $this->resetChildForm();
         $this->childKind = 'experience';
@@ -346,6 +434,7 @@ class Personal extends Component
     public function saveChild(): void
     {
         $this->authorize('employee.update');
+        $this->ensureNotResigned();
 
         if (! in_array($this->childKind, self::CHILD_KINDS, true)) {
             return;
@@ -373,6 +462,7 @@ class Personal extends Component
     public function removeChild(string $kind, int $id): void
     {
         $this->authorize('employee.update');
+        $this->ensureNotResigned();
 
         if (! in_array($kind, self::CHILD_KINDS, true)) {
             return;
@@ -386,6 +476,7 @@ class Personal extends Component
     private function openAdd(string $kind): void
     {
         $this->authorize('employee.update');
+        $this->ensureNotResigned();
         $this->resetChildForm();
         $this->childKind = $kind;
         $this->editingChildId = null;
@@ -523,10 +614,11 @@ class Personal extends Component
     {
         $person = $this->employment->person()->with('addresses')->firstOrFail();
 
-        $this->title = (string) $person->title;
-        $this->firstName = $person->first_name;
-        $this->middleName = (string) $person->middle_name;
-        $this->lastName = $person->last_name;
+        $this->fullName = trim((string) ($person->full_name ?: implode(' ', array_filter([
+            $person->first_name,
+            $person->middle_name,
+            $person->last_name,
+        ]))));
         $this->nameWithInitials = $person->name_with_initials;
         $this->callingName = (string) $person->calling_name;
         $this->maritalStatus = $person->marital_status?->value ?? '';
@@ -594,5 +686,45 @@ class Personal extends Component
         if ($this->gnDivision !== '' && $suggestions !== [] && ! in_array($this->gnDivision, $suggestions, true)) {
             $this->gnDivision = '';
         }
+    }
+
+    public function updatedFullName(): void
+    {
+        $this->nameWithInitials = $this->initialsFromFullName($this->fullName);
+    }
+
+    /** @return array{0: string, 1: string} */
+    private function splitFullName(string $fullName): array
+    {
+        $parts = preg_split('/\s+/', trim($fullName), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if ($parts === []) {
+            return ['', ''];
+        }
+
+        if (count($parts) === 1) {
+            return [$parts[0], $parts[0]];
+        }
+
+        return [$parts[0], implode(' ', array_slice($parts, 1))];
+    }
+
+    private function initialsFromFullName(string $fullName): string
+    {
+        $parts = preg_split('/\s+/', trim($fullName), -1, PREG_SPLIT_NO_EMPTY) ?: [];
+        if ($parts === []) {
+            return '';
+        }
+
+        if (count($parts) === 1) {
+            return $parts[0];
+        }
+
+        $last = array_pop($parts);
+        $initials = [];
+        foreach ($parts as $part) {
+            $initials[] = mb_strtoupper(mb_substr($part, 0, 1)).'.';
+        }
+
+        return implode(' ', $initials).' '.$last;
     }
 }

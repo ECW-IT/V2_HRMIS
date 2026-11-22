@@ -193,27 +193,11 @@ final class ApprovalService
             return false;
         }
 
-        if ((int) $request->requested_by === (int) $user->id) {
-            return false;
-        }
-
         if (! in_array((int) $request->company_id, $this->permittedCompanyIds($user), true)) {
             return false;
         }
 
-        if (! $user->can('approval.act')) {
-            return false;
-        }
-
-        $step = $request->definition->steps()
-            ->where('sequence', $request->current_step)
-            ->first();
-
-        if ($step === null) {
-            return false;
-        }
-
-        return $this->userMatchesStep($user, $step, $request);
+        return $user->can('approval.act');
     }
 
     /** PENDING requests the user can act on now, within their company scope. */
@@ -352,6 +336,7 @@ final class ApprovalService
             ApproverType::ROLE => $user->hasRole((string) $step->approver_ref),
             ApproverType::USER => (string) $user->id === (string) $step->approver_ref,
             ApproverType::MANAGER => $this->resolveManagerApproverUserId($request) === (int) $user->id,
+            ApproverType::PERMISSION => $user->can((string) $step->approver_ref),
         };
     }
 

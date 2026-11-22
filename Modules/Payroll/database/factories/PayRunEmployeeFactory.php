@@ -32,7 +32,7 @@ class PayRunEmployeeFactory extends Factory
             'name' => 'Test Employee',
             'grade_id' => $grade->id,
             'org_unit_id' => null,
-            'job_id' => null,
+            'designation_id' => null,
             'employment_type' => 'PERMANENT',
             'epf_liable' => true,
             'epf_no' => 'EPF001',

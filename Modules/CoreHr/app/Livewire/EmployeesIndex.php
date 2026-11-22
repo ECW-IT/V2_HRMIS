@@ -7,6 +7,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Query\JoinClause;
 use Illuminate\View\View;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
@@ -18,8 +19,8 @@ use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Support\EmployeesNav;
 use Modules\CoreHr\Support\Nic;
 use Modules\CoreHr\Support\OrgUnitOptions;
-use Modules\Organisation\Models\Grade;
-use Modules\Organisation\Models\Job;
+use Modules\Organisation\Models\Designation;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Organisation\Services\OrgUnitService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -38,18 +39,54 @@ class EmployeesIndex extends Component
 
     public string|int|null $orgUnitId = null;
 
-    public string|int|null $jobId = null;
+    public string|int|null $designationId = null;
 
-    public string|int|null $gradeId = null;
+    public string|int|null $employeeCategoryId = null;
 
     public string $type = '';
 
     /** ACTIVE, SUSPENDED, EXITED or ALL. */
     public string $status = 'ACTIVE';
 
+    /** '' = all, '1' = payroll active, '0' = payroll inactive. */
+    public string $payrollActive = '';
+
     public string $sortBy = 'employee_no';
 
     public string $sortDir = 'asc';
+
+    public ?int $editingEmploymentId = null;
+
+    public int $editStep = 1;
+
+    public function openEdit(int $employmentId): void
+    {
+        $this->authorize('employee.update');
+
+        $employment = Employment::query()->findOrFail($employmentId);
+        abort_if($employment->isResigned(), 403);
+
+        $this->editingEmploymentId = $employment->id;
+        $this->editStep = 1;
+    }
+
+    public function closeEdit(): void
+    {
+        $this->editingEmploymentId = null;
+        $this->editStep = 1;
+    }
+
+    public function setEditStep(int $step): void
+    {
+        if ($step < 1 || $step > 3) {
+            return;
+        }
+
+        $this->editStep = $step;
+    }
+
+    #[On('employment-updated')]
+    public function refreshList(string $message = ''): void {}
 
     public function updated(string $name): void
     {
@@ -92,12 +129,16 @@ class EmployeesIndex extends Component
             ->select('employments.*')
             ->addSelect([
                 'p.name_with_initials as name_with_initials',
+                'p.first_name as first_name',
+                'p.last_name as last_name',
+                'p.photo_path as photo_path',
                 'p.nic as person_nic',
                 'ou.name as department_name',
                 'pou.name as parent_unit_name',
-                'j.name as job_name',
+                'j.name as designation_name',
                 'g.name as grade_name',
             ])
+            ->where('employments.hrmis_active', $this->hrmisActiveFilter())
             ->join('persons as p', 'p.id', '=', 'employments.person_id')
             ->leftJoin('assignments as a', function (JoinClause $join) use ($ref, $today) {
                 $join->on('a.employment_id', '=', 'employments.id')
@@ -106,7 +147,7 @@ class EmployeesIndex extends Component
             })
             ->leftJoin('org_units as ou', 'ou.id', '=', 'a.org_unit_id')
             ->leftJoin('org_units as pou', 'pou.id', '=', 'ou.parent_id')
-            ->leftJoin('hr_jobs as j', 'j.id', '=', 'a.job_id')
+            ->leftJoin('designations as j', 'j.id', '=', 'a.designation_id')
             ->leftJoin('grades as g', 'g.id', '=', 'a.grade_id');
 
         $this->applySearch($query);
@@ -120,12 +161,12 @@ class EmployeesIndex extends Component
             }
         }
 
-        if ($this->jobId !== null && $this->jobId !== '') {
-            $query->where('a.job_id', (int) $this->jobId);
+        if ($this->designationId !== null && $this->designationId !== '') {
+            $query->where('a.designation_id', (int) $this->designationId);
         }
 
-        if ($this->gradeId !== null && $this->gradeId !== '') {
-            $query->where('a.grade_id', (int) $this->gradeId);
+        if ($this->employeeCategoryId !== null && $this->employeeCategoryId !== '') {
+            $query->where('employments.employee_category_id', (int) $this->employeeCategoryId);
         }
 
         if (EmploymentType::tryFrom($this->type) !== null) {
@@ -134,6 +175,10 @@ class EmployeesIndex extends Component
 
         if (EmploymentStatus::tryFrom($this->status) !== null) {
             $query->where('employments.status', $this->status);
+        }
+
+        if ($this->payrollActive === '1' || $this->payrollActive === '0') {
+            $query->where('employments.payroll_active', $this->payrollActive === '1');
         }
 
         $column = self::SORTS[$this->sortBy] ?? self::SORTS['employee_no'];
@@ -149,11 +194,15 @@ class EmployeesIndex extends Component
 
         $employees = $this->query()->paginate(25);
 
+        $editing = $this->editingEmploymentId === null
+            ? null
+            : Employment::query()->with(['person', 'employeeCategory', 'staffWorkCategory'])->find($this->editingEmploymentId);
+
         return view('corehr::livewire.employees-index', [
             'employees' => $employees,
             'orgUnits' => OrgUnitOptions::forCompany(CompanyContext::id()),
-            'jobs' => Job::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
-            'grades' => Grade::query()->where('is_active', true)->orderBy('rank')->get(['id', 'name']),
+            'designations' => Designation::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
+            'employeeCategories' => EmployeeCategory::query()->where('is_active', true)->orderBy('name')->get(['id', 'name']),
             'types' => EmploymentType::cases(),
             'statuses' => [
                 'ACTIVE' => 'Active',
@@ -161,11 +210,45 @@ class EmployeesIndex extends Component
                 'EXITED' => 'Exited',
                 'ALL' => 'All',
             ],
+            'emptyMessage' => $this->emptyMessage(),
+            'showHireButton' => $this->showHireButton(),
+            'showPayrollActiveFilter' => ! $this->hrmisActiveFilter(),
+            'editing' => $editing,
+            'editSteps' => [
+                1 => 'Personal details',
+                2 => 'Employment',
+                3 => 'Pay and bank',
+            ],
         ])->layout('components.layouts.module', [
             'moduleName' => 'Employees',
-            'title' => 'Employees',
-            'moduleNav' => EmployeesNav::items('employees'),
+            'title' => $this->pageTitle(),
+            'moduleNav' => EmployeesNav::items($this->navKey()),
         ]);
+    }
+
+    protected function hrmisActiveFilter(): bool
+    {
+        return true;
+    }
+
+    protected function pageTitle(): string
+    {
+        return 'Employees';
+    }
+
+    protected function navKey(): string
+    {
+        return 'employees';
+    }
+
+    protected function emptyMessage(): string
+    {
+        return 'No employees match these filters.';
+    }
+
+    protected function showHireButton(): bool
+    {
+        return true;
     }
 
     public function servicePeriod(Employment $employment): string

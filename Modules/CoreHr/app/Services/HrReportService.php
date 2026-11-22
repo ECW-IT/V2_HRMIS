@@ -75,7 +75,7 @@ final class HrReportService
             ->where('company_id', $company->id)
             ->with([
                 'person',
-                'assignments' => fn ($q) => $q->with(['grade', 'job', 'orgUnit'])->orderByDesc('effective_from'),
+                'assignments' => fn ($q) => $q->with(['grade', 'designation', 'orgUnit'])->orderByDesc('effective_from'),
             ])
             ->findOrFail($employmentId);
 
@@ -94,7 +94,7 @@ final class HrReportService
             ['Hire date', $e->hire_date?->toDateString()],
             ['Type', $e->type?->value ?? (string) $e->type],
             ['Grade', $assignment?->grade?->name],
-            ['Designation', $assignment?->job?->name],
+            ['Designation', $assignment?->designation?->name],
             ['Org unit', $assignment?->orgUnit?->name],
             ['Bank account', $bank?->account_no],
             ['Electorate', $e->person->electorate],
@@ -217,13 +217,13 @@ final class HrReportService
 
         $assignmentRows = Assignment::query()
             ->where('employment_id', $e->id)
-            ->with(['grade', 'job', 'orgUnit'])
+            ->with(['grade', 'designation', 'orgUnit'])
             ->orderBy('effective_from')
             ->get()
             ->map(fn (Assignment $a) => [
                 $a->effective_from?->toDateString(),
                 'Assignment',
-                trim(($a->orgUnit?->name ?? '').' / '.($a->job?->name ?? '').' / '.($a->grade?->name ?? ''), ' /'),
+                trim(($a->orgUnit?->name ?? '').' / '.($a->designation?->name ?? '').' / '.($a->grade?->name ?? ''), ' /'),
                 $a->effective_to?->toDateString(),
             ]);
 

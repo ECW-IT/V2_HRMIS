@@ -4,7 +4,7 @@ namespace Modules\Payroll\Reports;
 
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
-use Modules\Organisation\Models\Job;
+use Modules\Organisation\Models\Designation;
 use Modules\Payroll\Enums\ComponentKind;
 use Modules\Payroll\Models\PayComponent;
 use Modules\Payroll\Models\PayRun;
@@ -61,7 +61,7 @@ final class PaysheetReport
                 'employment_id' => $employee->employment_id,
                 'employee_no' => $employee->employee_no,
                 'name' => $employee->name,
-                'job' => $employee->job?->name ?? Job::query()->find($employee->job_id)?->name,
+                'job' => $employee->designation?->name ?? Designation::query()->find($employee->designation_id)?->name,
             ];
 
             if ($sheet === 1) {

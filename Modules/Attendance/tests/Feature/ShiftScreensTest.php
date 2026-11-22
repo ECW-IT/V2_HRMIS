@@ -112,9 +112,9 @@ class ShiftScreensTest extends TestCase
                 ['name' => 'Kamala Perera', 'relationship' => 'Wife', 'phone' => '0771111111'],
             ])
             ->call('next')
-            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')
+            ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('attendanceActive', false)
             ->set('employeeCategoryId', $categoryId)
-            ->set('orgUnitId', $a['org_unit_id'])->set('jobId', $a['job_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])
+            ->set('departmentId', $a['org_unit_id'])->set('orgUnitId', $a['org_unit_id'])->set('designationId', $a['designation_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])
             ->set('shiftId', $shift->id)->call('next')
             ->set('basicSalary', '55000.00')->set('isCash', true)->call('next')
             ->call('hire')

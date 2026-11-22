@@ -61,28 +61,28 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse ($components as $component)
-                    <tr class="border-t hover:bg-[var(--color-erp-row-hover)]" @if($component->is_system) data-system="1" @endif>
+                @forelse ($components as $payComponent)
+                    <tr class="border-t hover:bg-[var(--color-erp-row-hover)]" @if($payComponent->is_system) data-system="1" @endif>
                         <td class="px-3 py-2 font-medium">
-                            {{ $component->code }}
-                            @if ($component->is_system)
+                            {{ $payComponent->code }}
+                            @if ($payComponent->is_system)
                                 <span class="ml-1 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] uppercase text-slate-600">System</span>
                             @endif
                         </td>
-                        <td class="px-3 py-2">{{ $component->name }}</td>
-                        <td class="px-3 py-2">{{ $component->kind instanceof \Modules\Payroll\Enums\ComponentKind ? $component->kind->value : $component->kind }}</td>
-                        <td class="px-3 py-2">{{ $component->method instanceof \Modules\Payroll\Enums\CalcMethod ? $component->method->value : $component->method }}</td>
-                        <td class="px-3 py-2">{{ $component->sheet }}</td>
-                        <td class="px-3 py-2">{{ $component->epf_liable ? 'Yes' : 'No' }}</td>
-                        <td class="px-3 py-2">{{ $component->taxable ? 'Yes' : 'No' }}</td>
-                        <td class="px-3 py-2">{{ $component->fund instanceof \Modules\Payroll\Enums\FundCode ? $component->fund->value : ($component->fund ?? '—') }}</td>
-                        <td class="px-3 py-2">{{ $component->is_active ? 'Yes' : 'No' }}</td>
+                        <td class="px-3 py-2">{{ $payComponent->name }}</td>
+                        <td class="px-3 py-2">{{ $payComponent->kind instanceof \Modules\Payroll\Enums\ComponentKind ? $payComponent->kind->value : $payComponent->kind }}</td>
+                        <td class="px-3 py-2">{{ $payComponent->method instanceof \Modules\Payroll\Enums\CalcMethod ? $payComponent->method->value : $payComponent->method }}</td>
+                        <td class="px-3 py-2">{{ $payComponent->sheet }}</td>
+                        <td class="px-3 py-2">{{ $payComponent->epf_liable ? 'Yes' : 'No' }}</td>
+                        <td class="px-3 py-2">{{ $payComponent->taxable ? 'Yes' : 'No' }}</td>
+                        <td class="px-3 py-2">{{ $payComponent->fund instanceof \Modules\Payroll\Enums\FundCode ? $payComponent->fund->value : ($payComponent->fund ?? '—') }}</td>
+                        <td class="px-3 py-2">{{ $payComponent->is_active ? 'Yes' : 'No' }}</td>
                         <td class="px-3 py-2 text-right whitespace-nowrap">
                             @if ($canConfigure)
                                 <div class="inline-flex items-center gap-1.5">
-                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $component->id }})" />
-                                    @if (! $component->is_system && $component->is_active)
-                                        <x-action-icon-button variant="deactivate" wire:click="deactivate({{ $component->id }})" />
+                                    <x-action-icon-button variant="edit" wire:click="openEdit({{ $payComponent->id }})" />
+                                    @if (! $payComponent->is_system && $payComponent->is_active)
+                                        <x-action-icon-button variant="deactivate" wire:click="deactivate({{ $payComponent->id }})" />
                                     @endif
                                 </div>
                             @endif

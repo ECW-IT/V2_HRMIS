@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Modules\CoreHr\Http\Controllers\DocumentDownloadController;
+use Modules\CoreHr\Http\Controllers\PersonalSheetPdfController;
 use Modules\CoreHr\Http\Controllers\PersonPhotoController;
 use Modules\CoreHr\Livewire\BankBranchesIndex;
 use Modules\CoreHr\Livewire\BanksIndex;
@@ -11,6 +12,7 @@ use Modules\CoreHr\Livewire\EmployeesIndex;
 use Modules\CoreHr\Livewire\HireWizard;
 use Modules\CoreHr\Livewire\HrReportsIndex;
 use Modules\CoreHr\Livewire\ReadinessDashboard;
+use Modules\CoreHr\Livewire\ResignedEmployeesIndex;
 
 Route::middleware(['auth', 'password.changed', 'can:employee.document.view'])
     ->get('/documents/{document}', DocumentDownloadController::class)
@@ -33,9 +35,18 @@ Route::middleware(['auth', 'password.changed', 'can:employee.view'])
     ->get('/employees', EmployeesIndex::class)
     ->name('employees.index');
 
+Route::middleware(['auth', 'password.changed', 'can:employee.view'])
+    ->get('/employees/resigned', ResignedEmployeesIndex::class)
+    ->name('employees.resigned');
+
 Route::middleware(['auth', 'password.changed', 'can:employee.create'])
     ->get('/employees/hire', HireWizard::class)
     ->name('employees.create');
+
+Route::middleware(['auth', 'password.changed', 'can:employee.view'])
+    ->get('/employees/{employment}/personal-sheet.pdf', PersonalSheetPdfController::class)
+    ->whereNumber('employment')
+    ->name('employees.personal-sheet');
 
 Route::middleware(['auth', 'password.changed', 'can:employee.view'])
     ->get('/employees/{employment}', EmployeeProfile::class)

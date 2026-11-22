@@ -9,9 +9,9 @@ use Modules\CoreHr\Support\Nic;
 use Modules\LegacyImport\Models\ImportRun;
 use Modules\LegacyImport\Models\StgEmployee;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Job;
+use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\OrgUnit;
-use Modules\Organisation\Services\JobService;
+use Modules\Organisation\Services\DesignationService;
 use Modules\Organisation\Services\OrgUnitService;
 
 final class Stager
@@ -19,7 +19,7 @@ final class Stager
     public function __construct(
         private readonly MappingRepository $maps,
         private readonly OrgUnitService $orgUnits,
-        private readonly JobService $jobs,
+        private readonly DesignationService $designations,
     ) {}
 
     /** @return array{run: ImportRun, staged: int, legacy_active: int} */
@@ -143,9 +143,9 @@ final class Stager
     private function ensureCatalogue(): void
     {
         foreach ($this->maps->rows('jobs') as $row) {
-            $exists = Job::query()->where('code', $row['code'])->exists();
+            $exists = Designation::query()->where('code', $row['code'])->exists();
             if (! $exists) {
-                $this->jobs->create([
+                $this->designations->create([
                     'code' => $row['code'],
                     'name' => $row['name'],
                 ]);

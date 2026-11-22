@@ -39,7 +39,7 @@ Copy this file to `ecw_hrmis/docs/GLOSSARY.md`. When a new term is needed, add i
 | **Company** | A legal employer with its own EPF registration and payroll | `companies` | HRM `tbl_company` **and** `tbl_company_branch`; payroll `branch_id` | Decision D13: each branch that employs people is treated as its own company |
 | **Location** | A physical site | `locations` | "Branch" | A place, not an employer |
 | **Org unit** | A department, section or sub-section in one tree | `org_units` | `departments`, `sections`, `leave_mgt_company_departments` | Three lists became one tree |
-| **Job** | What the work is, e.g. "Auto Electrician" | `hr_jobs` | `job_titles`, "designation", `leave_mgt_job_titles` | Table is `hr_jobs` because Laravel's queue owns `jobs` |
+| **Designation** | What the work is, e.g. "Auto Electrician" | `designations` | `job_titles`, "job", `hr_jobs`, `leave_mgt_job_titles` | UI term kept; table renamed from `hr_jobs` so it is not confused with Laravel's queue `jobs` |
 | **Grade** | The level on the single ladder; drives pay and time rules | `grades` | HRM `employeeschemas` ("employee schema"); payroll `employeeschemas` ("Staff II"…); `emp_salary_grade`; `leave_mgt_position_levels`; `hrm_roles` | "Schema" is a database word; five lists did one job |
 | **Role** | What a **user** may do in the system | Spatie `roles` | `roles`; also `hrm_roles` (which were really levels) | Role is about system access only |
 | **Manager** | The person an employee reports to | `assignments.manager_employment_id` | `hrm_employee_reporting`, `leave_mgt_employee_hierarchy`, "HOD", "supervisor" | — |

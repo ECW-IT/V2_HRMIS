@@ -111,7 +111,8 @@ class PersonPhotoServiceTest extends TestCase
         Livewire::test(Personal::class, ['employment' => $e])
             ->set('photo', UploadedFile::fake()->image('face.jpg'))
             ->call('uploadPhoto')
-            ->assertSee('Photo saved.');
+            ->assertSee('Photo saved.')
+            ->assertSeeHtml(route('persons.photo', $e->person_id, absolute: false).'?v=');
 
         $person = $e->person->fresh();
         $this->assertNotNull($person->photo_path);

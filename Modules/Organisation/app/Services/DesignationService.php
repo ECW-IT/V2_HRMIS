@@ -4,20 +4,20 @@ namespace Modules\Organisation\Services;
 
 use Illuminate\Support\Facades\DB;
 use Modules\Organisation\Exceptions\DuplicateName;
-use Modules\Organisation\Models\Job;
+use Modules\Organisation\Models\Designation;
 
-final class JobService
+final class DesignationService
 {
     /**
      * @param  array{code: string, name: string}  $data
      */
-    public function create(array $data): Job
+    public function create(array $data): Designation
     {
         return DB::transaction(function () use ($data) {
             $nameKey = self::nameKey($data['name']);
             $this->assertUniqueNameKey($nameKey);
 
-            return Job::query()->create([
+            return Designation::query()->create([
                 'code' => $data['code'],
                 'name' => $data['name'],
                 'name_key' => $nameKey,
@@ -29,24 +29,24 @@ final class JobService
     /**
      * @param  array{code?: string, name?: string, is_active?: bool}  $data
      */
-    public function update(Job $job, array $data): Job
+    public function update(Designation $designation, array $data): Designation
     {
-        return DB::transaction(function () use ($job, $data) {
-            $name = $data['name'] ?? $job->name;
+        return DB::transaction(function () use ($designation, $data) {
+            $name = $data['name'] ?? $designation->name;
             $nameKey = self::nameKey($name);
 
-            if ($nameKey !== $job->name_key) {
-                $this->assertUniqueNameKey($nameKey, $job->id);
+            if ($nameKey !== $designation->name_key) {
+                $this->assertUniqueNameKey($nameKey, $designation->id);
             }
 
-            $job->update([
-                'code' => $data['code'] ?? $job->code,
+            $designation->update([
+                'code' => $data['code'] ?? $designation->code,
                 'name' => $name,
                 'name_key' => $nameKey,
-                'is_active' => $data['is_active'] ?? $job->is_active,
+                'is_active' => $data['is_active'] ?? $designation->is_active,
             ]);
 
-            return $job->fresh();
+            return $designation->fresh();
         });
     }
 
@@ -59,13 +59,13 @@ final class JobService
 
     private function assertUniqueNameKey(string $nameKey, ?int $ignoreId = null): void
     {
-        $exists = Job::query()
+        $exists = Designation::query()
             ->where('name_key', $nameKey)
             ->when($ignoreId !== null, fn ($q) => $q->where('id', '!=', $ignoreId))
             ->exists();
 
         if ($exists) {
-            throw new DuplicateName('A job with this name already exists.');
+            throw new DuplicateName('A designation with this name already exists.');
         }
     }
 }

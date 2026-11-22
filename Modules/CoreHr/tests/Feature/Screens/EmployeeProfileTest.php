@@ -14,6 +14,7 @@ use Modules\CoreHr\Enums\ArriveWorkFrom;
 use Modules\CoreHr\Livewire\EmployeeProfile;
 use Modules\CoreHr\Livewire\Tabs\Personal;
 use Modules\CoreHr\Models\EmployeeDocument;
+use Modules\CoreHr\Models\PersonContact;
 use Modules\CoreHr\Models\PersonDependent;
 use Modules\CoreHr\Models\PersonEmergencyContact;
 use Modules\CoreHr\Models\PersonExperience;
@@ -22,6 +23,8 @@ use Modules\CoreHr\Services\BankAccountService;
 use Modules\CoreHr\Services\EmploymentRequestService;
 use Modules\CoreHr\Services\EmploymentService;
 use Modules\Organisation\Models\Grade;
+use Modules\Workflow\Models\ApprovalRequest;
+use Modules\Workflow\Services\ApprovalService;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
 
@@ -56,8 +59,11 @@ class EmployeeProfileTest extends TestCase
         $this->get(route('employees.show', $e))
             ->assertOk()
             ->assertSee($e->employee_no)
+            ->assertSee($e->epf_no)
+            ->assertDontSeeHtml('wire:model="employeeNo"')
+            ->assertDontSeeHtml('wire:model="epfNo"')
             ->assertSee($e->person->name_with_initials)
-            ->assertSee($assignment->job->name)
+            ->assertSee($assignment->designation->name)
             ->assertSee($assignment->grade->name)
             ->assertSee($e->person->nic);
     }
@@ -197,14 +203,14 @@ class EmployeeProfileTest extends TestCase
         $this->loginAs('hr-officer', $e->company);
 
         Livewire::test(EmployeeProfile::class, ['employment' => $e])
-            ->assertSee('Attendance')
+            ->assertSeeHtml("wire:click=\"selectTab('attendance')\"")
             ->set('tab', 'attendance')
             ->assertSee('No punches this month.');
 
         $user = User::factory()->forCompanies([$e->company])->withPermissions('employee.view')->create(['must_change_password' => false]);
         $this->actingAs($user);
         Livewire::test(EmployeeProfile::class, ['employment' => $e])
-            ->assertDontSee('Attendance');
+            ->assertDontSeeHtml("wire:click=\"selectTab('attendance')\"");
     }
 
     public function test_readiness_tab_lists_todays_issues(): void
@@ -231,21 +237,30 @@ class EmployeeProfileTest extends TestCase
         $this->assertNull($e->person->fresh()->calling_name);
     }
 
-    public function test_personal_tab_saves_directly_for_a_manager(): void
+    public function test_personal_tab_sends_changes_for_approval_for_a_manager(): void
     {
+        $this->seed(ApprovalDefinitionSeeder::class);
         $e = $this->hired();
         $this->loginAs('hr-manager', $e->company);
 
         Livewire::test(Personal::class, ['employment' => $e])
             ->set('callingName', 'Sunil')
             ->call('save')
-            ->assertSee('Saved.');
+            ->assertSee('Sent for approval');
 
+        $this->assertNull($e->person->fresh()->calling_name);
+
+        $approver = User::factory()
+            ->forCompanies([$e->company])
+            ->withRole('super-admin')
+            ->create(['must_change_password' => false]);
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), $approver);
         $this->assertSame('Sunil', $e->person->fresh()->calling_name);
     }
 
     public function test_personal_tab_saves_region_and_arrive_work_from(): void
     {
+        $this->seed(ApprovalDefinitionSeeder::class);
         $this->seed(RegionSeeder::class);
         $e = $this->hired();
         $this->loginAs('hr-manager', $e->company);
@@ -257,7 +272,13 @@ class EmployeeProfileTest extends TestCase
             ->set('region', 'Hindu')
             ->set('arriveWorkFrom', ArriveWorkFrom::HOME->value)
             ->call('save')
-            ->assertSee('Saved.');
+            ->assertSee('Sent for approval');
+
+        $approver = User::factory()
+            ->forCompanies([$e->company])
+            ->withRole('super-admin')
+            ->create(['must_change_password' => false]);
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), $approver);
 
         $person = $e->person->fresh();
         $this->assertSame('B7654321', $person->driving_licence_no);
@@ -372,5 +393,31 @@ class EmployeeProfileTest extends TestCase
         $this->assertDatabaseMissing('person_dependents', ['id' => $dependent->id]);
         $this->assertDatabaseMissing('person_qualifications', ['id' => $qualification->id]);
         $this->assertDatabaseMissing('person_experience', ['id' => $experience->id]);
+    }
+
+    public function test_personal_tab_can_update_and_remove_contacts(): void
+    {
+        $e = $this->hired();
+        $contact = PersonContact::factory()->create([
+            'person_id' => $e->person_id,
+            'type' => 'MOBILE',
+            'value' => '0771111111',
+            'is_primary' => true,
+        ]);
+        $this->loginAs('hr-manager', $e->company);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('openEditContact', $contact->id)
+            ->set('newContactValue', '0779999999')
+            ->call('saveContact')
+            ->assertSee('Saved.');
+
+        $this->assertSame('0779999999', $contact->fresh()->value);
+
+        Livewire::test(Personal::class, ['employment' => $e])
+            ->call('removeContact', $contact->id)
+            ->assertSee('Removed.');
+
+        $this->assertDatabaseMissing('person_contacts', ['id' => $contact->id]);
     }
 }

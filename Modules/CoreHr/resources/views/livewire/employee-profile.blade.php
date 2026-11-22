@@ -46,35 +46,40 @@
                 </div>
                 <p class="mt-1 text-sm text-gray-600">
                     <span class="font-mono text-xs">{{ $employment->employee_no }}</span>
+                    @if($employment->epf_liable && $employment->epf_no)
+                        · EPF <span class="font-mono text-xs">{{ $employment->epf_no }}</span>
+                    @endif
                     · {{ $employment->company->name }}
                 </p>
                 <p class="text-sm text-gray-600">
-                    {{ $assignment?->job?->name ?? '—' }}
+                    {{ $assignment?->designation?->name ?? '—' }}
                     · {{ $assignment?->orgUnit?->name ?? '—' }}
                 </p>
                 <p class="mt-1 text-xs text-gray-500">
-                    Hired {{ $employment->hire_date->format('Y-m-d') }} · Length of service {{ $service }}
+                    Hired {{ $employment->hire_date->format('Y-m-d') }} · Service Period {{ $service }}
                     @if($employment->exit_date)
                         · Left {{ $employment->exit_date->format('Y-m-d') }}
                     @endif
                 </p>
             </div>
 
-            @if($actions !== [])
-                <div class="flex flex-wrap items-center gap-2">
-                    @foreach($actions as $key => $label)
-                        <button type="button" wire:click="openAction('{{ $key }}')" wire:loading.attr="disabled" wire:target="openAction"
-                            @class([
-                                'rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50',
-                                'border border-red-600 text-red-600 hover:bg-red-50' => $key === 'exit',
-                                'border border-blue-600 text-blue-600 hover:bg-blue-50' => $key !== 'exit' && $key !== 'confirm',
-                                'bg-blue-600 text-white hover:bg-blue-700' => $key === 'confirm',
-                            ])>
-                            {{ $label }}
-                        </button>
-                    @endforeach
-                </div>
-            @endif
+            <div class="flex flex-wrap items-center gap-2">
+                <a href="{{ route('employees.personal-sheet', $employment) }}"
+                    class="rounded border border-blue-600 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50">
+                    Download personal sheet
+                </a>
+                @foreach($actions as $key => $label)
+                    <button type="button" wire:click="openAction('{{ $key }}')" wire:loading.attr="disabled" wire:target="openAction"
+                        @class([
+                            'rounded px-3 py-1.5 text-sm font-medium disabled:opacity-50',
+                            'border border-red-600 text-red-600 hover:bg-red-50' => $key === 'exit',
+                            'border border-blue-600 text-blue-600 hover:bg-blue-50' => $key !== 'exit' && $key !== 'confirm',
+                            'bg-blue-600 text-white hover:bg-blue-700' => $key === 'confirm',
+                        ])>
+                        {{ $label }}
+                    </button>
+                @endforeach
+            </div>
         </div>
     </div>
 

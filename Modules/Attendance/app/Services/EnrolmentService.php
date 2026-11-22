@@ -34,19 +34,7 @@ final class EnrolmentService
                 $openSameGroup->update(['valid_to' => $closeOn]);
             }
 
-            $candidates = BiometricEnrolment::query()
-                ->where('device_group', $deviceGroup)
-                ->where('device_user_id', $deviceUserId)
-                ->lockForUpdate()
-                ->get();
-
-            foreach ($candidates as $existing) {
-                if ($this->rangesOverlap($existing->valid_from->toDateString(), $existing->valid_to?->toDateString(), $fromDate, null)) {
-                    $holder = Employment::query()->find($existing->employment_id);
-                    $number = $holder?->employee_no ?? (string) $existing->employment_id;
-                    throw new DeviceUserIdInUse("Device user ID is already held by {$number}.");
-                }
-            }
+            $this->assertAvailable($deviceGroup, $deviceUserId, $fromDate, lock: true);
 
             $enrolment = BiometricEnrolment::query()->create([
                 'employment_id' => $e->id,
@@ -60,6 +48,28 @@ final class EnrolmentService
 
             return $enrolment;
         });
+    }
+
+    /** Rejects when an overlapping enrolment already holds the same device user ID in the group. */
+    public function assertAvailable(string $deviceGroup, int $deviceUserId, \DateTimeInterface|string $from, bool $lock = false): void
+    {
+        $fromDate = $this->dateString($from);
+
+        $query = BiometricEnrolment::query()
+            ->where('device_group', $deviceGroup)
+            ->where('device_user_id', $deviceUserId);
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        foreach ($query->get() as $existing) {
+            if ($this->rangesOverlap($existing->valid_from->toDateString(), $existing->valid_to?->toDateString(), $fromDate, null)) {
+                $holder = Employment::query()->find($existing->employment_id);
+                $number = $holder?->employee_no ?? (string) $existing->employment_id;
+                throw new DeviceUserIdInUse("Device user ID is already held by {$number}.");
+            }
+        }
     }
 
     public function end(BiometricEnrolment $enrolment, \DateTimeInterface|string $on): BiometricEnrolment
@@ -100,7 +110,16 @@ final class EnrolmentService
             })
             ->first();
 
-        return $enrolment?->employment_id;
+        if ($enrolment === null) {
+            return null;
+        }
+
+        $employment = Employment::query()->find($enrolment->employment_id);
+        if ($employment === null || ! $employment->attendance_active) {
+            return null;
+        }
+
+        return (int) $enrolment->employment_id;
     }
 
     private function rangesOverlap(string $aFrom, ?string $aTo, string $bFrom, ?string $bTo): bool

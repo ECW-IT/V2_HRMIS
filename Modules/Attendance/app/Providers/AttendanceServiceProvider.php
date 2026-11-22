@@ -10,6 +10,7 @@ use Modules\Attendance\Contracts\LeaveDayProvider;
 use Modules\Attendance\Enums\AdjustmentStatus;
 use Modules\Attendance\Http\Middleware\AuthenticateDevice;
 use Modules\Attendance\Livewire\DailyBoard;
+use Modules\Attendance\Livewire\DeviceGroupsIndex;
 use Modules\Attendance\Livewire\DevicesIndex;
 use Modules\Attendance\Livewire\EmployeePunches;
 use Modules\Attendance\Livewire\EmployeeTimecards;
@@ -76,6 +77,7 @@ class AttendanceServiceProvider extends ModuleServiceProvider
             }
         });
 
+        Livewire::component('attendance.device-groups-index', DeviceGroupsIndex::class);
         Livewire::component('attendance.devices-index', DevicesIndex::class);
         Livewire::component('attendance.unresolved-punches', UnresolvedPunches::class);
         Livewire::component('attendance.employee-punches', EmployeePunches::class);

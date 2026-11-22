@@ -4,17 +4,25 @@
     <div class="rounded bg-white p-5 shadow">
         <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Photo</h3>
         <div class="flex flex-wrap items-center gap-4">
-            @if($person->photo_path)
-                <img src="{{ route('persons.photo', $person) }}" alt="Employee photo"
-                    class="h-20 w-20 rounded-full object-cover ring-1 ring-gray-200" />
-            @else
-                <div class="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 text-sm text-gray-500">No photo</div>
-            @endif
+            <div wire:key="person-photo-{{ $person->photo_path ?? 'none' }}-{{ $photo ? 'pending' : 'saved' }}">
+                @if($photo)
+                    <img src="{{ $photo->temporaryUrl() }}" alt="Selected photo preview"
+                        class="h-20 w-20 rounded-full object-cover ring-1 ring-blue-300" />
+                @elseif($person->photo_path)
+                    <img src="{{ route('persons.photo', $person) }}?v={{ urlencode($person->photo_path) }}" alt="Employee photo"
+                        class="h-20 w-20 rounded-full object-cover ring-1 ring-gray-200" />
+                @else
+                    <div class="flex h-20 w-20 items-center justify-center rounded-full bg-gray-100 text-sm text-gray-500">No photo</div>
+                @endif
+            </div>
             @if($canEdit)
                 <div class="min-w-0 flex-1 space-y-2">
-                    <input type="file" wire:model="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                    <input type="file" wire:model.live="photo" accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                         class="block w-full text-sm text-gray-600 file:mr-3 file:rounded file:border-0 file:bg-blue-50 file:px-3 file:py-1.5 file:text-xs file:font-medium file:text-blue-700" />
                     @error('photo')<p class="text-xs text-red-500">{{ $message }}</p>@enderror
+                    @if($photo)
+                        <p class="text-xs text-blue-700">Selected — click Upload photo</p>
+                    @endif
                     <div class="flex flex-wrap gap-2">
                         <button type="button" wire:click="uploadPhoto" wire:loading.attr="disabled" wire:target="uploadPhoto,photo"
                             class="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700 disabled:opacity-50">Upload photo</button>
@@ -29,31 +37,24 @@
     </div>
 
     <div class="rounded bg-white p-5 shadow">
-        <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Names</h3>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div>
-                <label class="mb-1 block text-xs font-medium text-gray-600">Title</label>
-                <input wire:model="title" type="text" maxlength="20" @disabled(! $canEdit)
-                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('title') border-red-400 @enderror" />
-                @error('title')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div class="rounded border bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                <span class="mb-1 block text-xs text-gray-500">NIC</span>
+                <span class="font-mono text-xs">{{ $person->nic ?: '—' }}</span>
+            </div>
+            <div class="rounded border bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                <span class="mb-1 block text-xs text-gray-500">Date of birth</span>
+                {{ $person->date_of_birth->format('Y-m-d') }}
+            </div>
+            <div class="rounded border bg-gray-50 px-3 py-2 text-sm text-gray-700">
+                <span class="mb-1 block text-xs text-gray-500">Gender</span>
+                {{ ucfirst(strtolower($person->gender->value)) }}
             </div>
             <div>
-                <label class="mb-1 block text-xs font-medium text-gray-600">First name <span class="text-red-500">*</span></label>
-                <input wire:model="firstName" type="text" maxlength="100" @disabled(! $canEdit)
-                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('firstName') border-red-400 @enderror" />
-                @error('firstName')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-            </div>
-            <div>
-                <label class="mb-1 block text-xs font-medium text-gray-600">Middle name</label>
-                <input wire:model="middleName" type="text" maxlength="100" @disabled(! $canEdit)
-                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('middleName') border-red-400 @enderror" />
-                @error('middleName')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-            </div>
-            <div>
-                <label class="mb-1 block text-xs font-medium text-gray-600">Last name <span class="text-red-500">*</span></label>
-                <input wire:model="lastName" type="text" maxlength="100" @disabled(! $canEdit)
-                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('lastName') border-red-400 @enderror" />
-                @error('lastName')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                <label class="mb-1 block text-xs font-medium text-gray-600">Full name <span class="text-red-500">*</span></label>
+                <input wire:model.live.debounce.400ms="fullName" type="text" maxlength="150" @disabled(! $canEdit)
+                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('fullName') border-red-400 @enderror" />
+                @error('fullName')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
             </div>
             <div>
                 <label class="mb-1 block text-xs font-medium text-gray-600">Name with initials <span class="text-red-500">*</span></label>
@@ -150,85 +151,81 @@
                 <input wire:model="distanceKm" type="number" min="0" step="0.1" @disabled(! $canEdit)
                     class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
             </div>
-            <div class="rounded border bg-gray-50 px-3 py-1.5 text-sm text-gray-700">
-                <span class="block text-xs text-gray-500">NIC, date of birth and gender</span>
-                <span class="font-mono text-xs">{{ $person->nic ?: '—' }}</span>
-                · {{ $person->date_of_birth->format('Y-m-d') }}
-                · {{ ucfirst(strtolower($person->gender->value)) }}
+        </div>
+
+        <div class="mt-6 grid grid-cols-1 gap-3 md:grid-cols-2">
+            <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500 md:col-span-2">Permanent address</h4>
+            <div>
+                <input wire:model="addresses.PERMANENT.line1" type="text" maxlength="150" placeholder="Address line 1" @disabled(! $canEdit)
+                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('addresses.PERMANENT.line1') border-red-400 @enderror" />
+                @error('addresses.PERMANENT.line1')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <input wire:model="addresses.PERMANENT.city" type="text" maxlength="80" placeholder="City" @disabled(! $canEdit)
+                    class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('addresses.PERMANENT.city') border-red-400 @enderror" />
+                @error('addresses.PERMANENT.city')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
             </div>
         </div>
-    </div>
 
-    <div class="rounded bg-white p-5 shadow">
-        <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Contacts</h3>
-        @if($person->contacts->isNotEmpty())
-            <ul class="mb-4 divide-y text-sm">
-                @foreach($person->contacts as $contact)
-                    <li class="flex items-center gap-3 py-1.5">
-                        <span class="w-28 text-xs text-gray-500">{{ ucfirst(strtolower(str_replace('_', ' ', $contact->type->value))) }}</span>
-                        <span class="text-gray-700">{{ $contact->value }}</span>
-                        @if($contact->is_primary)
-                            <span class="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Primary</span>
-                        @endif
-                    </li>
-                @endforeach
-            </ul>
-        @else
-            <p class="mb-4 text-sm text-gray-500">No contacts recorded.</p>
-        @endif
-
-        @if($canEdit)
-            <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-4">
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Add contact</label>
-                    <select wire:model="newContactType" class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-                        @foreach($contactTypes as $contactType)
-                            <option value="{{ $contactType->value }}">{{ ucfirst(strtolower(str_replace('_', ' ', $contactType->value))) }}</option>
-                        @endforeach
-                    </select>
-                </div>
-                <div class="md:col-span-2">
-                    <input wire:model="newContactValue" type="text" maxlength="150" placeholder="Number or address"
-                        class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('newContactValue') border-red-400 @enderror" />
-                    @error('newContactValue')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                </div>
-                <label class="flex items-center gap-2 pb-1.5 text-sm text-gray-700">
-                    <input type="checkbox" wire:model="newContactPrimary" class="rounded border" /> Primary
-                </label>
+        <div class="mt-6">
+            <div class="mb-3 flex items-center justify-between gap-3">
+                <h4 class="text-xs font-semibold uppercase tracking-wide text-gray-500">Contacts</h4>
+                @if($canEdit && ! $showContactForm)
+                    <button type="button" wire:click="openAddContact"
+                        class="rounded border border-blue-600 px-3 py-1 text-xs font-medium text-blue-600 hover:bg-blue-50">Add contact</button>
+                @endif
             </div>
-        @endif
-    </div>
 
-    <div class="rounded bg-white p-5 shadow">
-        <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Addresses</h3>
-        <div class="grid grid-cols-1 gap-6 md:grid-cols-2">
-            @foreach(['PERMANENT' => 'Permanent address', 'CURRENT' => 'Current address'] as $type => $label)
-                <div class="grid grid-cols-1 gap-3">
-                    <p class="text-xs font-semibold text-gray-600">{{ $label }}</p>
-                    <div>
-                        <input wire:model="addresses.{{ $type }}.line1" type="text" maxlength="150" placeholder="Address line 1" @disabled(! $canEdit)
-                            class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error("addresses.$type.line1") border-red-400 @enderror" />
-                        @error("addresses.$type.line1")<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-                    </div>
-                    <input wire:model="addresses.{{ $type }}.line2" type="text" maxlength="150" placeholder="Address line 2" @disabled(! $canEdit)
-                        class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
-                    <div class="grid grid-cols-3 gap-3">
+            @if($person->contacts->isNotEmpty())
+                <ul class="mb-4 divide-y text-sm">
+                    @foreach($person->contacts as $contact)
+                        <li class="flex items-center gap-3 py-1.5">
+                            <span class="w-28 shrink-0 text-xs text-gray-500">{{ ucfirst(strtolower(str_replace('_', ' ', $contact->type->value))) }}</span>
+                            <span class="min-w-0 flex-1 text-gray-700">{{ $contact->value }}</span>
+                            @if($contact->is_primary)
+                                <span class="rounded bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Primary</span>
+                            @endif
+                            @if($canEdit)
+                                <span class="ml-auto flex shrink-0 items-center gap-1">
+                                    <x-action-icon-button variant="edit" wire:click="openEditContact({{ $contact->id }})" />
+                                    <x-action-icon-button variant="remove" wire:click="removeContact({{ $contact->id }})" wire:confirm="Remove this contact?" />
+                                </span>
+                            @endif
+                        </li>
+                    @endforeach
+                </ul>
+            @else
+                <p class="mb-4 text-sm text-gray-500">No contacts recorded.</p>
+            @endif
+
+            @if($canEdit && $showContactForm)
+                <div class="rounded border bg-gray-50 p-3">
+                    <p class="mb-3 text-xs font-medium text-gray-600">{{ $editingContactId ? 'Edit contact' : 'Add contact' }}</p>
+                    <div class="grid grid-cols-1 items-end gap-4 md:grid-cols-2">
                         <div>
-                            <input wire:model="addresses.{{ $type }}.city" type="text" maxlength="80" placeholder="City" @disabled(! $canEdit)
-                                class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error("addresses.$type.city") border-red-400 @enderror" />
-                            @error("addresses.$type.city")<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                            <label class="mb-1 block text-xs font-medium text-gray-600">Type</label>
+                            <select wire:model="newContactType" class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
+                                @foreach($contactTypes as $contactType)
+                                    <option value="{{ $contactType->value }}">{{ ucfirst(strtolower(str_replace('_', ' ', $contactType->value))) }}</option>
+                                @endforeach
+                            </select>
                         </div>
-                        <select wire:model="addresses.{{ $type }}.district" @disabled(! $canEdit) class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500">
-                            <option value="">District</option>
-                            @foreach($districts as $option)
-                                <option value="{{ $option }}">{{ $option }}</option>
-                            @endforeach
-                        </select>
-                        <input wire:model="addresses.{{ $type }}.postal_code" type="text" maxlength="10" placeholder="Postal code" @disabled(! $canEdit)
-                            class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                        <div>
+                            <label class="mb-1 block text-xs font-medium text-gray-600">Value</label>
+                            <input wire:model="newContactValue" type="text" maxlength="150" placeholder="Number or address"
+                                class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('newContactValue') border-red-400 @enderror" />
+                            @error('newContactValue')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                        </div>
+                        <label class="flex items-center gap-2 pb-1.5 text-sm text-gray-700">
+                            <input type="checkbox" wire:model="newContactPrimary" class="rounded border" /> Primary
+                        </label>
+                        <div class="flex flex-wrap gap-2 md:justify-end">
+                            <button type="button" wire:click="closeContactForm" class="rounded border px-3 py-1.5 text-sm text-gray-700 hover:bg-white">Cancel</button>
+                            <button type="button" wire:click="saveContact" class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">Save contact</button>
+                        </div>
                     </div>
                 </div>
-            @endforeach
+            @endif
         </div>
     </div>
 

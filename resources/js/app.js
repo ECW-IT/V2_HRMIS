@@ -64,6 +64,77 @@ document.addEventListener('alpine:init', () => {
         },
     }));
 
+    Alpine.data('searchableSelect', (config = {}) => ({
+        open: false,
+        query: '',
+        selected: config.selected ?? '',
+        options: config.options ?? [],
+        model: config.model ?? '',
+        emptyLabel: config.emptyLabel ?? 'Select',
+        disabled: config.disabled ?? false,
+
+        get selectedLabel() {
+            if (this.selected === '' || this.selected === null || this.selected === undefined) {
+                return '';
+            }
+
+            const match = this.options.find((o) => String(o.id) === String(this.selected));
+
+            return match ? match.label : '';
+        },
+
+        get inputValue() {
+            return this.open ? this.query : this.selectedLabel;
+        },
+
+        get filtered() {
+            const q = this.query.trim().toLowerCase();
+
+            if (q === '') {
+                return this.options;
+            }
+
+            return this.options.filter((o) => String(o.label).toLowerCase().includes(q));
+        },
+
+        openPanel() {
+            if (this.disabled) {
+                return;
+            }
+
+            this.open = true;
+            this.query = this.selectedLabel;
+            this.$nextTick(() => {
+                const input = this.$refs.input;
+                if (input) {
+                    input.focus();
+                    input.select();
+                }
+            });
+        },
+
+        onInput(event) {
+            if (this.disabled) {
+                return;
+            }
+
+            this.query = event.target.value;
+            this.open = true;
+        },
+
+        close() {
+            this.open = false;
+            this.query = '';
+        },
+
+        select(id) {
+            this.selected = id === null || id === undefined ? '' : id;
+            this.query = '';
+            this.open = false;
+            this.$wire.set(this.model, this.selected === '' ? '' : this.selected);
+        },
+    }));
+
     Alpine.data('inlineTable', () => ({
         editingCell: null,
         editValue: '',
