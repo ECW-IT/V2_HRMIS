@@ -9,24 +9,33 @@ use Illuminate\Database\Query\JoinClause;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Enums\EmploymentType;
 use Modules\CoreHr\Exceptions\InvalidNic;
+use Modules\CoreHr\Exports\EmployeeHireTemplateExport;
 use Modules\CoreHr\Exports\EmployeesExport;
+use Modules\CoreHr\Imports\EmployeeHiresImport;
 use Modules\CoreHr\Models\Employment;
+use Modules\CoreHr\Services\EmployeeExcelHireService;
 use Modules\CoreHr\Support\EmployeesNav;
 use Modules\CoreHr\Support\Nic;
 use Modules\CoreHr\Support\OrgUnitOptions;
+use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Organisation\Services\OrgUnitService;
+use Modules\Payroll\Exports\EmployeeComponentsTemplateExport;
+use Modules\Payroll\Imports\EmployeeComponentsImport;
+use Modules\Payroll\Services\EmployeeComponentExcelService;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class EmployeesIndex extends Component
 {
+    use WithFileUploads;
     use WithPagination;
 
     private const SORTS = [
@@ -58,6 +67,31 @@ class EmployeesIndex extends Component
     public ?int $editingEmploymentId = null;
 
     public int $editStep = 1;
+
+    public bool $showHireUpload = false;
+
+    /** @var mixed */
+    public $hireExcelFile = null;
+
+    public string $hireImportMessage = '';
+
+    /** @var list<string> */
+    public array $hireImportErrors = [];
+
+    public bool $showPayrollUpload = false;
+
+    /** @var mixed */
+    public $payrollExcelFile = null;
+
+    public string $payrollEffectiveFrom = '';
+
+    public string $payrollImportMessage = '';
+
+    /** @var list<string> */
+    public array $payrollImportErrors = [];
+
+    /** @var list<string> */
+    public array $payrollImportWarnings = [];
 
     public function openEdit(int $employmentId): void
     {
@@ -116,6 +150,158 @@ class EmployeesIndex extends Component
         $this->authorize('employee.view');
 
         return Excel::download(new EmployeesExport($this->query()), 'employees.xlsx');
+    }
+
+    public function downloadHireTemplate(): BinaryFileResponse
+    {
+        $this->authorize('employee.create');
+
+        if (CompanyContext::id() === null) {
+            abort(403, 'Select a company in the header first.');
+        }
+
+        return Excel::download(
+            new EmployeeHireTemplateExport,
+            'employee_hire_template.xlsx'
+        );
+    }
+
+    public function openHireUpload(): void
+    {
+        $this->authorize('employee.create');
+        $this->showHireUpload = true;
+        $this->hireExcelFile = null;
+        $this->hireImportMessage = '';
+        $this->hireImportErrors = [];
+    }
+
+    public function closeHireUpload(): void
+    {
+        $this->showHireUpload = false;
+        $this->hireExcelFile = null;
+        $this->hireImportMessage = '';
+        $this->hireImportErrors = [];
+    }
+
+    public function uploadHires(EmployeeExcelHireService $hireService): void
+    {
+        $this->authorize('employee.create');
+
+        $companyId = CompanyContext::id();
+        if ($companyId === null) {
+            $this->hireImportErrors = ['Select a company in the header first.'];
+            $this->hireImportMessage = '';
+
+            return;
+        }
+
+        $this->validate([
+            'hireExcelFile' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
+        ]);
+
+        $import = new EmployeeHiresImport;
+        Excel::import($import, $this->hireExcelFile->getRealPath());
+
+        if ($import->rows === []) {
+            $this->hireImportErrors = ['No data rows found in the Excel file.'];
+            $this->hireImportMessage = '';
+
+            return;
+        }
+
+        $company = Company::query()->findOrFail($companyId);
+        $result = $hireService->process($company, $import->rows);
+
+        $this->hireImportErrors = $result['errors'];
+        $this->hireImportMessage = 'Upload completed. Success: '.$result['success_count']
+            .', Errors: '.$result['error_count'].'.';
+
+        if ($result['hired'] !== []) {
+            $this->hireImportMessage .= ' Hired: '.implode(', ', $result['hired']).'.';
+        }
+
+        $this->hireExcelFile = null;
+        $this->resetPage();
+    }
+
+    public function downloadPayrollTemplate(): BinaryFileResponse
+    {
+        $this->authorize('compensation.manage');
+
+        if (CompanyContext::id() === null) {
+            abort(403, 'Select a company in the header first.');
+        }
+
+        return Excel::download(
+            new EmployeeComponentsTemplateExport,
+            'employee_payroll_components_template.xlsx'
+        );
+    }
+
+    public function openPayrollUpload(): void
+    {
+        $this->authorize('compensation.manage');
+        $this->showPayrollUpload = true;
+        $this->payrollExcelFile = null;
+        $this->payrollEffectiveFrom = CarbonImmutable::now(config('app.timezone'))->startOfMonth()->toDateString();
+        $this->payrollImportMessage = '';
+        $this->payrollImportErrors = [];
+        $this->payrollImportWarnings = [];
+    }
+
+    public function closePayrollUpload(): void
+    {
+        $this->showPayrollUpload = false;
+        $this->payrollExcelFile = null;
+        $this->payrollImportMessage = '';
+        $this->payrollImportErrors = [];
+        $this->payrollImportWarnings = [];
+    }
+
+    public function uploadPayrollComponents(EmployeeComponentExcelService $payrollService): void
+    {
+        $this->authorize('compensation.manage');
+
+        $companyId = CompanyContext::id();
+        if ($companyId === null) {
+            $this->payrollImportErrors = ['Select a company in the header first.'];
+            $this->payrollImportWarnings = [];
+            $this->payrollImportMessage = '';
+
+            return;
+        }
+
+        $this->validate([
+            'payrollExcelFile' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
+            'payrollEffectiveFrom' => ['required', 'date'],
+        ]);
+
+        $import = new EmployeeComponentsImport;
+        Excel::import($import, $this->payrollExcelFile->getRealPath());
+
+        if ($import->rows === []) {
+            $this->payrollImportErrors = ['No data rows found in the Excel file.'];
+            $this->payrollImportWarnings = [];
+            $this->payrollImportMessage = '';
+
+            return;
+        }
+
+        $company = Company::query()->findOrFail($companyId);
+        $result = $payrollService->process($company, $import->rows, $this->payrollEffectiveFrom);
+
+        $this->payrollImportErrors = $result['errors'];
+        $this->payrollImportWarnings = $result['warnings'];
+        $this->payrollImportMessage = 'Upload completed. Success: '.$result['success_count']
+            .', Errors: '.$result['error_count']
+            .', Warnings: '.count($result['warnings']).'.';
+
+        if ($result['updated'] !== []) {
+            $this->payrollImportMessage .= ' Updated: '.implode(', ', $result['updated']).'.';
+        }
+
+        $this->payrollExcelFile = null;
+        $this->resetPage();
     }
 
     /** The filtered list query. Shared by the table and the export. */

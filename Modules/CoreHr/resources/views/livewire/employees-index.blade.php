@@ -78,8 +78,26 @@
                 class="rounded bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
                 Export to Excel
             </button>
+            @can('compensation.manage')
+                <button type="button" wire:click="downloadPayrollTemplate" wire:loading.attr="disabled" wire:target="downloadPayrollTemplate"
+                    class="rounded border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                    Payroll template
+                </button>
+                <button type="button" wire:click="openPayrollUpload"
+                    class="rounded border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                    Upload payroll Excel
+                </button>
+            @endcan
             @if($showHireButton)
                 @can('employee.create')
+                    <button type="button" wire:click="downloadHireTemplate" wire:loading.attr="disabled" wire:target="downloadHireTemplate"
+                        class="rounded border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                        Download template
+                    </button>
+                    <button type="button" wire:click="openHireUpload"
+                        class="rounded border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                        Upload Excel
+                    </button>
                     <a href="{{ route('employees.create') }}" class="rounded bg-blue-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
                         Add employee
                     </a>
@@ -87,6 +105,115 @@
             @endif
         </div>
     </div>
+
+    @if($showHireUpload)
+        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" wire:click.self="closeHireUpload">
+            <div class="w-full max-w-lg rounded bg-white p-4 shadow-lg">
+                <div class="mb-3 flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-gray-800">Upload employee hires</h3>
+                    <button type="button" wire:click="closeHireUpload" class="text-sm text-gray-500 hover:text-gray-800">Close</button>
+                </div>
+                <p class="mb-3 text-xs text-gray-600">
+                    Use the hire template. Company comes from the header selector. Employee numbers are issued on save.
+                    Skip the sample row. Photos and pay-component lines are not imported.
+                </p>
+                <div class="mb-3">
+                    <input type="file" wire:model="hireExcelFile" accept=".xlsx,.xls"
+                        class="block w-full text-sm text-gray-700" />
+                    @error('hireExcelFile')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                    <div wire:loading wire:target="hireExcelFile" class="mt-1 text-xs text-gray-500">Uploading file…</div>
+                </div>
+                @if($hireImportMessage !== '')
+                    <div class="mb-3 rounded bg-green-50 px-3 py-2 text-sm text-green-700">{{ $hireImportMessage }}</div>
+                @endif
+                @if($hireImportErrors !== [])
+                    <div class="mb-3 max-h-64 overflow-y-auto rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+                        <ul class="list-disc space-y-1 pl-4">
+                            @foreach($hireImportErrors as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                <div class="flex justify-end gap-2">
+                    <button type="button" wire:click="closeHireUpload"
+                        class="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                        Cancel
+                    </button>
+                    <button type="button" wire:click="uploadHires" wire:loading.attr="disabled" wire:target="uploadHires"
+                        class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                        Upload
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if($showPayrollUpload)
+        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" wire:click.self="closePayrollUpload">
+            <div class="w-full max-w-lg rounded bg-white p-4 shadow-lg">
+                <div class="mb-3 flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-gray-800">Upload payroll components</h3>
+                    <button type="button" wire:click="closePayrollUpload" class="text-sm text-gray-500 hover:text-gray-800">Close</button>
+                </div>
+                <p class="mb-3 text-xs text-gray-600">
+                    Use the payroll template. First column is Emp no; other columns are component amounts.
+                    Empty cells are skipped. Attendance allowance, meals deduction, sales bonus and over time hours
+                    are ignored here (use attendance tier or pay entries). OT Rate updates fixed overtime rate
+                    from the first day of the selected month.
+                </p>
+                <div class="mb-3">
+                    <label class="mb-1 block text-xs font-medium text-gray-600" for="payrollEffectiveFrom">Effective from</label>
+                    <input id="payrollEffectiveFrom" type="date" wire:model="payrollEffectiveFrom"
+                        class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                    @error('payrollEffectiveFrom')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                </div>
+                <div class="mb-3">
+                    <input type="file" wire:model="payrollExcelFile" accept=".xlsx,.xls"
+                        class="block w-full text-sm text-gray-700" />
+                    @error('payrollExcelFile')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                    <div wire:loading wire:target="payrollExcelFile" class="mt-1 text-xs text-gray-500">Uploading file…</div>
+                </div>
+                @if($payrollImportMessage !== '')
+                    <div class="mb-3 rounded bg-green-50 px-3 py-2 text-sm text-green-700">{{ $payrollImportMessage }}</div>
+                @endif
+                @if($payrollImportWarnings !== [])
+                    <div class="mb-3 max-h-40 overflow-y-auto rounded bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                        <ul class="list-disc space-y-1 pl-4">
+                            @foreach($payrollImportWarnings as $warning)
+                                <li>{{ $warning }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                @if($payrollImportErrors !== [])
+                    <div class="mb-3 max-h-64 overflow-y-auto rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+                        <ul class="list-disc space-y-1 pl-4">
+                            @foreach($payrollImportErrors as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                <div class="flex justify-end gap-2">
+                    <button type="button" wire:click="closePayrollUpload"
+                        class="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                        Cancel
+                    </button>
+                    <button type="button" wire:click="uploadPayrollComponents" wire:loading.attr="disabled" wire:target="uploadPayrollComponents"
+                        class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                        Upload
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     <div class="overflow-x-auto rounded bg-white shadow">
         <table class="w-full table-compact text-sm">

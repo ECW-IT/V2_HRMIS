@@ -98,6 +98,16 @@ return [
         'display_order' => 180,
     ],
     [
+        'code' => 'TEMP_ALLOW',
+        'name' => 'Temporary allowance',
+        'kind' => ComponentKind::EARNING,
+        'method' => CalcMethod::FIXED,
+        'sheet' => 1,
+        'epf_liable' => false,
+        'taxable' => true,
+        'display_order' => 185,
+    ],
+    [
         'code' => 'INTERN_ALLOW',
         'name' => 'Intern allowance',
         'kind' => ComponentKind::EARNING,
