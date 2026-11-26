@@ -78,6 +78,18 @@
                 class="rounded bg-green-600 px-4 py-1.5 text-sm font-medium text-white hover:bg-green-700 disabled:opacity-50">
                 Export to Excel
             </button>
+            @if($showFingerprintActions)
+                @can('attendance.device.manage')
+                    <button type="button" wire:click="downloadFingerprintTemplate" wire:loading.attr="disabled" wire:target="downloadFingerprintTemplate"
+                        class="rounded border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
+                        Fingerprint template
+                    </button>
+                    <button type="button" wire:click="openFingerprintUpload"
+                        class="rounded border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50">
+                        Upload fingerprint Excel
+                    </button>
+                @endcan
+            @endif
             @can('compensation.manage')
                 <button type="button" wire:click="downloadPayrollTemplate" wire:loading.attr="disabled" wire:target="downloadPayrollTemplate"
                     class="rounded border border-slate-300 bg-white px-4 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50">
@@ -143,6 +155,52 @@
                         Cancel
                     </button>
                     <button type="button" wire:click="uploadHires" wire:loading.attr="disabled" wire:target="uploadHires"
+                        class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
+                        Upload
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    @if($showFingerprintUpload)
+        <div class="fixed inset-0 z-40 flex items-center justify-center bg-black/40 p-4" wire:click.self="closeFingerprintUpload">
+            <div class="w-full max-w-lg rounded bg-white p-4 shadow-lg">
+                <div class="mb-3 flex items-center justify-between">
+                    <h3 class="text-sm font-semibold text-gray-800">Upload fingerprint IDs</h3>
+                    <button type="button" wire:click="closeFingerprintUpload" class="text-sm text-gray-500 hover:text-gray-800">Close</button>
+                </div>
+                <p class="mb-3 text-xs text-gray-600">
+                    Use the fingerprint template. Company comes from the header selector.
+                    Columns are employee number, device group, fingerprint ID, and an optional start date.
+                    Skip the sample row. An ID already open for that employee is left unchanged.
+                </p>
+                <div class="mb-3">
+                    <input type="file" wire:model="fingerprintExcelFile" accept=".xlsx,.xls"
+                        class="block w-full text-sm text-gray-700" />
+                    @error('fingerprintExcelFile')
+                        <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                    @enderror
+                    <div wire:loading wire:target="fingerprintExcelFile" class="mt-1 text-xs text-gray-500">Uploading file…</div>
+                </div>
+                @if($fingerprintImportMessage !== '')
+                    <div class="mb-3 rounded bg-green-50 px-3 py-2 text-sm text-green-700">{{ $fingerprintImportMessage }}</div>
+                @endif
+                @if($fingerprintImportErrors !== [])
+                    <div class="mb-3 max-h-64 overflow-y-auto rounded bg-red-50 px-3 py-2 text-sm text-red-700">
+                        <ul class="list-disc space-y-1 pl-4">
+                            @foreach($fingerprintImportErrors as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+                <div class="flex justify-end gap-2">
+                    <button type="button" wire:click="closeFingerprintUpload"
+                        class="rounded border border-slate-300 px-3 py-1.5 text-sm text-slate-700 hover:bg-slate-50">
+                        Cancel
+                    </button>
+                    <button type="button" wire:click="uploadFingerprints" wire:loading.attr="disabled" wire:target="uploadFingerprints"
                         class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50">
                         Upload
                     </button>

@@ -62,6 +62,12 @@ final class AttendanceNav
                 'active' => $active === 'devices',
             ],
             [
+                'icon' => '👆',
+                'label' => 'Punches',
+                'route' => route('attendance.punches.index'),
+                'active' => $active === 'punches',
+            ],
+            [
                 'icon' => '⚠️',
                 'label' => 'Unresolved punches',
                 'route' => route('attendance.unresolved.index'),

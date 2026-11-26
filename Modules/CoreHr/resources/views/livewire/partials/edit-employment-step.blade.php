@@ -111,6 +111,42 @@
     </div>
 
     <div class="rounded border bg-white p-4">
+        <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">OT mode</h3>
+        @if ($otModeMessage !== '')
+            <p class="mb-3 text-xs text-emerald-600">{{ $otModeMessage }}</p>
+        @endif
+        @if ($otModeError !== '')
+            <p class="mb-3 text-xs text-red-600">{{ $otModeError }}</p>
+        @endif
+        @if ($otProfile)
+            <p class="mb-3 text-xs text-gray-600">In force today: {{ $otProfile->ot_mode->value }}</p>
+        @else
+            <p class="mb-3 text-xs text-gray-600">No time profile is in force.</p>
+        @endif
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Effective from <span class="text-red-500">*</span></label>
+                <input type="date" wire:model="otEffectiveFrom" class="{{ $input }} @error('otEffectiveFrom') border-red-400 @enderror">
+                @error('otEffectiveFrom')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">OT mode <span class="text-red-500">*</span></label>
+                <select wire:model="otMode" class="{{ $input }} @error('otMode') border-red-400 @enderror">
+                    @foreach ($otModes as $mode)
+                        <option value="{{ $mode->value }}">{{ $mode->value }}</option>
+                    @endforeach
+                </select>
+                @error('otMode')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <div class="flex items-end">
+                <button type="button" wire:click="saveOtMode" class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+                    Save OT mode
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded border bg-white p-4">
         <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Office / shop category</h3>
         <div class="flex flex-wrap items-end gap-3">
             <div class="min-w-[14rem] flex-1">

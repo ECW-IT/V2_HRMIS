@@ -17,9 +17,12 @@ use Modules\CoreHr\Enums\EmploymentType;
 use Modules\CoreHr\Exceptions\InvalidNic;
 use Modules\CoreHr\Exports\EmployeeHireTemplateExport;
 use Modules\CoreHr\Exports\EmployeesExport;
+use Modules\CoreHr\Exports\FingerprintEnrolmentTemplateExport;
 use Modules\CoreHr\Imports\EmployeeHiresImport;
+use Modules\CoreHr\Imports\FingerprintEnrolmentsImport;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Services\EmployeeExcelHireService;
+use Modules\CoreHr\Services\FingerprintExcelEnrolService;
 use Modules\CoreHr\Support\EmployeesNav;
 use Modules\CoreHr\Support\Nic;
 use Modules\CoreHr\Support\OrgUnitOptions;
@@ -92,6 +95,16 @@ class EmployeesIndex extends Component
 
     /** @var list<string> */
     public array $payrollImportWarnings = [];
+
+    public bool $showFingerprintUpload = false;
+
+    /** @var mixed */
+    public $fingerprintExcelFile = null;
+
+    public string $fingerprintImportMessage = '';
+
+    /** @var list<string> */
+    public array $fingerprintImportErrors = [];
 
     public function openEdit(int $employmentId): void
     {
@@ -304,6 +317,78 @@ class EmployeesIndex extends Component
         $this->resetPage();
     }
 
+    public function downloadFingerprintTemplate(): BinaryFileResponse
+    {
+        $this->authorize('attendance.device.manage');
+
+        if (CompanyContext::id() === null) {
+            abort(403, 'Select a company in the header first.');
+        }
+
+        return Excel::download(
+            new FingerprintEnrolmentTemplateExport,
+            'fingerprint_enrolment_template.xlsx'
+        );
+    }
+
+    public function openFingerprintUpload(): void
+    {
+        $this->authorize('attendance.device.manage');
+        $this->showFingerprintUpload = true;
+        $this->fingerprintExcelFile = null;
+        $this->fingerprintImportMessage = '';
+        $this->fingerprintImportErrors = [];
+    }
+
+    public function closeFingerprintUpload(): void
+    {
+        $this->showFingerprintUpload = false;
+        $this->fingerprintExcelFile = null;
+        $this->fingerprintImportMessage = '';
+        $this->fingerprintImportErrors = [];
+    }
+
+    public function uploadFingerprints(FingerprintExcelEnrolService $enrolService): void
+    {
+        $this->authorize('attendance.device.manage');
+
+        $companyId = CompanyContext::id();
+        if ($companyId === null) {
+            $this->fingerprintImportErrors = ['Select a company in the header first.'];
+            $this->fingerprintImportMessage = '';
+
+            return;
+        }
+
+        $this->validate([
+            'fingerprintExcelFile' => ['required', 'file', 'mimes:xlsx,xls', 'max:10240'],
+        ]);
+
+        $import = new FingerprintEnrolmentsImport;
+        Excel::import($import, $this->fingerprintExcelFile->getRealPath());
+
+        if ($import->rows === []) {
+            $this->fingerprintImportErrors = ['No data rows found in the Excel file.'];
+            $this->fingerprintImportMessage = '';
+
+            return;
+        }
+
+        $company = Company::query()->findOrFail($companyId);
+        $result = $enrolService->process($company, $import->rows);
+
+        $this->fingerprintImportErrors = $result['errors'];
+        $this->fingerprintImportMessage = 'Upload completed. Success: '.$result['success_count']
+            .', Errors: '.$result['error_count'].'.';
+
+        if ($result['enrolled'] !== []) {
+            $this->fingerprintImportMessage .= ' Enrolled: '.implode(', ', $result['enrolled']).'.';
+        }
+
+        $this->fingerprintExcelFile = null;
+        $this->resetPage();
+    }
+
     /** The filtered list query. Shared by the table and the export. */
     protected function query(): Builder
     {
@@ -398,6 +483,7 @@ class EmployeesIndex extends Component
             ],
             'emptyMessage' => $this->emptyMessage(),
             'showHireButton' => $this->showHireButton(),
+            'showFingerprintActions' => $this->showFingerprintActions(),
             'showPayrollActiveFilter' => ! $this->hrmisActiveFilter(),
             'editing' => $editing,
             'editSteps' => [
@@ -433,6 +519,11 @@ class EmployeesIndex extends Component
     }
 
     protected function showHireButton(): bool
+    {
+        return true;
+    }
+
+    protected function showFingerprintActions(): bool
     {
         return true;
     }

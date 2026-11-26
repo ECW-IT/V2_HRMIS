@@ -14,7 +14,9 @@
         <h3 class="text-sm font-semibold text-gray-700">Payroll details</h3>
         @if ($canManage)
             <div class="flex gap-2">
-                <button type="button" wire:click="openCompensation" class="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">New compensation</button>
+                <button type="button" wire:click="openCompensation" class="rounded bg-blue-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-700">
+                    {{ $current ? 'Change compensation' : 'New compensation' }}
+                </button>
                 <button type="button" wire:click="openComponent" class="rounded border border-blue-600 px-3 py-1.5 text-xs font-medium text-blue-600 hover:bg-blue-50">Add component</button>
             </div>
         @endif
@@ -23,7 +25,13 @@
     <div class="rounded border bg-white px-3 py-3">
         <h4 class="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-500">Current</h4>
         @if ($current)
-            <p class="text-sm text-gray-800">Basic {{ $current->basic_salary }} · {{ $current->ot_rate_mode->value }} · from {{ $current->effective_from->toDateString() }}</p>
+            <p class="text-sm text-gray-800">
+                Basic {{ $current->basic_salary }} · {{ $current->ot_rate_mode->value }}
+                @if ($current->ot_rate_mode->value === 'FIXED' && $current->ot_rate !== null)
+                    · OT rate {{ $current->ot_rate }}
+                @endif
+                · from {{ $current->effective_from->toDateString() }}
+            </p>
         @else
             <p class="text-sm text-gray-500">No compensation is in force today.</p>
         @endif
@@ -37,6 +45,7 @@
                     <th class="px-3 py-2">From</th>
                     <th class="px-3 py-2">Basic</th>
                     <th class="px-3 py-2">OT mode</th>
+                    <th class="px-3 py-2">OT rate</th>
                 </tr>
             </thead>
             <tbody>
@@ -45,9 +54,16 @@
                         <td class="px-3 py-2">{{ $row->effective_from->toDateString() }}</td>
                         <td class="px-3 py-2 font-medium">{{ $row->basic_salary }}</td>
                         <td class="px-3 py-2">{{ $row->ot_rate_mode->value }}</td>
+                        <td class="px-3 py-2">
+                            @if ($row->ot_rate_mode->value === 'FIXED' && $row->ot_rate !== null)
+                                {{ $row->ot_rate }}
+                            @else
+                                —
+                            @endif
+                        </td>
                     </tr>
                 @empty
-                    <tr><td colspan="3" class="px-3 py-4 text-center text-gray-500">No compensation yet.</td></tr>
+                    <tr><td colspan="4" class="px-3 py-4 text-center text-gray-500">No compensation yet.</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -79,8 +95,9 @@
                             <td class="px-3 py-2">{{ $row->effective_from->toDateString() }}</td>
                             <td class="px-3 py-2">{{ $row->effective_to?->toDateString() ?? 'Open' }}</td>
                             @if ($canManage)
-                                <td class="px-3 py-2 text-right">
+                                <td class="px-3 py-2 text-right space-x-2">
                                     @if ($row->effective_to === null)
+                                        <button type="button" wire:click="openEditComponent({{ $row->id }})" class="text-xs text-blue-600 hover:underline">Edit</button>
                                         <button type="button" wire:click="endComponent({{ $row->id }})" class="text-xs text-gray-700 hover:underline">End</button>
                                     @endif
                                 </td>
@@ -153,25 +170,36 @@
                 <div class="mb-3 rounded border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{{ $formError }}</div>
             @endif
             <div class="grid gap-3 sm:grid-cols-2">
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Kind</label>
-                    <select wire:model.live="component_kind" class="{{ $input }}">
-                        <option value="EARNING">Earning</option>
-                        <option value="DEDUCTION">Deduction</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">Component</label>
-                    <x-searchable-select
-                        model="component_code"
-                        :value="$component_code"
-                        :options="$component_kind === 'DEDUCTION' ? $attachableDeductions : $attachableEarnings"
-                        empty-label="Select"
-                        aria-label="Pay component"
-                        search-placeholder="Search component"
-                        :input-class="$input"
-                    />
-                </div>
+                @if ($editingComponent)
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">Kind</label>
+                        <input type="text" value="{{ $component_kind }}" class="{{ $input }} bg-gray-50" disabled>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">Component</label>
+                        <input type="text" value="{{ $component_code }}" class="{{ $input }} bg-gray-50" disabled>
+                    </div>
+                @else
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">Kind</label>
+                        <select wire:model.live="component_kind" class="{{ $input }}">
+                            <option value="EARNING">Earning</option>
+                            <option value="DEDUCTION">Deduction</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">Component</label>
+                        <x-searchable-select
+                            model="component_code"
+                            :value="$component_code"
+                            :options="$component_kind === 'DEDUCTION' ? $attachableDeductions : $attachableEarnings"
+                            empty-label="Select"
+                            aria-label="Pay component"
+                            search-placeholder="Search component"
+                            :input-class="$input"
+                        />
+                    </div>
+                @endif
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Amount</label>
                     <input type="text" wire:model="component_amount" class="{{ $input }}">
@@ -180,10 +208,12 @@
                     <label class="mb-1 block text-xs font-medium text-gray-600">From</label>
                     <input type="date" wire:model="component_from" class="{{ $input }}">
                 </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">To</label>
-                    <input type="date" wire:model="component_to" class="{{ $input }}">
-                </div>
+                @unless ($editingComponent)
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">To</label>
+                        <input type="date" wire:model="component_to" class="{{ $input }}">
+                    </div>
+                @endunless
                 <div class="sm:col-span-2">
                     <label class="mb-1 block text-xs font-medium text-gray-600">Note</label>
                     <input type="text" wire:model="component_note" class="{{ $input }}">

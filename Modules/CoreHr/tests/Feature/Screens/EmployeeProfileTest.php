@@ -12,6 +12,7 @@ use Modules\CoreHr\Database\Seeders\RegionSeeder;
 use Modules\CoreHr\Database\Seeders\RelationshipSeeder;
 use Modules\CoreHr\Enums\ArriveWorkFrom;
 use Modules\CoreHr\Livewire\EmployeeProfile;
+use Modules\CoreHr\Livewire\Tabs\Bank;
 use Modules\CoreHr\Livewire\Tabs\Personal;
 use Modules\CoreHr\Models\EmployeeDocument;
 use Modules\CoreHr\Models\PersonContact;
@@ -299,9 +300,35 @@ class EmployeeProfileTest extends TestCase
             ->assertForbidden();
     }
 
+    public function test_bank_change_waits_for_approval_then_applies(): void
+    {
+        $this->seed(ApprovalDefinitionSeeder::class);
+        $e = $this->hired();
+        [$bank, $branch] = $this->bankWithBranch();
+        $this->loginAs('hr-manager', $e->company);
+
+        Livewire::test(Bank::class, ['employment' => $e])
+            ->call('openForm')
+            ->set('effectiveFrom', $e->hire_date->toDateString())
+            ->set('bankId', $bank->id)
+            ->set('bankBranchId', $branch->id)
+            ->set('accountNo', '0012345678')
+            ->set('accountName', 'N. Perera')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertSee('Sent for approval');
+
+        $this->assertNull(app(BankAccountService::class)->on($e, $e->hire_date->toDateString()));
+
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), auth()->user());
+
+        $this->assertSame('0012345678', app(BankAccountService::class)->on($e, $e->hire_date->toDateString())->account_no);
+    }
+
     public function test_personal_tab_can_add_edit_and_remove_sub_records(): void
     {
         $this->seed(RelationshipSeeder::class);
+        $this->seed(ApprovalDefinitionSeeder::class);
         $e = $this->hired();
         $this->loginAs('hr-manager', $e->company);
 
@@ -312,7 +339,10 @@ class EmployeeProfileTest extends TestCase
             ->set('childPhone', '0771234567')
             ->set('childAddress', 'Colombo')
             ->call('saveChild')
-            ->assertSee('Saved.');
+            ->assertSee('Sent for approval');
+
+        $this->assertNull(PersonEmergencyContact::query()->where('person_id', $e->person_id)->first());
+        $this->approvePending();
 
         $emergency = PersonEmergencyContact::query()->where('person_id', $e->person_id)->first();
         $this->assertNotNull($emergency);
@@ -322,8 +352,10 @@ class EmployeeProfileTest extends TestCase
             ->call('openEditEmergency', $emergency->id)
             ->set('childPhone', '0779999999')
             ->call('saveChild')
-            ->assertSee('Saved.');
+            ->assertSee('Sent for approval');
 
+        $this->assertSame('0771234567', $emergency->fresh()->phone);
+        $this->approvePending();
         $this->assertSame('0779999999', $emergency->fresh()->phone);
 
         Livewire::test(Personal::class, ['employment' => $e])
@@ -331,7 +363,11 @@ class EmployeeProfileTest extends TestCase
             ->set('childName', 'Nimal')
             ->set('childRelationship', 'Son')
             ->set('childDateOfBirth', '2015-04-01')
-            ->call('saveChild');
+            ->call('saveChild')
+            ->assertSee('Sent for approval');
+
+        $this->assertNull(PersonDependent::query()->where('person_id', $e->person_id)->first());
+        $this->approvePending();
 
         $dependent = PersonDependent::query()->where('person_id', $e->person_id)->first();
         $this->assertNotNull($dependent);
@@ -339,10 +375,13 @@ class EmployeeProfileTest extends TestCase
 
         Livewire::test(Personal::class, ['employment' => $e])
             ->call('openEditDependent', $dependent->id)
-            ->set('childRelationship', 'Son')
-            ->call('saveChild');
+            ->set('childRelationship', 'Daughter')
+            ->call('saveChild')
+            ->assertSee('Sent for approval');
 
         $this->assertSame('Son', $dependent->fresh()->relationship);
+        $this->approvePending();
+        $this->assertSame('Daughter', $dependent->fresh()->relationship);
 
         Livewire::test(Personal::class, ['employment' => $e])
             ->call('openAddQualification')
@@ -350,7 +389,11 @@ class EmployeeProfileTest extends TestCase
             ->set('childInstitute', 'University of Colombo')
             ->set('childTitle', 'BSc')
             ->set('childYear', '2018')
-            ->call('saveChild');
+            ->call('saveChild')
+            ->assertSee('Sent for approval');
+
+        $this->assertNull(PersonQualification::query()->where('person_id', $e->person_id)->first());
+        $this->approvePending();
 
         $qualification = PersonQualification::query()->where('person_id', $e->person_id)->first();
         $this->assertNotNull($qualification);
@@ -359,8 +402,11 @@ class EmployeeProfileTest extends TestCase
         Livewire::test(Personal::class, ['employment' => $e])
             ->call('openEditQualification', $qualification->id)
             ->set('childTitle', 'BSc Hons')
-            ->call('saveChild');
+            ->call('saveChild')
+            ->assertSee('Sent for approval');
 
+        $this->assertSame('BSc', $qualification->fresh()->title);
+        $this->approvePending();
         $this->assertSame('BSc Hons', $qualification->fresh()->title);
 
         Livewire::test(Personal::class, ['employment' => $e])
@@ -369,7 +415,11 @@ class EmployeeProfileTest extends TestCase
             ->set('childJobTitle', 'Clerk')
             ->set('childFromDate', '2019-01-01')
             ->set('childToDate', '2021-12-31')
-            ->call('saveChild');
+            ->call('saveChild')
+            ->assertSee('Sent for approval');
+
+        $this->assertNull(PersonExperience::query()->where('person_id', $e->person_id)->first());
+        $this->approvePending();
 
         $experience = PersonExperience::query()->where('person_id', $e->person_id)->first();
         $this->assertNotNull($experience);
@@ -378,8 +428,11 @@ class EmployeeProfileTest extends TestCase
         Livewire::test(Personal::class, ['employment' => $e])
             ->call('openEditExperience', $experience->id)
             ->set('childJobTitle', 'Senior clerk')
-            ->call('saveChild');
+            ->call('saveChild')
+            ->assertSee('Sent for approval');
 
+        $this->assertSame('Clerk', $experience->fresh()->job_title);
+        $this->approvePending();
         $this->assertSame('Senior clerk', $experience->fresh()->job_title);
 
         Livewire::test(Personal::class, ['employment' => $e])
@@ -387,7 +440,16 @@ class EmployeeProfileTest extends TestCase
             ->call('removeChild', 'dependent', $dependent->id)
             ->call('removeChild', 'qualification', $qualification->id)
             ->call('removeChild', 'experience', $experience->id)
-            ->assertSee('Removed.');
+            ->assertSee('Sent for approval');
+
+        $this->assertDatabaseHas('person_emergency_contacts', ['id' => $emergency->id]);
+        $this->assertDatabaseHas('person_dependents', ['id' => $dependent->id]);
+        $this->assertDatabaseHas('person_qualifications', ['id' => $qualification->id]);
+        $this->assertDatabaseHas('person_experience', ['id' => $experience->id]);
+
+        foreach (ApprovalRequest::query()->where('status', 'PENDING')->get() as $request) {
+            app(ApprovalService::class)->approve($request, auth()->user());
+        }
 
         $this->assertDatabaseMissing('person_emergency_contacts', ['id' => $emergency->id]);
         $this->assertDatabaseMissing('person_dependents', ['id' => $dependent->id]);
@@ -397,6 +459,7 @@ class EmployeeProfileTest extends TestCase
 
     public function test_personal_tab_can_update_and_remove_contacts(): void
     {
+        $this->seed(ApprovalDefinitionSeeder::class);
         $e = $this->hired();
         $contact = PersonContact::factory()->create([
             'person_id' => $e->person_id,
@@ -410,14 +473,24 @@ class EmployeeProfileTest extends TestCase
             ->call('openEditContact', $contact->id)
             ->set('newContactValue', '0779999999')
             ->call('saveContact')
-            ->assertSee('Saved.');
+            ->assertSee('Sent for approval');
 
+        $this->assertSame('0771111111', $contact->fresh()->value);
+        $this->approvePending();
         $this->assertSame('0779999999', $contact->fresh()->value);
 
         Livewire::test(Personal::class, ['employment' => $e])
             ->call('removeContact', $contact->id)
-            ->assertSee('Removed.');
+            ->assertSee('Sent for approval');
 
+        $this->assertDatabaseHas('person_contacts', ['id' => $contact->id]);
+        $this->approvePending();
         $this->assertDatabaseMissing('person_contacts', ['id' => $contact->id]);
+    }
+
+    private function approvePending(): void
+    {
+        $request = ApprovalRequest::query()->where('status', 'PENDING')->latest('id')->firstOrFail();
+        app(ApprovalService::class)->approve($request, auth()->user());
     }
 }

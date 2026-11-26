@@ -2,6 +2,7 @@
 
 namespace Modules\CoreHr\Tests\Feature;
 
+use Database\Seeders\ApprovalDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Features\SupportTesting\Testable;
 use Livewire\Livewire;
@@ -20,6 +21,8 @@ use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Services\EmploymentService;
 use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Payroll\Enums\OtRateMode;
+use Modules\Workflow\Models\ApprovalRequest;
+use Modules\Workflow\Services\ApprovalService;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
 
@@ -27,6 +30,13 @@ class ModuleActiveFlagsTest extends TestCase
 {
     use HrFixtures;
     use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(ApprovalDefinitionSeeder::class);
+    }
 
     public function test_hire_with_attendance_active_requires_fingerprint(): void
     {
@@ -130,7 +140,14 @@ class ModuleActiveFlagsTest extends TestCase
             ->set('payrollActive', false)
             ->call('saveModuleFlags')
             ->assertHasNoErrors()
-            ->assertSee('Module flags updated.');
+            ->assertSee('Sent for approval');
+
+        $e->refresh();
+        $this->assertTrue($e->hrmis_active);
+        $this->assertTrue($e->attendance_active);
+        $this->assertTrue($e->payroll_active);
+
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), auth()->user());
 
         $e->refresh();
         $this->assertTrue($e->hrmis_active);
@@ -157,7 +174,13 @@ class ModuleActiveFlagsTest extends TestCase
             ->set('attendanceActive', false)
             ->call('saveModuleFlags')
             ->assertHasNoErrors()
-            ->assertSee('Module flags updated.');
+            ->assertSee('Sent for approval');
+
+        $e->refresh();
+        $this->assertTrue($e->hrmis_active);
+        $this->assertTrue($e->attendance_active);
+
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), auth()->user());
 
         $e->refresh();
         $this->assertTrue($e->hrmis_active);
@@ -210,7 +233,14 @@ class ModuleActiveFlagsTest extends TestCase
             ->set('payrollActive', false)
             ->call('saveModuleFlags')
             ->assertHasNoErrors()
-            ->assertSee('Module flags updated.');
+            ->assertSee('Sent for approval');
+
+        $e->refresh();
+        $this->assertFalse($e->hrmis_active);
+        $this->assertFalse($e->attendance_active);
+        $this->assertTrue($e->payroll_active);
+
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), auth()->user());
 
         $e->refresh();
         $this->assertFalse($e->hrmis_active);

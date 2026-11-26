@@ -15,7 +15,6 @@ use Modules\CoreHr\Livewire\Concerns\RejectsResignedMutations;
 use Modules\CoreHr\Livewire\Concerns\SubmitsEmploymentRequests;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Models\GnDivision;
-use Modules\CoreHr\Models\Person;
 use Modules\CoreHr\Models\PersonContact;
 use Modules\CoreHr\Models\PersonDependent;
 use Modules\CoreHr\Models\PersonEmergencyContact;
@@ -249,45 +248,26 @@ class Personal extends Component
             'newContactPrimary' => ['boolean'],
         ]);
 
-        $type = ContactType::from($this->newContactType);
-        $value = trim($this->newContactValue);
-        $isPrimary = $this->newContactPrimary;
-        $person = $this->person();
-
-        if ($isPrimary) {
-            $person->contacts()
-                ->where('type', $type->value)
-                ->when($this->editingContactId !== null, fn ($query) => $query->where('id', '!=', $this->editingContactId))
-                ->where('is_primary', true)
-                ->update(['is_primary' => false]);
+        $contact = [
+            'type' => $this->newContactType,
+            'value' => trim($this->newContactValue),
+            'is_primary' => $this->newContactPrimary,
+        ];
+        if ($this->editingContactId !== null) {
+            $contact['id'] = $this->editingContactId;
         }
 
-        if ($this->editingContactId === null) {
-            $person->contacts()->create([
-                'type' => $type,
-                'value' => $value,
-                'is_primary' => $isPrimary,
-            ]);
-        } else {
-            $this->findContact($this->editingContactId)->update([
-                'type' => $type,
-                'value' => $value,
-                'is_primary' => $isPrimary,
-            ]);
+        if ($this->submitRequest('UPSERT_CONTACT', ['contact' => $contact])) {
+            $this->closeContactForm();
         }
-
-        $this->message = 'Saved.';
-        $this->errorMessage = '';
-        $this->closeContactForm();
     }
 
     public function removeContact(int $id): void
     {
         $this->authorize('employee.update');
         $this->ensureNotResigned();
-        $this->findContact($id)->delete();
-        $this->message = 'Removed.';
-        $this->errorMessage = '';
+        $this->findContact($id);
+        $this->submitRequest('REMOVE_CONTACT', ['contact_id' => $id]);
     }
 
     private function resetContactForm(): void
@@ -447,16 +427,13 @@ class Personal extends Component
             'experience' => $this->validatedExperience(),
         };
 
-        if ($this->editingChildId === null) {
-            $this->person()->{$this->relationName($this->childKind)}()->create($payload);
-            $this->message = 'Saved.';
-        } else {
-            $this->findChild($this->childKind, $this->editingChildId)->update($payload);
-            $this->message = 'Saved.';
+        if ($this->editingChildId !== null) {
+            $payload['id'] = $this->editingChildId;
         }
 
-        $this->errorMessage = '';
-        $this->closeChildForm();
+        if ($this->submitRequest('UPSERT_CHILD', ['kind' => $this->childKind, 'child' => $payload])) {
+            $this->closeChildForm();
+        }
     }
 
     public function removeChild(string $kind, int $id): void
@@ -468,9 +445,8 @@ class Personal extends Component
             return;
         }
 
-        $this->findChild($kind, $id)->delete();
-        $this->message = 'Removed.';
-        $this->errorMessage = '';
+        $this->findChild($kind, $id);
+        $this->submitRequest('REMOVE_CHILD', ['kind' => $kind, 'child_id' => $id]);
     }
 
     private function openAdd(string $kind): void
@@ -581,11 +557,6 @@ class Personal extends Component
         ];
     }
 
-    private function person(): Person
-    {
-        return $this->employment->person()->firstOrFail();
-    }
-
     private function findChild(string $kind, int $id): Model
     {
         $class = match ($kind) {
@@ -598,16 +569,6 @@ class Personal extends Component
         return $class::query()
             ->where('person_id', $this->employment->person_id)
             ->findOrFail($id);
-    }
-
-    private function relationName(string $kind): string
-    {
-        return match ($kind) {
-            'emergency' => 'emergencyContacts',
-            'dependent' => 'dependents',
-            'qualification' => 'qualifications',
-            'experience' => 'experience',
-        };
     }
 
     private function fillFromPerson(): void

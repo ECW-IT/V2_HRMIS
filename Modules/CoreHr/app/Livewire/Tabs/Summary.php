@@ -8,16 +8,16 @@ use Livewire\Component;
 use Modules\CoreHr\Enums\ContactType;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Livewire\Concerns\RejectsResignedMutations;
+use Modules\CoreHr\Livewire\Concerns\SubmitsEmploymentRequests;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Readiness\ReadinessService;
-use Modules\CoreHr\Services\EmploymentService;
 use Modules\CoreHr\Support\AssignmentLookup;
 use Modules\Organisation\Models\StaffWorkCategory;
-use Modules\Organisation\Services\StaffWorkCategoryService;
 
 class Summary extends Component
 {
     use RejectsResignedMutations;
+    use SubmitsEmploymentRequests;
 
     public Employment $employment;
 
@@ -36,6 +36,7 @@ class Summary extends Component
     public function mount(Employment $employment): void
     {
         $this->employment = $employment;
+        $this->flashOnParent = true;
         $this->staffWorkCategoryId = $employment->staff_work_category_id;
         $this->hrmisActive = (bool) $employment->hrmis_active;
         $this->attendanceActive = (bool) $employment->attendance_active;
@@ -62,7 +63,7 @@ class Summary extends Component
         $this->dispatch('open-exit-action');
     }
 
-    public function saveStaffWorkCategory(StaffWorkCategoryService $service): void
+    public function saveStaffWorkCategory(): void
     {
         $this->authorize('employee.update');
         $this->ensureNotResigned();
@@ -71,16 +72,24 @@ class Summary extends Component
             'staffWorkCategoryId' => ['nullable', 'integer', 'exists:staff_work_categories,id'],
         ]);
 
-        $category = $this->staffWorkCategoryId === null || $this->staffWorkCategoryId === ''
+        $categoryId = $this->staffWorkCategoryId === null || $this->staffWorkCategoryId === ''
             ? null
-            : StaffWorkCategory::query()->findOrFail((int) $this->staffWorkCategoryId);
+            : (int) $this->staffWorkCategoryId;
 
-        $this->employment = $service->assign($this->employment, $category);
-        $this->staffWorkCategoryId = $this->employment->staff_work_category_id;
-        $this->staffWorkMessage = 'Office / shop category updated.';
+        if ($categoryId === $this->employment->staff_work_category_id) {
+            $this->staffWorkMessage = 'Nothing was changed.';
+
+            return;
+        }
+
+        if ($this->submitRequest('UPDATE_STAFF_CATEGORY', [
+            'staff_work_category_id' => $categoryId,
+        ])) {
+            $this->staffWorkMessage = $this->message;
+        }
     }
 
-    public function saveModuleFlags(EmploymentService $employments): void
+    public function saveModuleFlags(): void
     {
         $this->authorize('employee.update');
 
@@ -93,12 +102,7 @@ class Summary extends Component
         if ($this->employment->isResigned()) {
             $this->hrmisActive = (bool) $this->employment->hrmis_active;
             $this->attendanceActive = (bool) $this->employment->attendance_active;
-            $this->employment = $employments->updateModuleFlags($this->employment, [
-                'payroll_active' => $this->payrollActive,
-            ]);
-            $this->payrollActive = (bool) $this->employment->payroll_active;
-            $this->moduleFlagsMessage = 'Module flags updated.';
-            $this->dispatch('employment-updated', message: $this->moduleFlagsMessage);
+            $this->submitModuleFlags(['payroll_active' => $this->payrollActive]);
 
             return;
         }
@@ -110,28 +114,42 @@ class Summary extends Component
         if ($turningHrmisOff) {
             $this->authorize('employee.exit');
             $this->hrmisActive = true;
-            $this->employment = $employments->updateModuleFlags($this->employment, [
+            $this->submitModuleFlags([
                 'attendance_active' => $this->attendanceActive,
                 'payroll_active' => $this->payrollActive,
             ]);
-            $this->attendanceActive = (bool) $this->employment->attendance_active;
-            $this->payrollActive = (bool) $this->employment->payroll_active;
             $this->moduleFlagsMessage = 'Complete the exit form to deactivate HRMIS.';
             $this->dispatch('open-exit-action');
 
             return;
         }
 
-        $this->employment = $employments->updateModuleFlags($this->employment, [
+        $this->submitModuleFlags([
             'hrmis_active' => $this->hrmisActive,
             'attendance_active' => $this->attendanceActive,
             'payroll_active' => $this->payrollActive,
         ]);
-        $this->hrmisActive = (bool) $this->employment->hrmis_active;
-        $this->attendanceActive = (bool) $this->employment->attendance_active;
-        $this->payrollActive = (bool) $this->employment->payroll_active;
-        $this->moduleFlagsMessage = 'Module flags updated.';
-        $this->dispatch('employment-updated', message: $this->moduleFlagsMessage);
+    }
+
+    /** @param  array<string, bool>  $flags */
+    private function submitModuleFlags(array $flags): void
+    {
+        $changed = [];
+        foreach ($flags as $field => $value) {
+            if ((bool) $this->employment->{$field} !== (bool) $value) {
+                $changed[$field] = (bool) $value;
+            }
+        }
+
+        if ($changed === []) {
+            $this->moduleFlagsMessage = 'Nothing was changed.';
+
+            return;
+        }
+
+        if ($this->submitRequest('UPDATE_MODULE_FLAGS', ['flags' => $changed])) {
+            $this->moduleFlagsMessage = $this->message;
+        }
     }
 
     public function render(ReadinessService $readiness): View

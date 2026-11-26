@@ -13,7 +13,9 @@
         </div>
         @if ($canManage)
             <div class="flex gap-2">
-                <button type="button" wire:click="openCompensation" class="rounded bg-[var(--color-erp-accent)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90">New compensation</button>
+                <button type="button" wire:click="openCompensation" class="rounded bg-[var(--color-erp-accent)] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90">
+                    {{ $current ? 'Change compensation' : 'New compensation' }}
+                </button>
                 <button type="button" wire:click="openComponent" class="rounded border px-3 py-1.5 text-sm">Add component</button>
             </div>
         @endif
@@ -33,7 +35,13 @@
         <div class="mb-4 rounded bg-white p-4 shadow">
             <h2 class="mb-2 text-sm font-semibold text-slate-700">Current</h2>
             @if ($current)
-                <p class="text-sm text-slate-700">Basic {{ $current->basic_salary }} · {{ $current->ot_rate_mode->value }} · from {{ $current->effective_from->toDateString() }}</p>
+                <p class="text-sm text-slate-700">
+                    Basic {{ $current->basic_salary }} · {{ $current->ot_rate_mode->value }}
+                    @if ($current->ot_rate_mode->value === 'FIXED' && $current->ot_rate !== null)
+                        · OT rate {{ $current->ot_rate }}
+                    @endif
+                    · from {{ $current->effective_from->toDateString() }}
+                </p>
             @else
                 <p class="text-sm text-slate-500">No compensation is in force today.</p>
             @endif
@@ -47,6 +55,7 @@
                         <th class="px-3 py-2">From</th>
                         <th class="px-3 py-2">Basic</th>
                         <th class="px-3 py-2">OT mode</th>
+                        <th class="px-3 py-2">OT rate</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -55,9 +64,16 @@
                             <td class="px-3 py-2">{{ $row->effective_from->toDateString() }}</td>
                             <td class="px-3 py-2 font-medium">{{ $row->basic_salary }}</td>
                             <td class="px-3 py-2">{{ $row->ot_rate_mode->value }}</td>
+                            <td class="px-3 py-2">
+                                @if ($row->ot_rate_mode->value === 'FIXED' && $row->ot_rate !== null)
+                                    {{ $row->ot_rate }}
+                                @else
+                                    —
+                                @endif
+                            </td>
                         </tr>
                     @empty
-                        <tr><td colspan="3" class="px-3 py-6 text-center text-slate-500">No compensation yet.</td></tr>
+                        <tr><td colspan="4" class="px-3 py-6 text-center text-slate-500">No compensation yet.</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -85,8 +101,9 @@
                             <td class="px-3 py-2">{{ $row->effective_from->toDateString() }}</td>
                             <td class="px-3 py-2">{{ $row->effective_to?->toDateString() ?? 'Open' }}</td>
                             @if ($canManage)
-                                <td class="px-3 py-2 text-right">
+                                <td class="px-3 py-2 text-right space-x-2">
                                     @if ($row->effective_to === null)
+                                        <button type="button" wire:click="openEditComponent({{ $row->id }})" class="text-sm text-blue-600">Edit</button>
                                         <button type="button" wire:click="endComponent({{ $row->id }})" class="text-sm text-slate-700">End</button>
                                     @endif
                                 </td>
@@ -122,7 +139,7 @@
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">OT rate mode</label>
-                    <select wire:model="ot_rate_mode" class="w-full rounded border px-3 py-2 text-sm">
+                    <select wire:model.live="ot_rate_mode" class="w-full rounded border px-3 py-2 text-sm">
                         @foreach ($modes as $mode)
                             <option value="{{ $mode->value }}">{{ $mode->value }}</option>
                         @endforeach
@@ -130,7 +147,7 @@
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Fixed OT rate</label>
-                    <input type="text" wire:model="ot_rate" class="w-full rounded border px-3 py-2 text-sm">
+                    <input type="text" wire:model="ot_rate" class="w-full rounded border px-3 py-2 text-sm" @disabled($ot_rate_mode !== 'FIXED')>
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Attendance tier</label>
@@ -161,12 +178,16 @@
             <div class="grid gap-3 sm:grid-cols-2">
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Component</label>
-                    <select wire:model="component_code" class="w-full rounded border px-3 py-2 text-sm">
-                        <option value="">Choose a component</option>
-                        @foreach ($payComponents as $component)
-                            <option value="{{ $component->code }}">{{ $component->code }}</option>
-                        @endforeach
-                    </select>
+                    @if ($editingComponent)
+                        <input type="text" value="{{ $component_code }}" class="w-full rounded border px-3 py-2 text-sm bg-slate-50" disabled>
+                    @else
+                        <select wire:model="component_code" class="w-full rounded border px-3 py-2 text-sm">
+                            <option value="">Choose a component</option>
+                            @foreach ($payComponents as $component)
+                                <option value="{{ $component->code }}">{{ $component->code }}</option>
+                            @endforeach
+                        </select>
+                    @endif
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Amount</label>
@@ -176,10 +197,12 @@
                     <label class="mb-1 block text-xs font-medium text-gray-600">From</label>
                     <input type="date" wire:model="component_from" class="w-full rounded border px-3 py-2 text-sm">
                 </div>
-                <div>
-                    <label class="mb-1 block text-xs font-medium text-gray-600">To</label>
-                    <input type="date" wire:model="component_to" class="w-full rounded border px-3 py-2 text-sm">
-                </div>
+                @unless ($editingComponent)
+                    <div>
+                        <label class="mb-1 block text-xs font-medium text-gray-600">To</label>
+                        <input type="date" wire:model="component_to" class="w-full rounded border px-3 py-2 text-sm">
+                    </div>
+                @endunless
                 <div class="sm:col-span-2">
                     <label class="mb-1 block text-xs font-medium text-gray-600">Note</label>
                     <input type="text" wire:model="component_note" class="w-full rounded border px-3 py-2 text-sm">

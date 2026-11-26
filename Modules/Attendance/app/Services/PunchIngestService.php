@@ -29,13 +29,16 @@ final class PunchIngestService
         $seenKeys = [];
 
         foreach ($punches as $item) {
+            $payload = $item;
+            $item = $this->normalize($item);
+
             if (! is_array($item)
                 || ! array_key_exists('device_user_id', $item)
                 || ! array_key_exists('punched_at', $item)
                 || ! is_string($item['punched_at'])
                 || preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $item['punched_at']) !== 1
             ) {
-                $this->reject($device, $item, RejectionReason::MALFORMED, $receivedAt);
+                $this->reject($device, $payload, RejectionReason::MALFORMED, $receivedAt);
                 $rejected++;
 
                 continue;
@@ -43,7 +46,7 @@ final class PunchIngestService
 
             $uid = $item['device_user_id'];
             if (! is_int($uid) || $uid < 1) {
-                $this->reject($device, $item, RejectionReason::BAD_USER_ID, $receivedAt);
+                $this->reject($device, $payload, RejectionReason::BAD_USER_ID, $receivedAt);
                 $rejected++;
 
                 continue;
@@ -51,7 +54,7 @@ final class PunchIngestService
 
             $punchedAt = $item['punched_at'];
             if ($punchedAt < $earliest || $punchedAt > $latestAllowed) {
-                $this->reject($device, $item, RejectionReason::BAD_TIMESTAMP, $receivedAt);
+                $this->reject($device, $payload, RejectionReason::BAD_TIMESTAMP, $receivedAt);
                 $rejected++;
 
                 continue;
@@ -152,6 +155,50 @@ final class PunchIngestService
             'reason' => $reason,
             'received_at' => $receivedAt,
         ]);
+    }
+
+    /**
+     * Fingerprint terminals post ZKTeco fields: id, timestamp, state, type.
+     * The stored punch uses device_user_id, punched_at, state, verify_mode.
+     */
+    private function normalize(mixed $item): mixed
+    {
+        if (! is_array($item)) {
+            return $item;
+        }
+
+        if (! array_key_exists('device_user_id', $item) && array_key_exists('id', $item)) {
+            $item['device_user_id'] = $this->integerOrOriginal($item['id']);
+        } elseif (array_key_exists('device_user_id', $item)) {
+            $item['device_user_id'] = $this->integerOrOriginal($item['device_user_id']);
+        }
+
+        if (! array_key_exists('punched_at', $item) && array_key_exists('timestamp', $item) && is_string($item['timestamp'])) {
+            $item['punched_at'] = $item['timestamp'];
+        }
+
+        if (! array_key_exists('verify_mode', $item) && array_key_exists('type', $item)) {
+            $item['verify_mode'] = $this->integerOrOriginal($item['type']);
+        }
+
+        if (array_key_exists('state', $item)) {
+            $item['state'] = $this->integerOrOriginal($item['state']);
+        }
+
+        return $item;
+    }
+
+    private function integerOrOriginal(mixed $value): mixed
+    {
+        if (is_int($value)) {
+            return $value;
+        }
+
+        if (is_string($value) && preg_match('/^-?\d+$/', $value) === 1) {
+            return (int) $value;
+        }
+
+        return $value;
     }
 
     private function optionalByte(mixed $value): ?int

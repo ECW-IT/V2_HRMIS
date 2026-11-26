@@ -52,7 +52,7 @@ class CompensationRequestTest extends TestCase
         return $this->paid($hireDate);
     }
 
-    public function test_user_with_apply_directly_changes_at_once(): void
+    public function test_user_with_apply_directly_still_waits_for_approval(): void
     {
         $e = $this->paidEmployment();
         $admin = $this->user('super-admin', $e);
@@ -64,7 +64,11 @@ class CompensationRequestTest extends TestCase
             'change_reason' => 'Increase',
         ]);
 
-        $this->assertNull($res);
+        $this->assertSame(ApprovalStatus::PENDING, $res->status);
+        $this->assertSame('60000.00', $this->comp->on($e, '2026-07-01')->basic_salary);
+
+        app(ApprovalService::class)->approve($res, $admin);
+
         $this->assertSame('65000.00', $this->comp->on($e, '2026-07-01')->basic_salary);
     }
 
@@ -151,5 +155,51 @@ class CompensationRequestTest extends TestCase
             ->call('open', $res->id)
             ->assertSee('Compensation change (hidden)')
             ->assertDontSee('65000.00');
+    }
+
+    public function test_change_component_waits_for_approval_for_apply_directly_users(): void
+    {
+        $e = $this->paid('2026-01-01', null, [], ['FUEL' => '5000.00']);
+        $admin = $this->user('super-admin', $e);
+        $fuel = $this->comp->componentsOn($e, '2026-01-01')->first(
+            fn ($row) => $row->payComponent?->code === 'FUEL'
+        );
+
+        $res = $this->req->request($admin, 'CHANGE_COMPONENT', $e, [
+            'from' => '2026-06-01',
+            'amount' => '8000.00',
+            'note' => 'Increase',
+            'employee_component_id' => $fuel->id,
+        ]);
+
+        $this->assertSame(ApprovalStatus::PENDING, $res->status);
+        $this->assertSame('5000.00', $this->comp->componentsOn($e, '2026-06-01')->sole()->amount);
+
+        app(ApprovalService::class)->approve($res, $admin);
+
+        $this->assertSame('8000.00', $this->comp->componentsOn($e, '2026-06-01')->sole()->amount);
+        $this->assertSame('5000.00', $this->comp->componentsOn($e, '2026-05-31')->sole()->amount);
+    }
+
+    public function test_change_component_applies_on_approval(): void
+    {
+        $e = $this->paid('2026-01-01', null, [], ['FUEL' => '5000.00']);
+        $officer = $this->user('payroll-officer', $e);
+        $fuel = $this->comp->componentsOn($e, '2026-01-01')->first(
+            fn ($row) => $row->payComponent?->code === 'FUEL'
+        );
+
+        $res = $this->req->request($officer, 'CHANGE_COMPONENT', $e, [
+            'employee_component_id' => $fuel->id,
+            'from' => '2026-06-01',
+            'amount' => '8000.00',
+        ]);
+
+        $this->assertSame(ApprovalStatus::PENDING, $res->status);
+        $this->assertSame('5000.00', $this->comp->componentsOn($e, '2026-06-01')->sole()->amount);
+
+        app(ApprovalService::class)->approve($res, $this->user('hr-manager', $e));
+
+        $this->assertSame('8000.00', $this->comp->componentsOn($e, '2026-06-01')->sole()->amount);
     }
 }

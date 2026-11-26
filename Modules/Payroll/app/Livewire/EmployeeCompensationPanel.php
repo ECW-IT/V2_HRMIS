@@ -3,6 +3,7 @@
 namespace Modules\Payroll\Livewire;
 
 use App\Exceptions\Domain\DomainException;
+use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\View\View;
 use Livewire\Component;
@@ -24,6 +25,10 @@ class EmployeeCompensationPanel extends Component
     public bool $showCompensationForm = false;
 
     public bool $showComponentForm = false;
+
+    public bool $editingComponent = false;
+
+    public ?int $editingComponentId = null;
 
     public string $from = '';
 
@@ -61,33 +66,91 @@ class EmployeeCompensationPanel extends Component
         $this->employment = $employment;
     }
 
-    public function openCompensation(): void
+    public function openCompensation(CompensationService $compensation): void
     {
         $this->authorize('compensation.manage');
         $this->formError = null;
+        $this->resetCompensationFields();
+
+        $today = now(config('app.timezone'))->toDateString();
+        $current = $compensation->on($this->employment, $today);
+
+        if ($current !== null) {
+            $this->basic_salary = (string) $current->basic_salary;
+            $this->ot_rate_mode = $current->ot_rate_mode instanceof OtRateMode
+                ? $current->ot_rate_mode->value
+                : (string) $current->ot_rate_mode;
+            $this->ot_rate = $current->ot_rate !== null ? (string) $current->ot_rate : '';
+            $this->attendance_tier_code = $current->attendance_tier_code ?? '';
+            $this->from = CarbonImmutable::now(config('app.timezone'))->startOfMonth()->addMonth()->toDateString();
+        }
+
         $this->showCompensationForm = true;
         $this->showComponentForm = false;
+        $this->editingComponent = false;
+        $this->editingComponentId = null;
     }
 
     public function openComponent(): void
     {
         $this->authorize('compensation.manage');
         $this->formError = null;
+        $this->editingComponent = false;
+        $this->editingComponentId = null;
         $this->component_kind = ComponentKind::EARNING->value;
         $this->component_code = '';
+        $this->component_amount = '';
+        $this->component_from = '';
+        $this->component_to = '';
+        $this->component_note = '';
+        $this->showComponentForm = true;
+        $this->showCompensationForm = false;
+    }
+
+    public function openEditComponent(int $componentId): void
+    {
+        $this->authorize('compensation.manage');
+        $this->formError = null;
+
+        $row = EmployeeComponent::query()
+            ->with('payComponent')
+            ->where('employment_id', $this->employment->id)
+            ->whereKey($componentId)
+            ->firstOrFail();
+
+        if ($row->effective_to !== null) {
+            $this->formError = 'Only an open component can be changed.';
+
+            return;
+        }
+
+        $this->editingComponent = true;
+        $this->editingComponentId = $row->id;
+        $this->component_kind = $row->payComponent?->kind instanceof ComponentKind
+            ? $row->payComponent->kind->value
+            : (string) ($row->payComponent?->kind ?? ComponentKind::EARNING->value);
+        $this->component_code = (string) ($row->payComponent?->code ?? '');
+        $this->component_amount = (string) $row->amount;
+        $this->component_from = now(config('app.timezone'))->toDateString();
+        $this->component_to = '';
+        $this->component_note = (string) ($row->note ?? '');
         $this->showComponentForm = true;
         $this->showCompensationForm = false;
     }
 
     public function updatedComponentKind(): void
     {
-        $this->component_code = '';
+        if (! $this->editingComponent) {
+            $this->component_code = '';
+        }
     }
 
     public function closeForm(): void
     {
         $this->showCompensationForm = false;
         $this->showComponentForm = false;
+        $this->editingComponent = false;
+        $this->editingComponentId = null;
         $this->formError = null;
     }
 
@@ -121,6 +184,24 @@ class EmployeeCompensationPanel extends Component
         $this->authorize('compensation.manage');
         $this->formError = null;
         $this->notice = null;
+
+        if ($this->editingComponent) {
+            $this->validate([
+                'editingComponentId' => ['required', 'integer'],
+                'component_amount' => ['required', 'string'],
+                'component_from' => ['required', 'date'],
+                'component_note' => ['nullable', 'string'],
+            ]);
+
+            $this->submit($requests, 'CHANGE_COMPONENT', [
+                'employee_component_id' => $this->editingComponentId,
+                'amount' => $this->component_amount,
+                'from' => $this->component_from,
+                'note' => $this->component_note !== '' ? $this->component_note : null,
+            ]);
+
+            return;
+        }
 
         $this->validate([
             'component_kind' => ['required', 'string', 'in:EARNING,DEDUCTION'],
@@ -207,6 +288,16 @@ class EmployeeCompensationPanel extends Component
             'modes' => OtRateMode::cases(),
             'canManage' => auth()->user()?->can('compensation.manage') ?? false,
         ]);
+    }
+
+    private function resetCompensationFields(): void
+    {
+        $this->from = '';
+        $this->basic_salary = '';
+        $this->ot_rate_mode = OtRateMode::CALCULATED->value;
+        $this->ot_rate = '';
+        $this->attendance_tier_code = '';
+        $this->change_reason = '';
     }
 
     /** @param  array<string, mixed>  $data */

@@ -5,6 +5,7 @@ namespace Modules\Payroll\Services;
 use App\Support\Effective\EffectiveDating;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Modules\CoreHr\Enums\EmploymentType;
 use Modules\CoreHr\Models\Employment;
 use Modules\Payroll\Enums\CalcMethod;
@@ -213,6 +214,60 @@ final class CompensationService
         $c->update(['effective_to' => $on]);
 
         return $c->fresh();
+    }
+
+    /** Ends the open row the day before $from and inserts the same component with a new amount. */
+    public function changeComponent(
+        EmployeeComponent $c,
+        string $from,
+        string $amount,
+        ?string $note = null,
+    ): EmployeeComponent {
+        $from = $this->dateString($from);
+        $rowFrom = $this->dateString($c->effective_from);
+
+        if ($c->effective_to !== null) {
+            throw new InvalidCompensation('Only an open component can be changed.');
+        }
+
+        if ($from < $rowFrom) {
+            throw new InvalidCompensation('Component change date cannot be before the start date.');
+        }
+
+        $this->assertPeriodNotLocked($from);
+
+        $amount = $this->money($amount);
+        if (bccomp($amount, '0.00', 2) <= 0) {
+            throw new InvalidCompensation('Component amount must be greater than zero.');
+        }
+
+        $code = $c->payComponent?->code;
+        if ($code === null) {
+            $c->load('payComponent');
+            $code = $c->payComponent?->code;
+        }
+        if ($code === null) {
+            throw new InvalidCompensation('Component is not attachable.');
+        }
+
+        /** @var Employment $employment */
+        $employment = $c->employment ?? Employment::query()->findOrFail($c->employment_id);
+
+        return DB::transaction(function () use ($c, $from, $rowFrom, $amount, $note, $code, $employment) {
+            if ($from === $rowFrom) {
+                $c->update([
+                    'amount' => $amount,
+                    'note' => $note ?? $c->note,
+                ]);
+
+                return $c->fresh(['payComponent']);
+            }
+
+            $endOn = CarbonImmutable::parse($from)->subDay()->toDateString();
+            $this->endComponent($c, $endOn);
+
+            return $this->addComponent($employment, $code, $amount, $from, null, $note);
+        });
     }
 
     /** Components in force on the date, with their pay component, in display order. */

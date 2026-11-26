@@ -170,6 +170,67 @@ class PunchIngestApiTest extends TestCase
         $this->assertDatabaseMissing('devices', ['api_token_hash' => $this->token]);
     }
 
+    public function test_legacy_machine_parameters_are_stored(): void
+    {
+        $e = $this->hired('2026-01-01');
+        app(EnrolmentService::class)->enrol($e, 'NIT', 116, '2026-01-01');
+
+        $this->post('/api/store-attendance', [
+            'deviceSerial' => 'GED7243600417',
+            'device_ip' => '192.168.1.228',
+            'attendance' => json_encode([
+                [
+                    'id' => '116',
+                    'timestamp' => '2026-12-01 08:13:37',
+                    'state' => 1,
+                    'type' => 1,
+                ],
+            ]),
+        ])->assertOk()->assertJson([
+            'status' => true,
+            'message' => 'Attendance data has been imported successfully',
+            'received' => 1,
+            'inserted' => 1,
+            'duplicates' => 0,
+            'unresolved' => 0,
+            'rejected' => 0,
+        ]);
+
+        $this->assertDatabaseHas('punches', [
+            'device_id' => $this->device->id,
+            'device_user_id' => 116,
+            'punched_at' => '2026-12-01 08:13:37',
+            'employment_id' => $e->id,
+            'resolution' => 'RESOLVED',
+            'verify_mode' => 1,
+            'raw_state' => 1,
+        ]);
+    }
+
+    public function test_legacy_attendance_list_is_accepted_on_the_v1_route(): void
+    {
+        $this->withToken($this->token)->postJson('/api/v1/attendance/punches', [
+            'deviceSerial' => 'GED7243600417',
+            'device_ip' => '192.168.1.128',
+            'attendance' => [
+                ['id' => 7, 'timestamp' => '2026-12-01 08:00:00', 'state' => 0, 'type' => '1'],
+            ],
+        ])->assertOk()->assertJson([
+            'status' => true,
+            'inserted' => 1,
+            'unresolved' => 1,
+        ]);
+
+        $this->assertDatabaseHas('punches', [
+            'device_id' => $this->device->id,
+            'device_user_id' => 7,
+            'punched_at' => '2026-12-01 08:00:00',
+            'verify_mode' => 1,
+            'raw_state' => 0,
+            'resolution' => 'UNRESOLVED',
+        ]);
+    }
+
     public function test_same_user_id_and_time_on_two_devices_are_two_punches(): void
     {
         [$d2, $t2] = app(DeviceService::class)->register(['serial_no' => 'GED7254500730', 'name' => 'Negombo', 'location_id' => Location::factory()->create()->id, 'device_group' => 'NEG']);

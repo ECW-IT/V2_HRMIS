@@ -31,4 +31,9 @@ class ResignedEmployeesIndex extends EmployeesIndex
     {
         return false;
     }
+
+    protected function showFingerprintActions(): bool
+    {
+        return false;
+    }
 }

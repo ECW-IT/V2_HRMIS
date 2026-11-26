@@ -32,19 +32,46 @@
                     <th class="px-3 py-2">Company</th>
                     <th class="px-3 py-2">Requested by</th>
                     <th class="px-3 py-2">Requested at</th>
-                    <th class="px-3 py-2">Summary</th>
+                    <th class="px-3 py-2">Employee</th>
+                    <th class="px-3 py-2">Field</th>
+                    <th class="px-3 py-2">Old value</th>
+                    <th class="px-3 py-2">New value</th>
                     <th class="px-3 py-2"></th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($rows as $request)
-                    <tr class="border-t">
+                    @php($summary = $summaries[$request->id])
+                    <tr class="border-t align-top">
                         <td class="px-3 py-2 font-medium">#{{ $request->id }}</td>
                         <td class="px-3 py-2">{{ $request->definition->name }}</td>
                         <td class="px-3 py-2">{{ $request->company?->code }}</td>
                         <td class="px-3 py-2">{{ $request->requester?->name ?? '—' }}</td>
                         <td class="px-3 py-2">{{ $request->requested_at?->timezone(config('app.timezone'))->format('Y-m-d H:i') }}</td>
-                        <td class="px-3 py-2">{{ $request->action->value }} {{ class_basename($request->subject_type) }}</td>
+                        <td class="px-3 py-2">{{ $summary['employee'] }}</td>
+                        @if ($summary['hidden'])
+                            <td class="px-3 py-2" colspan="3">{{ $summary['hidden'] }}</td>
+                        @elseif ($summary['changes'] === [])
+                            <td class="px-3 py-2">—</td>
+                            <td class="px-3 py-2">—</td>
+                            <td class="px-3 py-2">—</td>
+                        @else
+                            <td class="px-3 py-2">
+                                @foreach ($summary['changes'] as $change)
+                                    <div class="py-0.5">{{ $change['field'] }}</div>
+                                @endforeach
+                            </td>
+                            <td class="px-3 py-2">
+                                @foreach ($summary['changes'] as $change)
+                                    <div class="py-0.5 break-words">{{ $change['old'] }}</div>
+                                @endforeach
+                            </td>
+                            <td class="px-3 py-2">
+                                @foreach ($summary['changes'] as $change)
+                                    <div class="py-0.5 break-words">{{ $change['new'] }}</div>
+                                @endforeach
+                            </td>
+                        @endif
                         <td class="px-3 py-2 text-right space-x-2 whitespace-nowrap">
                             @if ($tab === 'waiting')
                                 <button type="button" wire:click="open({{ $request->id }})" class="text-[var(--color-erp-accent)] hover:underline">Review</button>
@@ -57,7 +84,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-3 py-6 text-center text-slate-500">No requests.</td>
+                        <td colspan="10" class="px-3 py-6 text-center text-slate-500">No requests.</td>
                     </tr>
                 @endforelse
             </tbody>

@@ -2,20 +2,22 @@
 
 namespace Modules\CoreHr\Livewire\Tabs;
 
+use App\Exceptions\Domain\DomainException;
 use Carbon\CarbonImmutable;
 use Illuminate\View\View;
 use Livewire\Component;
+use Modules\Attendance\Enums\AttendanceMode;
+use Modules\Attendance\Enums\OtMode;
+use Modules\Attendance\Services\TimeProfileService;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Enums\EmploymentType;
 use Modules\CoreHr\Livewire\Concerns\LoadsAssignmentOptions;
 use Modules\CoreHr\Livewire\Concerns\RejectsResignedMutations;
 use Modules\CoreHr\Livewire\Concerns\SubmitsEmploymentRequests;
 use Modules\CoreHr\Models\Employment;
-use Modules\CoreHr\Services\EmploymentService;
 use Modules\CoreHr\Support\AssignmentLookup;
 use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\StaffWorkCategory;
-use Modules\Organisation\Services\StaffWorkCategoryService;
 
 class EditEmploymentStep extends Component
 {
@@ -53,7 +55,15 @@ class EditEmploymentStep extends Component
 
     public string $moduleFlagsMessage = '';
 
-    public function mount(Employment $employment): void
+    public string $otMode = 'NONE';
+
+    public string $otEffectiveFrom = '';
+
+    public string $otModeMessage = '';
+
+    public string $otModeError = '';
+
+    public function mount(Employment $employment, TimeProfileService $profiles): void
     {
         $this->authorize('employee.update');
         $this->flashOnParent = false;
@@ -68,6 +78,12 @@ class EditEmploymentStep extends Component
         $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
         $hire = $employment->hire_date->toDateString();
         $this->effectiveFrom = max($today, $hire);
+        $this->otEffectiveFrom = $this->effectiveFrom;
+
+        $profile = $profiles->on($employment, $today);
+        $this->otMode = $profile?->ot_mode instanceof OtMode
+            ? $profile->ot_mode->value
+            : ($profile?->ot_mode !== null ? (string) $profile->ot_mode : OtMode::NONE->value);
 
         $this->loadAssignmentFields();
     }
@@ -94,7 +110,7 @@ class EditEmploymentStep extends Component
         $this->locationId = $assignment?->location_id;
     }
 
-    public function saveClassification(EmploymentService $employments): void
+    public function saveClassification(): void
     {
         $this->authorize('employee.update');
         $this->ensureNotResigned();
@@ -105,16 +121,24 @@ class EditEmploymentStep extends Component
             'employeeCategoryId' => ['nullable', 'integer', 'exists:employee_categories,id'],
         ]);
 
-        $this->employment = $employments->updateClassification($this->employment, [
-            'type' => $this->type,
-            'employee_category_id' => $this->employeeCategoryId === null || $this->employeeCategoryId === ''
-                ? null
-                : (int) $this->employeeCategoryId,
-        ]);
-        $this->type = $this->employment->type->value;
-        $this->employeeCategoryId = $this->employment->employee_category_id;
-        $this->classificationMessage = 'Type and employee category updated.';
-        $this->dispatch('employment-updated', message: '');
+        $categoryId = $this->employeeCategoryId === null || $this->employeeCategoryId === ''
+            ? null
+            : (int) $this->employeeCategoryId;
+
+        if ($this->type === $this->employment->type->value && $categoryId === $this->employment->employee_category_id) {
+            $this->classificationMessage = 'Nothing was changed.';
+
+            return;
+        }
+
+        if ($this->submitRequest('UPDATE_CLASSIFICATION', [
+            'classification' => [
+                'type' => $this->type,
+                'employee_category_id' => $categoryId,
+            ],
+        ])) {
+            $this->classificationMessage = $this->message;
+        }
     }
 
     public function saveAssignment(): void
@@ -170,7 +194,7 @@ class EditEmploymentStep extends Component
         }
     }
 
-    public function saveStaffWorkCategory(StaffWorkCategoryService $service): void
+    public function saveStaffWorkCategory(): void
     {
         $this->authorize('employee.update');
         $this->ensureNotResigned();
@@ -179,13 +203,21 @@ class EditEmploymentStep extends Component
             'staffWorkCategoryId' => ['nullable', 'integer', 'exists:staff_work_categories,id'],
         ]);
 
-        $category = $this->staffWorkCategoryId === null || $this->staffWorkCategoryId === ''
+        $categoryId = $this->staffWorkCategoryId === null || $this->staffWorkCategoryId === ''
             ? null
-            : StaffWorkCategory::query()->findOrFail((int) $this->staffWorkCategoryId);
+            : (int) $this->staffWorkCategoryId;
 
-        $this->employment = $service->assign($this->employment, $category);
-        $this->staffWorkCategoryId = $this->employment->staff_work_category_id;
-        $this->staffWorkMessage = 'Office / shop category updated.';
+        if ($categoryId === $this->employment->staff_work_category_id) {
+            $this->staffWorkMessage = 'Nothing was changed.';
+
+            return;
+        }
+
+        if ($this->submitRequest('UPDATE_STAFF_CATEGORY', [
+            'staff_work_category_id' => $categoryId,
+        ])) {
+            $this->staffWorkMessage = $this->message;
+        }
     }
 
     public function updatedHrmisActive(bool $value): void
@@ -208,7 +240,7 @@ class EditEmploymentStep extends Component
         $this->dispatch('open-exit-action');
     }
 
-    public function saveModuleFlags(EmploymentService $employments): void
+    public function saveModuleFlags(): void
     {
         $this->authorize('employee.update');
 
@@ -221,11 +253,7 @@ class EditEmploymentStep extends Component
         if ($this->employment->isResigned()) {
             $this->hrmisActive = (bool) $this->employment->hrmis_active;
             $this->attendanceActive = (bool) $this->employment->attendance_active;
-            $this->employment = $employments->updateModuleFlags($this->employment, [
-                'payroll_active' => $this->payrollActive,
-            ]);
-            $this->payrollActive = (bool) $this->employment->payroll_active;
-            $this->moduleFlagsMessage = 'Module flags updated.';
+            $this->submitModuleFlags(['payroll_active' => $this->payrollActive]);
 
             return;
         }
@@ -237,27 +265,104 @@ class EditEmploymentStep extends Component
         if ($turningHrmisOff) {
             $this->authorize('employee.exit');
             $this->hrmisActive = true;
-            $this->employment = $employments->updateModuleFlags($this->employment, [
+            $this->submitModuleFlags([
                 'attendance_active' => $this->attendanceActive,
                 'payroll_active' => $this->payrollActive,
             ]);
-            $this->attendanceActive = (bool) $this->employment->attendance_active;
-            $this->payrollActive = (bool) $this->employment->payroll_active;
             $this->moduleFlagsMessage = 'Complete the exit form to deactivate HRMIS.';
             $this->dispatch('open-exit-action');
 
             return;
         }
 
-        $this->employment = $employments->updateModuleFlags($this->employment, [
+        $this->submitModuleFlags([
             'hrmis_active' => $this->hrmisActive,
             'attendance_active' => $this->attendanceActive,
             'payroll_active' => $this->payrollActive,
         ]);
-        $this->hrmisActive = (bool) $this->employment->hrmis_active;
-        $this->attendanceActive = (bool) $this->employment->attendance_active;
-        $this->payrollActive = (bool) $this->employment->payroll_active;
-        $this->moduleFlagsMessage = 'Module flags updated.';
+    }
+
+    /** @param  array<string, bool>  $flags */
+    private function submitModuleFlags(array $flags): void
+    {
+        $changed = [];
+        foreach ($flags as $field => $value) {
+            if ((bool) $this->employment->{$field} !== (bool) $value) {
+                $changed[$field] = (bool) $value;
+            }
+        }
+
+        if ($changed === []) {
+            $this->moduleFlagsMessage = 'Nothing was changed.';
+
+            return;
+        }
+
+        if ($this->submitRequest('UPDATE_MODULE_FLAGS', ['flags' => $changed])) {
+            $this->moduleFlagsMessage = $this->message;
+        }
+    }
+
+    public function saveOtMode(TimeProfileService $profiles): void
+    {
+        $this->authorize('employee.update');
+        $this->ensureNotResigned();
+        $this->otModeMessage = '';
+        $this->otModeError = '';
+
+        $this->validate([
+            'otEffectiveFrom' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$this->employment->hire_date->toDateString()],
+            'otMode' => ['required', 'string', 'in:'.implode(',', array_column(OtMode::cases(), 'value'))],
+        ], [
+            'otEffectiveFrom.after_or_equal' => 'The date cannot be before the hire date.',
+        ]);
+
+        $current = $profiles->on($this->employment, $this->otEffectiveFrom);
+
+        if ($current === null) {
+            $this->otModeError = 'No time profile is in force. Set a shift on the time profile before changing OT mode.';
+
+            return;
+        }
+
+        $currentMode = $current->ot_mode instanceof OtMode
+            ? $current->ot_mode->value
+            : (string) $current->ot_mode;
+
+        if ($currentMode === $this->otMode) {
+            $this->otModeError = 'Nothing was changed.';
+
+            return;
+        }
+
+        $requested = $this->otMode;
+
+        try {
+            $saved = $profiles->set($this->employment, [
+                'effective_from' => $this->otEffectiveFrom,
+                'shift_id' => $current->shift_id,
+                'ot_mode' => $requested,
+            ]);
+        } catch (DomainException $e) {
+            $this->otModeError = $e->getMessage();
+
+            return;
+        }
+
+        $savedMode = $saved->ot_mode instanceof OtMode ? $saved->ot_mode->value : (string) $saved->ot_mode;
+        $this->otMode = $savedMode;
+
+        $attendance = $current->attendance_mode instanceof AttendanceMode
+            ? $current->attendance_mode
+            : AttendanceMode::from((string) $current->attendance_mode);
+
+        if ($attendance === AttendanceMode::NO_PUNCH && $requested !== OtMode::NONE->value && $savedMode === OtMode::NONE->value) {
+            $this->otModeMessage = 'No-punch attendance keeps OT mode at none.';
+
+            return;
+        }
+
+        $this->otModeMessage = 'OT mode updated.';
     }
 
     public function render(): View
@@ -265,10 +370,13 @@ class EditEmploymentStep extends Component
         $this->authorize('employee.update');
 
         $employment = $this->employment->load(['employeeCategory', 'staffWorkCategory']);
+        $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
 
         return view('corehr::livewire.partials.edit-employment-step', [
             'employment' => $employment,
             'types' => EmploymentType::cases(),
+            'otModes' => OtMode::cases(),
+            'otProfile' => app(TimeProfileService::class)->on($employment, $today),
             'employeeCategories' => EmployeeCategory::query()
                 ->where(function ($query) use ($employment) {
                     $query->where('is_active', true);

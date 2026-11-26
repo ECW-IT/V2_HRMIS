@@ -3,6 +3,7 @@
 namespace Modules\CoreHr\Services;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Modules\CoreHr\Enums\AddressType;
 use Modules\CoreHr\Enums\ArriveWorkFrom;
@@ -13,6 +14,7 @@ use Modules\CoreHr\Exceptions\DuplicatePerson;
 use Modules\CoreHr\Exceptions\InvalidNic;
 use Modules\CoreHr\Exceptions\InvalidPersonData;
 use Modules\CoreHr\Models\Person;
+use Modules\CoreHr\Models\PersonContact;
 use Modules\CoreHr\Support\Nic;
 
 final class PersonService
@@ -79,6 +81,81 @@ final class PersonService
 
             return $person->fresh(['contacts', 'addresses']);
         });
+    }
+
+    /**
+     * @param  array{id?: int|null, type: string, value: string, is_primary?: bool}  $data
+     */
+    public function upsertContact(Person $person, array $data): PersonContact
+    {
+        return DB::transaction(function () use ($person, $data) {
+            $type = $data['type'] instanceof ContactType
+                ? $data['type']
+                : ContactType::from((string) $data['type']);
+            $value = trim((string) $data['value']);
+            $isPrimary = (bool) ($data['is_primary'] ?? false);
+            $id = isset($data['id']) && $data['id'] !== null && $data['id'] !== ''
+                ? (int) $data['id']
+                : null;
+
+            if ($isPrimary) {
+                $person->contacts()
+                    ->where('type', $type->value)
+                    ->when($id !== null, fn ($query) => $query->where('id', '!=', $id))
+                    ->where('is_primary', true)
+                    ->update(['is_primary' => false]);
+            }
+
+            if ($id === null) {
+                return $person->contacts()->create([
+                    'type' => $type,
+                    'value' => $value,
+                    'is_primary' => $isPrimary,
+                ]);
+            }
+
+            $contact = $person->contacts()->findOrFail($id);
+            $contact->update([
+                'type' => $type,
+                'value' => $value,
+                'is_primary' => $isPrimary,
+            ]);
+
+            return $contact->fresh();
+        });
+    }
+
+    public function removeContact(Person $person, int $contactId): void
+    {
+        $person->contacts()->findOrFail($contactId)->delete();
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     */
+    public function upsertChild(Person $person, string $kind, array $data): Model
+    {
+        return DB::transaction(function () use ($person, $kind, $data) {
+            $relation = $this->childRelation($kind);
+            $id = isset($data['id']) && $data['id'] !== null && $data['id'] !== ''
+                ? (int) $data['id']
+                : null;
+            unset($data['id']);
+
+            if ($id === null) {
+                return $person->{$relation}()->create($data);
+            }
+
+            $row = $person->{$relation}()->findOrFail($id);
+            $row->update($data);
+
+            return $row->fresh();
+        });
+    }
+
+    public function removeChild(Person $person, string $kind, int $id): void
+    {
+        $person->{$this->childRelation($kind)}()->findOrFail($id)->delete();
     }
 
     public function findByNic(string $raw): ?Person
@@ -305,5 +382,16 @@ final class PersonService
                 );
             }
         }
+    }
+
+    private function childRelation(string $kind): string
+    {
+        return match ($kind) {
+            'emergency' => 'emergencyContacts',
+            'dependent' => 'dependents',
+            'qualification' => 'qualifications',
+            'experience' => 'experience',
+            default => throw new \InvalidArgumentException("Unknown person record [{$kind}]."),
+        };
     }
 }

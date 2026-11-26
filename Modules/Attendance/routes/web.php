@@ -10,6 +10,7 @@ use Modules\Attendance\Livewire\LateReview;
 use Modules\Attendance\Livewire\OtApproval;
 use Modules\Attendance\Livewire\PeriodClose;
 use Modules\Attendance\Livewire\PeriodSummary;
+use Modules\Attendance\Livewire\PunchesIndex;
 use Modules\Attendance\Livewire\ShiftsIndex;
 use Modules\Attendance\Livewire\TimeProfilesBulk;
 use Modules\Attendance\Livewire\UnresolvedPunches;
@@ -39,6 +40,10 @@ Route::middleware(['auth', 'password.changed', 'can:org.view'])->group(function 
 
 Route::middleware(['auth', 'password.changed', 'can:employee.update'])->group(function () {
     Route::get('/attendance/time-profiles/bulk', TimeProfilesBulk::class)->name('attendance.time-profiles.bulk');
+});
+
+Route::middleware(['auth', 'password.changed', 'can:attendance.punch.view'])->group(function () {
+    Route::get('/attendance/punches', PunchesIndex::class)->name('attendance.punches.index');
 });
 
 Route::middleware(['auth', 'password.changed', 'can:attendance.device.manage'])->group(function () {

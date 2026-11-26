@@ -155,4 +155,39 @@ class MyApprovalsScreenTest extends TestCase
             ->assertSee('Reason')
             ->assertDontSee('"calling_name"');
     }
+
+    public function test_bank_account_number_is_hidden_without_bank_view(): void
+    {
+        $this->seed(RolesAndPermissionsSeeder::class);
+        $this->seed(ApprovalDefinitionSeeder::class);
+
+        $employment = $this->hired();
+        [$bank, $branch] = $this->bankWithBranch();
+        $officer = User::factory()
+            ->forCompanies([$employment->company])
+            ->withRole('payroll-officer')
+            ->create(['must_change_password' => false]);
+        $viewer = User::factory()
+            ->forCompanies([$employment->company])
+            ->withRole('line-manager')
+            ->create(['must_change_password' => false]);
+
+        $request = app(EmploymentRequestService::class)->request($officer, 'SET_BANK', $employment, [
+            'account' => [
+                'effective_from' => $employment->hire_date->toDateString(),
+                'is_cash' => false,
+                'bank_id' => $bank->id,
+                'bank_branch_id' => $branch->id,
+                'account_no' => '0099887766',
+                'account_name' => 'N. Perera',
+            ],
+        ]);
+
+        Livewire::actingAs($viewer)
+            ->test(MyApprovals::class)
+            ->call('open', $request->id)
+            ->assertSee('Bank account')
+            ->assertSee('Hidden')
+            ->assertDontSee('0099887766');
+    }
 }

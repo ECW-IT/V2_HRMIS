@@ -2,20 +2,20 @@
 
 namespace Modules\CoreHr\Livewire\Tabs;
 
-use App\Exceptions\Domain\DomainException;
 use Carbon\CarbonImmutable;
 use Illuminate\View\View;
 use Livewire\Component;
 use Modules\CoreHr\Livewire\Concerns\LoadsBankOptions;
 use Modules\CoreHr\Livewire\Concerns\RejectsResignedMutations;
+use Modules\CoreHr\Livewire\Concerns\SubmitsEmploymentRequests;
 use Modules\CoreHr\Models\EmployeeBankAccount;
 use Modules\CoreHr\Models\Employment;
-use Modules\CoreHr\Services\BankAccountService;
 
 class Bank extends Component
 {
     use LoadsBankOptions;
     use RejectsResignedMutations;
+    use SubmitsEmploymentRequests;
 
     public Employment $employment;
 
@@ -33,13 +33,10 @@ class Bank extends Component
 
     public string $accountName = '';
 
-    public string $message = '';
-
-    public string $errorMessage = '';
-
     public function mount(Employment $employment): void
     {
         $this->employment = $employment;
+        $this->flashOnParent = false;
     }
 
     public function openForm(): void
@@ -62,13 +59,10 @@ class Bank extends Component
         $this->showForm = false;
     }
 
-    public function save(BankAccountService $accounts): void
+    public function save(): void
     {
         $this->authorize('employee.bank.manage');
         $this->ensureNotResigned();
-
-        $this->message = '';
-        $this->errorMessage = '';
 
         $rules = [
             'effectiveFrom' => ['required', 'date_format:Y-m-d'],
@@ -86,24 +80,20 @@ class Bank extends Component
 
         $this->validate($rules);
 
-        try {
-            $accounts->set($this->employment, [
+        $saved = $this->submitRequest('SET_BANK', [
+            'account' => [
                 'effective_from' => $this->effectiveFrom,
                 'is_cash' => $this->isCash,
                 'bank_id' => $this->isCash ? null : (int) $this->bankId,
                 'bank_branch_id' => $this->isCash ? null : (int) $this->bankBranchId,
                 'account_no' => $this->isCash ? null : $this->accountNo,
                 'account_name' => $this->isCash ? null : $this->accountName,
-            ]);
-        } catch (DomainException $e) {
-            $this->errorMessage = $e->getMessage();
+            ],
+        ]);
 
-            return;
+        if ($saved) {
+            $this->showForm = false;
         }
-
-        $this->showForm = false;
-        $this->message = 'Saved.';
-        $this->dispatch('employment-updated');
     }
 
     public function render(): View

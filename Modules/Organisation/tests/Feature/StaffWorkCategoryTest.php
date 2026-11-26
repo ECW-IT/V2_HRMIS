@@ -4,6 +4,7 @@ namespace Modules\Organisation\Tests\Feature;
 
 use App\Models\User;
 use App\Support\Company\CompanyContext;
+use Database\Seeders\ApprovalDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
@@ -13,6 +14,8 @@ use Modules\Organisation\Database\Seeders\StaffWorkCategorySeeder;
 use Modules\Organisation\Livewire\StaffWorkCategoriesIndex;
 use Modules\Organisation\Models\StaffWorkCategory;
 use Modules\Organisation\Services\StaffWorkCategoryService;
+use Modules\Workflow\Models\ApprovalRequest;
+use Modules\Workflow\Services\ApprovalService;
 use Spatie\Permission\Models\Permission;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
@@ -120,6 +123,8 @@ class StaffWorkCategoryTest extends TestCase
 
     public function test_summary_shows_and_updates_office_shop_category(): void
     {
+        $this->seed(ApprovalDefinitionSeeder::class);
+        Permission::findOrCreate('approval.act');
         $company = $this->company();
         $category = StaffWorkCategory::factory()->create(['code' => 'OFF', 'name' => 'Office Staff']);
         $employment = $this->hired('2026-01-01', $company);
@@ -136,7 +141,14 @@ class StaffWorkCategoryTest extends TestCase
             ->set('staffWorkCategoryId', $category->id)
             ->call('saveStaffWorkCategory')
             ->assertSuccessful()
-            ->assertSee('Office / shop category updated.');
+            ->assertSee('Sent for approval');
+
+        $this->assertNull($employment->fresh()->staff_work_category_id);
+
+        $approver = User::factory()->forCompanies([$company])->withPermissions('approval.act')->create([
+            'must_change_password' => false,
+        ]);
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), $approver);
 
         $this->assertSame($category->id, $employment->fresh()->staff_work_category_id);
     }

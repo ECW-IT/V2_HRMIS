@@ -77,9 +77,21 @@ class MyApprovals extends Component
             && $selected->definition?->code === 'COMPENSATION_CHANGE'
             && ! $user->can('compensation.view');
 
+        $revealBankAccount = $user->can('employee.bank.view');
+        $canViewCompensation = $user->can('compensation.view');
+
         $reviewRows = ($selected !== null && ! $hideCompensationPayload)
-            ? ApprovalReviewPresenter::rows($selected)
+            ? ApprovalReviewPresenter::rows($selected, $revealBankAccount)
             : [];
+
+        $summaries = [];
+        foreach ($waiting->concat($mine)->unique('id') as $request) {
+            $summaries[$request->id] = ApprovalReviewPresenter::listSummary(
+                $request,
+                $revealBankAccount,
+                $request->definition?->code === 'COMPENSATION_CHANGE' && ! $canViewCompensation,
+            );
+        }
 
         return view('workflow::livewire.my-approvals', [
             'waiting' => $waiting,
@@ -87,6 +99,7 @@ class MyApprovals extends Component
             'selected' => $selected,
             'reviewRows' => $reviewRows,
             'hideCompensationPayload' => $hideCompensationPayload,
+            'summaries' => $summaries,
         ])->layout('components.layouts.app', [
             'title' => 'My approvals',
         ]);

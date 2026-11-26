@@ -6,6 +6,8 @@ use App\Models\User;
 use Database\Seeders\ApprovalDefinitionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Modules\Attendance\Enums\OtMode;
+use Modules\Attendance\Services\TimeProfileService;
 use Modules\CoreHr\Enums\EmploymentType;
 use Modules\CoreHr\Livewire\Tabs\EditEmploymentStep;
 use Modules\CoreHr\Services\EmploymentService;
@@ -44,7 +46,13 @@ class EditEmploymentStepTest extends TestCase
             ->set('employeeCategoryId', $category->id)
             ->call('saveClassification')
             ->assertHasNoErrors()
-            ->assertSee('Type and employee category updated.');
+            ->assertSee('Sent for approval');
+
+        $employment->refresh();
+        $this->assertSame(EmploymentType::PROBATION, $employment->type);
+        $this->assertNull($employment->employee_category_id);
+
+        app(ApprovalService::class)->approve(ApprovalRequest::sole(), auth()->user());
 
         $employment->refresh();
         $this->assertSame(EmploymentType::PERMANENT, $employment->type);
@@ -122,5 +130,49 @@ class EditEmploymentStepTest extends TestCase
             ->assertDontSee('use Change assignment')
             ->assertSee($employment->employee_no)
             ->assertSee('2026-01-01');
+    }
+
+    public function test_ot_mode_can_be_updated_without_changing_shift(): void
+    {
+        $company = $this->company();
+        $employment = $this->profiled('2026-01-01', $company, ['ot_mode' => OtMode::NONE]);
+        $shiftId = $employment->timeProfiles()->sole()->shift_id;
+
+        $this->loginAs('hr-manager', $company);
+
+        Livewire::test(EditEmploymentStep::class, ['employment' => $employment])
+            ->assertSee('Save OT mode')
+            ->set('otMode', OtMode::EVENING->value)
+            ->set('otEffectiveFrom', '2026-06-01')
+            ->call('saveOtMode')
+            ->assertHasNoErrors()
+            ->assertSee('OT mode updated.');
+
+        $profiles = app(TimeProfileService::class);
+        $before = $profiles->on($employment, '2026-05-31');
+        $after = $profiles->on($employment, '2026-06-01');
+
+        $this->assertSame(OtMode::NONE, $before->ot_mode);
+        $this->assertSame($shiftId, $before->shift_id);
+        $this->assertSame(OtMode::EVENING, $after->ot_mode);
+        $this->assertSame($shiftId, $after->shift_id);
+        $this->assertSame($before->attendance_mode, $after->attendance_mode);
+        $this->assertSame($before->late_deduction, $after->late_deduction);
+    }
+
+    public function test_ot_mode_without_a_time_profile_shows_an_error(): void
+    {
+        $company = $this->company();
+        $employment = $this->hired('2026-01-01', $company);
+
+        $this->loginAs('hr-manager', $company);
+
+        Livewire::test(EditEmploymentStep::class, ['employment' => $employment])
+            ->set('otEffectiveFrom', '2026-06-01')
+            ->set('otMode', OtMode::EVENING->value)
+            ->call('saveOtMode')
+            ->assertSee('No time profile is in force');
+
+        $this->assertSame(0, $employment->timeProfiles()->count());
     }
 }

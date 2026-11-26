@@ -3,12 +3,16 @@
 namespace Modules\Payroll\Tests\Feature;
 
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Modules\Calendar\Services\PayPeriodService;
 use Modules\CoreHr\Readiness\ReadinessService;
 use Modules\Payroll\Database\Seeders\PayComponentSeeder;
 use Modules\Payroll\Database\Seeders\PayRuleSeeder;
 use Modules\Payroll\Enums\OtRateMode;
+use Modules\Payroll\Enums\PayRunStatus;
 use Modules\Payroll\Exceptions\InvalidCompensation;
 use Modules\Payroll\Models\EmployeeCompensation;
+use Modules\Payroll\Models\EmployeeComponent;
+use Modules\Payroll\Models\PayRun;
 use Modules\Payroll\Services\CompensationService;
 use Modules\Payroll\Services\PayRuleService;
 use Tests\Support\HrFixtures;
@@ -260,5 +264,66 @@ class CompensationServiceTest extends TestCase
 
         $codes = app(ReadinessService::class)->forEmployment($e, '2026-11-01')->pluck('code')->all();
         $this->assertNotContains('HR013', $codes);
+    }
+
+    public function test_change_component_ends_and_adds_from_a_later_date(): void
+    {
+        $e = $this->hired('2026-01-01');
+        $this->seed(PayRuleSeeder::class);
+        $this->svc->set($e, '2026-01-01', [
+            'basic_salary' => '60000.00',
+            'ot_rate_mode' => OtRateMode::CALCULATED,
+        ]);
+
+        $fuel = $this->svc->addComponent($e, 'FUEL', '5000.00', '2026-01-01');
+        $changed = $this->svc->changeComponent($fuel, '2026-06-01', '7500.00', 'Mid-year increase');
+
+        $this->assertSame('2026-05-31', $fuel->fresh()->effective_to->toDateString());
+        $this->assertSame('7500.00', $changed->amount);
+        $this->assertSame('2026-06-01', $changed->effective_from->toDateString());
+        $this->assertNull($changed->effective_to);
+        $this->assertSame('5000.00', $this->svc->componentsOn($e, '2026-05-31')->sole()->amount);
+        $this->assertSame('7500.00', $this->svc->componentsOn($e, '2026-06-01')->sole()->amount);
+    }
+
+    public function test_change_component_updates_amount_on_the_same_start_date(): void
+    {
+        $e = $this->hired('2026-01-01');
+        $this->seed(PayRuleSeeder::class);
+        $this->svc->set($e, '2026-01-01', [
+            'basic_salary' => '60000.00',
+            'ot_rate_mode' => OtRateMode::CALCULATED,
+        ]);
+
+        $fuel = $this->svc->addComponent($e, 'FUEL', '5000.00', '2026-01-01');
+        $changed = $this->svc->changeComponent($fuel, '2026-01-01', '5500.00');
+
+        $this->assertSame($fuel->id, $changed->id);
+        $this->assertSame('5500.00', $changed->amount);
+        $this->assertSame(1, EmployeeComponent::query()->where('employment_id', $e->id)->count());
+    }
+
+    public function test_change_component_refuses_a_locked_pay_period(): void
+    {
+        $e = $this->hired('2026-01-01');
+        $this->seed(PayRuleSeeder::class);
+        $this->svc->set($e, '2026-01-01', [
+            'basic_salary' => '60000.00',
+            'ot_rate_mode' => OtRateMode::CALCULATED,
+        ]);
+
+        $fuel = $this->svc->addComponent($e, 'FUEL', '5000.00', '2026-01-01');
+
+        $period = app(PayPeriodService::class)->ensure($e->company, 2026, 6);
+        PayRun::query()->create([
+            'company_id' => $e->company_id,
+            'pay_period_id' => $period->id,
+            'status' => PayRunStatus::LOCKED,
+            'employee_count' => 0,
+        ]);
+
+        $this->expectException(InvalidCompensation::class);
+        $this->expectExceptionMessage('Compensation cannot change inside a locked pay period.');
+        $this->svc->changeComponent($fuel, '2026-06-15', '7500.00');
     }
 }

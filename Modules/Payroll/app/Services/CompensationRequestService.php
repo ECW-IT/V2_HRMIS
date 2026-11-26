@@ -3,7 +3,6 @@
 namespace Modules\Payroll\Services;
 
 use App\Models\User;
-use App\Support\Audit\AuditLogger;
 use Illuminate\Auth\Access\AuthorizationException;
 use Modules\CoreHr\Models\Employment;
 use Modules\Payroll\Models\EmployeeComponent;
@@ -11,7 +10,7 @@ use Modules\Workflow\Enums\ApprovalActionType;
 use Modules\Workflow\Models\ApprovalRequest;
 use Modules\Workflow\Services\ApprovalService;
 
-/** Decides between applying directly and submitting for approval. */
+/** Submits compensation changes for approval. */
 final class CompensationRequestService
 {
     public function __construct(
@@ -19,8 +18,8 @@ final class CompensationRequestService
         private readonly ApprovalService $approvals,
     ) {}
 
-    /** $operation: 'SET_COMPENSATION' | 'ADD_COMPONENT' | 'END_COMPONENT'. Returns the ApprovalRequest, or null when applied directly. */
-    public function request(User $by, string $operation, Employment $e, array $data): ?ApprovalRequest
+    /** $operation: 'SET_COMPENSATION' | 'ADD_COMPONENT' | 'END_COMPONENT' | 'CHANGE_COMPONENT'. Always returns the pending ApprovalRequest. */
+    public function request(User $by, string $operation, Employment $e, array $data): ApprovalRequest
     {
         if (! $by->can('compensation.manage')) {
             throw new AuthorizationException('This action is unauthorized.');
@@ -28,14 +27,6 @@ final class CompensationRequestService
 
         if ($by->person_id !== null && (int) $by->person_id === (int) $e->person_id) {
             throw new AuthorizationException('You cannot change your own compensation.');
-        }
-
-        if ($by->can('compensation.apply-directly')) {
-            AuditLogger::withReason($data['change_reason'] ?? $data['reason'] ?? $operation, function () use ($operation, $e, $data) {
-                $this->apply($operation, $e, $data);
-            });
-
-            return null;
         }
 
         return $this->approvals->submit(
@@ -71,6 +62,12 @@ final class CompensationRequestService
             'END_COMPONENT' => $this->compensation->endComponent(
                 EmployeeComponent::query()->findOrFail($data['employee_component_id']),
                 (string) $data['on'],
+            ),
+            'CHANGE_COMPONENT' => $this->compensation->changeComponent(
+                EmployeeComponent::query()->with('payComponent')->findOrFail($data['employee_component_id']),
+                (string) $data['from'],
+                (string) $data['amount'],
+                $data['note'] ?? null,
             ),
             default => throw new \InvalidArgumentException("Unknown compensation operation [{$operation}]."),
         };
