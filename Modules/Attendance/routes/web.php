@@ -7,6 +7,7 @@ use Modules\Attendance\Livewire\DevicesIndex;
 use Modules\Attendance\Livewire\EmployeeTimecards;
 use Modules\Attendance\Livewire\Exceptions;
 use Modules\Attendance\Livewire\LateReview;
+use Modules\Attendance\Livewire\MonthPunches;
 use Modules\Attendance\Livewire\OtApproval;
 use Modules\Attendance\Livewire\PeriodClose;
 use Modules\Attendance\Livewire\PeriodSummary;
@@ -46,6 +47,7 @@ Route::middleware(['auth', 'password.changed', 'can:employee.update'])->group(fu
 
 Route::middleware(['auth', 'password.changed', 'can:attendance.punch.view'])->group(function () {
     Route::get('/attendance/punches', PunchesIndex::class)->name('attendance.punches.index');
+    Route::get('/attendance/punches/month', MonthPunches::class)->name('attendance.punches.month');
 });
 
 Route::middleware(['auth', 'password.changed', 'can:attendance.device.manage'])->group(function () {

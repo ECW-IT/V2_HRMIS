@@ -69,6 +69,12 @@ final class AttendanceNav
                 'active' => $active === 'punches',
             ],
             [
+                'icon' => '📅',
+                'label' => 'Month entry',
+                'route' => route('attendance.punches.month'),
+                'active' => $active === 'month-punches',
+            ],
+            [
                 'icon' => '⚠️',
                 'label' => 'Unresolved punches',
                 'route' => route('attendance.unresolved.index'),
