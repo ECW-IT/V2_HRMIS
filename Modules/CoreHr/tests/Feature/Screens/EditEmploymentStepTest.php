@@ -189,6 +189,56 @@ class EditEmploymentStepTest extends TestCase
         $this->assertSame($before->attendance_mode, $after->attendance_mode);
     }
 
+    public function test_shift_can_be_updated_from_a_date_without_changing_ot_or_late(): void
+    {
+        $company = $this->company();
+        $employment = $this->profiled('2026-01-01', $company, [
+            'ot_mode' => OtMode::EVENING,
+            'late_deduction' => true,
+        ]);
+        $shiftId = $employment->timeProfiles()->sole()->shift_id;
+
+        app(TimeProfileService::class)->set($employment, [
+            'effective_from' => '2026-01-01',
+            'shift_id' => $shiftId,
+            'times' => [
+                'start_time' => '08:00',
+                'end_time' => '17:00',
+                'late_from' => '08:15',
+                'morning_cutoff' => '10:00',
+                'half_day_from' => '12:30',
+                'early_leave_from' => '15:00',
+            ],
+            'breaks' => [],
+        ]);
+
+        $next = $this->shift(['name' => 'Night 18:00–02:00']);
+
+        $this->loginAs('hr-manager', $company);
+
+        Livewire::test(EditEmploymentStep::class, ['employment' => $employment->fresh()])
+            ->assertSee('Save shift')
+            ->set('shiftId', $next->id)
+            ->set('shiftEffectiveFrom', '2026-06-01')
+            ->call('saveShift')
+            ->assertHasNoErrors()
+            ->assertSee('Shift updated.');
+
+        $profiles = app(TimeProfileService::class);
+        $before = $profiles->on($employment, '2026-05-31');
+        $after = $profiles->on($employment, '2026-06-01');
+
+        $this->assertSame($shiftId, $before->shift_id);
+        $this->assertSame(OtMode::EVENING, $before->ot_mode);
+        $this->assertTrue($before->late_deduction);
+        $this->assertTrue($before->uses_custom_times);
+        $this->assertSame($next->id, $after->shift_id);
+        $this->assertFalse($after->uses_custom_times);
+        $this->assertSame(OtMode::EVENING, $after->ot_mode);
+        $this->assertTrue($after->late_deduction);
+        $this->assertSame($before->attendance_mode, $after->attendance_mode);
+    }
+
     public function test_ot_mode_without_a_time_profile_shows_an_error(): void
     {
         $company = $this->company();

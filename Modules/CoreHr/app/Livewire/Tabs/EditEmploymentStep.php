@@ -8,6 +8,7 @@ use Illuminate\View\View;
 use Livewire\Component;
 use Modules\Attendance\Enums\AttendanceMode;
 use Modules\Attendance\Enums\OtMode;
+use Modules\Attendance\Models\Shift;
 use Modules\Attendance\Services\TimeProfileService;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Enums\EmploymentType;
@@ -55,6 +56,14 @@ class EditEmploymentStep extends Component
 
     public string $moduleFlagsMessage = '';
 
+    public string|int|null $shiftId = null;
+
+    public string $shiftEffectiveFrom = '';
+
+    public string $shiftMessage = '';
+
+    public string $shiftError = '';
+
     public string $otMode = 'DEFAULT';
 
     public string $otEffectiveFrom = '';
@@ -94,11 +103,13 @@ class EditEmploymentStep extends Component
         $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
         $hire = $employment->hire_date->toDateString();
         $this->effectiveFrom = max($today, $hire);
+        $this->shiftEffectiveFrom = $this->effectiveFrom;
         $this->otEffectiveFrom = $this->effectiveFrom;
         $this->lateEffectiveFrom = $this->effectiveFrom;
         $this->breakEffectiveFrom = $this->effectiveFrom;
 
         $profile = $profiles->on($employment, $today);
+        $this->shiftId = $profile?->shift_id;
         $this->otMode = $profile?->ot_mode instanceof OtMode ? $profile->ot_mode->value : 'DEFAULT';
         $this->lateDeduction = $this->yesNo($profile?->late_deduction);
         $this->breakAvailable = $this->yesNo($profile?->break_available);
@@ -321,6 +332,44 @@ class EditEmploymentStep extends Component
         }
     }
 
+    public function saveShift(TimeProfileService $profiles): void
+    {
+        $this->authorize('employee.update');
+        $this->ensureNotResigned();
+        $this->shiftMessage = '';
+        $this->shiftError = '';
+
+        $this->validate([
+            'shiftEffectiveFrom' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$this->employment->hire_date->toDateString()],
+            'shiftId' => ['required', 'integer', 'exists:shifts,id'],
+        ], [
+            'shiftEffectiveFrom.after_or_equal' => 'The date cannot be before the hire date.',
+        ]);
+
+        $current = $profiles->on($this->employment, $this->shiftEffectiveFrom);
+
+        if ($current !== null && (int) $current->shift_id === (int) $this->shiftId) {
+            $this->shiftError = 'Nothing was changed.';
+
+            return;
+        }
+
+        try {
+            $saved = $profiles->set($this->employment, [
+                'effective_from' => $this->shiftEffectiveFrom,
+                'shift_id' => (int) $this->shiftId,
+                'times' => null,
+            ]);
+        } catch (DomainException $e) {
+            $this->shiftError = $e->getMessage();
+
+            return;
+        }
+
+        $this->shiftId = $saved->shift_id;
+        $this->shiftMessage = 'Shift updated.';
+    }
+
     public function saveOtMode(TimeProfileService $profiles): void
     {
         $this->authorize('employee.update');
@@ -488,12 +537,24 @@ class EditEmploymentStep extends Component
 
         $employment = $this->employment->load(['employeeCategory', 'staffWorkCategory']);
         $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
+        $otProfile = app(TimeProfileService::class)->on($employment, $today);
+        $otProfile?->loadMissing('shift');
+        $currentShiftId = $otProfile?->shift_id;
 
         return view('corehr::livewire.partials.edit-employment-step', [
             'employment' => $employment,
             'types' => EmploymentType::cases(),
             'otModes' => OtMode::cases(),
-            'otProfile' => app(TimeProfileService::class)->on($employment, $today),
+            'otProfile' => $otProfile,
+            'shifts' => Shift::query()
+                ->where(function ($query) use ($currentShiftId) {
+                    $query->where('is_active', true);
+                    if ($currentShiftId !== null) {
+                        $query->orWhere('id', $currentShiftId);
+                    }
+                })
+                ->orderBy('code')
+                ->get(['id', 'code', 'name']),
             'categoryTimeStatus' => $this->categoryTimeStatus(),
             'employeeCategories' => EmployeeCategory::query()
                 ->where(function ($query) use ($employment) {

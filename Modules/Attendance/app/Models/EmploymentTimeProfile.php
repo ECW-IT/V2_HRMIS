@@ -7,6 +7,7 @@ use App\Support\Effective\EffectiveDated;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\Attendance\Casts\NullableBoolean;
 use Modules\Attendance\Database\Factories\EmploymentTimeProfileFactory;
 use Modules\Attendance\Enums\AttendanceMode;
@@ -29,6 +30,13 @@ class EmploymentTimeProfile extends Model
         'ot_mode',
         'late_deduction',
         'break_available',
+        'uses_custom_times',
+        'start_time',
+        'end_time',
+        'late_from',
+        'morning_cutoff',
+        'half_day_from',
+        'early_leave_from',
     ];
 
     protected function casts(): array
@@ -40,6 +48,7 @@ class EmploymentTimeProfile extends Model
             'ot_mode' => OtMode::class,
             'late_deduction' => NullableBoolean::class,
             'break_available' => NullableBoolean::class,
+            'uses_custom_times' => 'boolean',
         ];
     }
 
@@ -51,6 +60,11 @@ class EmploymentTimeProfile extends Model
     public function shift(): BelongsTo
     {
         return $this->belongsTo(Shift::class);
+    }
+
+    public function breaks(): HasMany
+    {
+        return $this->hasMany(EmploymentTimeProfileBreak::class);
     }
 
     protected static function newFactory(): EmploymentTimeProfileFactory

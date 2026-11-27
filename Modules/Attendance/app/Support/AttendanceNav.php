@@ -51,6 +51,12 @@ final class AttendanceNav
                 'active' => $active === 'time-profiles',
             ],
             [
+                'icon' => '📆',
+                'label' => 'Pay month shifts',
+                'route' => route('attendance.period-shifts.index'),
+                'active' => $active === 'period-shifts',
+            ],
+            [
                 'icon' => '🏷️',
                 'label' => 'Device groups',
                 'route' => route('attendance.device-groups.index'),

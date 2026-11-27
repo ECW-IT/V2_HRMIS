@@ -27,6 +27,7 @@ class EmploymentTimeProfileFactory extends Factory
             'ot_mode' => OtMode::NONE,
             'late_deduction' => false,
             'break_available' => null,
+            'uses_custom_times' => false,
         ];
     }
 }

@@ -18,6 +18,7 @@ use Modules\Attendance\Livewire\Exceptions;
 use Modules\Attendance\Livewire\LateReview;
 use Modules\Attendance\Livewire\OtApproval;
 use Modules\Attendance\Livewire\PeriodClose;
+use Modules\Attendance\Livewire\PeriodShiftsIndex;
 use Modules\Attendance\Livewire\PeriodSummary;
 use Modules\Attendance\Livewire\PunchesIndex;
 use Modules\Attendance\Livewire\ShiftsIndex;
@@ -85,6 +86,7 @@ class AttendanceServiceProvider extends ModuleServiceProvider
         Livewire::component('attendance.employee-punches', EmployeePunches::class);
         Livewire::component('attendance.shifts-index', ShiftsIndex::class);
         Livewire::component('attendance.time-profiles-bulk', TimeProfilesBulk::class);
+        Livewire::component('attendance.period-shifts-index', PeriodShiftsIndex::class);
         Livewire::component('attendance.tabs.time-profile', TimeProfile::class);
         Livewire::component('attendance.daily-board', DailyBoard::class);
         Livewire::component('attendance.employee-timecards', EmployeeTimecards::class);

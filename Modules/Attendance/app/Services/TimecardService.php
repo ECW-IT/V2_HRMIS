@@ -151,8 +151,8 @@ final class TimecardService
                 'leave_days' => 0,
             ];
         } else {
-            $shift = $profile->shift;
             $resolved = $this->profiles->resolve($employment, $profile);
+            $shift = $resolved['shift'];
 
             $result = $this->calculator->calculate(
                 $day,
@@ -168,7 +168,7 @@ final class TimecardService
                 'employment_id' => $employment->id,
                 'work_date' => $day,
                 'pay_period_id' => $period->id,
-                'shift_id' => $shift->id,
+                'shift_id' => $profile->shift_id,
                 'first_in' => $result->firstIn?->format('Y-m-d H:i:s'),
                 'last_out' => $result->lastOut?->format('Y-m-d H:i:s'),
                 'punch_count' => $result->punchCount,

@@ -114,6 +114,43 @@
     </div>
 
     <div class="rounded border bg-white p-4">
+        <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Shift</h3>
+        @if ($shiftMessage !== '')
+            <p class="mb-3 text-xs text-emerald-600">{{ $shiftMessage }}</p>
+        @endif
+        @if ($shiftError !== '')
+            <p class="mb-3 text-xs text-red-600">{{ $shiftError }}</p>
+        @endif
+        @if ($otProfile?->shift)
+            <p class="mb-3 text-xs text-gray-600">In force today: {{ $otProfile->shift->code }} — {{ $otProfile->shift->name }}</p>
+        @else
+            <p class="mb-3 text-xs text-gray-600">No time profile is in force.</p>
+        @endif
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Effective from <span class="text-red-500">*</span></label>
+                <input type="date" wire:model="shiftEffectiveFrom" class="{{ $input }} @error('shiftEffectiveFrom') border-red-400 @enderror">
+                @error('shiftEffectiveFrom')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Shift <span class="text-red-500">*</span></label>
+                <select wire:model="shiftId" class="{{ $input }} @error('shiftId') border-red-400 @enderror">
+                    <option value="">— Select —</option>
+                    @foreach ($shifts as $shift)
+                        <option value="{{ $shift->id }}">{{ $shift->code }} — {{ $shift->name }}</option>
+                    @endforeach
+                </select>
+                @error('shiftId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <div class="flex items-end">
+                <button type="button" wire:click="saveShift" class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+                    Save shift
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded border bg-white p-4">
         <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">OT mode</h3>
         @if ($otModeMessage !== '')
             <p class="mb-3 text-xs text-emerald-600">{{ $otModeMessage }}</p>
