@@ -12,11 +12,13 @@ use Modules\Attendance\Livewire\PeriodClose;
 use Modules\Attendance\Livewire\PeriodSummary;
 use Modules\Attendance\Livewire\PunchesIndex;
 use Modules\Attendance\Livewire\ShiftsIndex;
+use Modules\Attendance\Livewire\TimecardsIndex;
 use Modules\Attendance\Livewire\TimeProfilesBulk;
 use Modules\Attendance\Livewire\UnresolvedPunches;
 
 Route::middleware(['auth', 'password.changed', 'can:timecard.view'])->group(function () {
     Route::get('/attendance/board', DailyBoard::class)->name('attendance.board');
+    Route::get('/attendance/timecards', TimecardsIndex::class)->name('attendance.timecards.index');
     Route::get('/attendance/timecards/{employment}', EmployeeTimecards::class)->name('attendance.timecards.show');
     Route::get('/attendance/late', LateReview::class)->name('attendance.late');
     Route::get('/attendance/period-summary', PeriodSummary::class)->name('attendance.period-summary');

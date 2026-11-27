@@ -16,6 +16,9 @@ class Punch extends Model
 
     public $timestamps = false;
 
+    /** Set by the Punches screen immediately before a manual save or delete. */
+    public bool $allowManualChange = false;
+
     protected $fillable = [
         'device_id',
         'device_user_id',
@@ -51,7 +54,9 @@ class Punch extends Model
 
     public function save(array $options = []): bool
     {
-        if ($this->exists) {
+        $manual = $this->allowManualChange;
+
+        if ($this->exists && ! $manual) {
             $dirty = array_keys($this->getDirty());
             $allowed = ['employment_id', 'resolution'];
             if (array_diff($dirty, $allowed) !== []) {
@@ -59,12 +64,21 @@ class Punch extends Model
             }
         }
 
-        return parent::save($options);
+        $saved = parent::save($options);
+        $this->allowManualChange = false;
+
+        return $saved;
     }
 
     public function delete(): ?bool
     {
-        throw new \LogicException('Punches cannot be deleted.');
+        if (! $this->allowManualChange) {
+            throw new \LogicException('Punches cannot be deleted.');
+        }
+
+        $this->allowManualChange = false;
+
+        return parent::delete();
     }
 
     protected static function newFactory(): PunchFactory

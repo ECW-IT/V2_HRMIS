@@ -28,6 +28,7 @@ final class AttendanceNav
                 'active' => in_array($active, $screens, true),
                 'children' => [
                     ['label' => 'Daily board', 'route' => route('attendance.board')],
+                    ['label' => 'Timecards', 'route' => route('attendance.timecards.index')],
                     ['label' => 'Exceptions', 'route' => route('attendance.exceptions')],
                     ['label' => 'OT approval', 'route' => route('attendance.ot')],
                     ['label' => 'Late review', 'route' => route('attendance.late')],
