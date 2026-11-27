@@ -6,6 +6,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Modules\Organisation\Exceptions\DuplicateLevel;
 use Modules\Organisation\Exceptions\DuplicateName;
+use Modules\Organisation\Exceptions\InvalidCategoryBreak;
 use Modules\Organisation\Services\EmployeeCategoryService;
 use Tests\TestCase;
 
@@ -47,16 +48,16 @@ class EmployeeCategoryServiceTest extends TestCase
         sort($cols);
 
         $this->assertSame(
-            ['code', 'created_at', 'id', 'is_active', 'level', 'name', 'name_key', 'updated_at'],
+            ['code', 'created_at', 'early_ot', 'evening_ot', 'id', 'is_active', 'late_deduction', 'level', 'name', 'name_key', 'updated_at'],
             $cols,
         );
     }
 
-    public function test_rule_tables_are_gone(): void
+    public function test_old_duty_tables_stay_gone(): void
     {
         $this->assertFalse(Schema::hasTable('employee_category_duty_schedules'));
-        $this->assertFalse(Schema::hasTable('employee_category_breaks'));
         $this->assertFalse(Schema::hasTable('break_types'));
+        $this->assertTrue(Schema::hasTable('employee_category_breaks'));
     }
 
     public function test_create_ignores_rule_keys(): void
@@ -93,5 +94,40 @@ class EmployeeCategoryServiceTest extends TestCase
         $this->assertSame('workshop', $fresh->name_key);
         $this->assertSame(3, $fresh->level);
         $this->assertFalse($fresh->is_active);
+    }
+
+    public function test_category_time_rules_and_breaks_are_saved(): void
+    {
+        $category = app(EmployeeCategoryService::class)->create([
+            'code' => 'FAC',
+            'name' => 'Factory',
+            'level' => 1,
+            'early_ot' => true,
+            'evening_ot' => false,
+            'late_deduction' => true,
+            'breaks' => [
+                ['name' => 'Lunch', 'start_time' => '12:00', 'end_time' => '12:30', 'is_paid' => false],
+                ['name' => 'Tea', 'start_time' => '15:00', 'end_time' => '15:15', 'is_paid' => true],
+            ],
+        ]);
+
+        $this->assertTrue($category->early_ot);
+        $this->assertFalse($category->evening_ot);
+        $this->assertTrue($category->late_deduction);
+        $this->assertSame(['Lunch', 'Tea'], $category->breaks->pluck('name')->all());
+    }
+
+    public function test_a_break_that_ends_before_it_starts_is_refused(): void
+    {
+        $this->expectException(InvalidCategoryBreak::class);
+
+        app(EmployeeCategoryService::class)->create([
+            'code' => 'FAC',
+            'name' => 'Factory',
+            'level' => 1,
+            'breaks' => [
+                ['name' => 'Lunch', 'start_time' => '13:00', 'end_time' => '12:00'],
+            ],
+        ]);
     }
 }

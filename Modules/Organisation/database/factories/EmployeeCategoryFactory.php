@@ -23,6 +23,9 @@ class EmployeeCategoryFactory extends Factory
             'name_key' => EmployeeCategoryService::nameKey($name),
             'level' => fake()->unique()->numberBetween(1, 65000),
             'is_active' => true,
+            'early_ot' => false,
+            'evening_ot' => false,
+            'late_deduction' => false,
         ];
     }
 }

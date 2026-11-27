@@ -33,13 +33,16 @@
             </div>
             <div>
                 <label class="mb-1 block text-xs font-medium text-gray-600">Employee category</label>
-                <select wire:model="employeeCategoryId" class="{{ $input }} @error('employeeCategoryId') border-red-400 @enderror">
+                <select wire:model.live="employeeCategoryId" class="{{ $input }} @error('employeeCategoryId') border-red-400 @enderror">
                     <option value="">None</option>
                     @foreach ($employeeCategories as $category)
                         <option value="{{ $category->id }}">{{ $category->name }}</option>
                     @endforeach
                 </select>
                 @error('employeeCategoryId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                @if ($categoryTimeStatus !== '')
+                    <p class="mt-1 text-xs text-gray-600">{{ $categoryTimeStatus }}</p>
+                @endif
             </div>
             <div class="flex items-end">
                 <button type="button" wire:click="saveClassification" class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
@@ -119,9 +122,12 @@
             <p class="mb-3 text-xs text-red-600">{{ $otModeError }}</p>
         @endif
         @if ($otProfile)
-            <p class="mb-3 text-xs text-gray-600">In force today: {{ $otProfile->ot_mode->value }}</p>
+            <p class="mb-3 text-xs text-gray-600">In force today: {{ $otProfile->ot_mode?->value ?? 'Default' }}</p>
         @else
             <p class="mb-3 text-xs text-gray-600">No time profile is in force.</p>
+        @endif
+        @if ($categoryTimeStatus !== '')
+            <p class="mb-3 text-xs text-gray-600">{{ $categoryTimeStatus }}</p>
         @endif
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
@@ -132,6 +138,7 @@
             <div>
                 <label class="mb-1 block text-xs font-medium text-gray-600">OT mode <span class="text-red-500">*</span></label>
                 <select wire:model="otMode" class="{{ $input }} @error('otMode') border-red-400 @enderror">
+                    <option value="DEFAULT">Default</option>
                     @foreach ($otModes as $mode)
                         <option value="{{ $mode->value }}">{{ $mode->value }}</option>
                     @endforeach
@@ -155,9 +162,12 @@
             <p class="mb-3 text-xs text-red-600">{{ $lateDeductionError }}</p>
         @endif
         @if ($otProfile)
-            <p class="mb-3 text-xs text-gray-600">In force today: {{ $otProfile->late_deduction ? 'Yes' : 'No' }}</p>
+            <p class="mb-3 text-xs text-gray-600">In force today: {{ $otProfile->late_deduction === null ? 'Default' : ($otProfile->late_deduction ? 'Yes' : 'No') }}</p>
         @else
             <p class="mb-3 text-xs text-gray-600">No time profile is in force.</p>
+        @endif
+        @if ($categoryTimeStatus !== '')
+            <p class="mb-3 text-xs text-gray-600">{{ $categoryTimeStatus }}</p>
         @endif
         <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
             <div>
@@ -165,15 +175,57 @@
                 <input type="date" wire:model="lateEffectiveFrom" class="{{ $input }} @error('lateEffectiveFrom') border-red-400 @enderror">
                 @error('lateEffectiveFrom')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
             </div>
-            <div class="flex items-end">
-                <label class="flex items-center gap-2 pb-2 text-sm text-gray-700">
-                    <input type="checkbox" wire:model="lateDeduction" class="rounded border">
-                    Late deduction applies
-                </label>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Late deduction <span class="text-red-500">*</span></label>
+                <select wire:model="lateDeduction" class="{{ $input }} @error('lateDeduction') border-red-400 @enderror">
+                    <option value="DEFAULT">Default</option>
+                    <option value="YES">Yes</option>
+                    <option value="NO">No</option>
+                </select>
+                @error('lateDeduction')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
             </div>
             <div class="flex items-end">
                 <button type="button" wire:click="saveLateDeduction" class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
                     Save late deduction
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="rounded border bg-white p-4">
+        <h3 class="mb-4 border-b pb-2 text-sm font-semibold text-gray-700">Break available</h3>
+        @if ($breakAvailableMessage !== '')
+            <p class="mb-3 text-xs text-emerald-600">{{ $breakAvailableMessage }}</p>
+        @endif
+        @if ($breakAvailableError !== '')
+            <p class="mb-3 text-xs text-red-600">{{ $breakAvailableError }}</p>
+        @endif
+        @if ($otProfile)
+            <p class="mb-3 text-xs text-gray-600">In force today: {{ $otProfile->break_available === null ? 'Default' : ($otProfile->break_available ? 'Yes' : 'No') }}</p>
+        @else
+            <p class="mb-3 text-xs text-gray-600">No time profile is in force.</p>
+        @endif
+        @if ($categoryTimeStatus !== '')
+            <p class="mb-3 text-xs text-gray-600">{{ $categoryTimeStatus }}</p>
+        @endif
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Effective from <span class="text-red-500">*</span></label>
+                <input type="date" wire:model="breakEffectiveFrom" class="{{ $input }} @error('breakEffectiveFrom') border-red-400 @enderror">
+                @error('breakEffectiveFrom')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <div>
+                <label class="mb-1 block text-xs font-medium text-gray-600">Break available <span class="text-red-500">*</span></label>
+                <select wire:model="breakAvailable" class="{{ $input }} @error('breakAvailable') border-red-400 @enderror">
+                    <option value="DEFAULT">Default</option>
+                    <option value="YES">Yes</option>
+                    <option value="NO">No</option>
+                </select>
+                @error('breakAvailable')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+            </div>
+            <div class="flex items-end">
+                <button type="button" wire:click="saveBreakAvailable" class="rounded bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700">
+                    Save break available
                 </button>
             </div>
         </div>

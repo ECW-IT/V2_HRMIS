@@ -55,7 +55,7 @@ class EditEmploymentStep extends Component
 
     public string $moduleFlagsMessage = '';
 
-    public string $otMode = 'NONE';
+    public string $otMode = 'DEFAULT';
 
     public string $otEffectiveFrom = '';
 
@@ -63,13 +63,21 @@ class EditEmploymentStep extends Component
 
     public string $otModeError = '';
 
-    public bool $lateDeduction = false;
+    public string $lateDeduction = 'DEFAULT';
 
     public string $lateEffectiveFrom = '';
 
     public string $lateDeductionMessage = '';
 
     public string $lateDeductionError = '';
+
+    public string $breakAvailable = 'DEFAULT';
+
+    public string $breakEffectiveFrom = '';
+
+    public string $breakAvailableMessage = '';
+
+    public string $breakAvailableError = '';
 
     public function mount(Employment $employment, TimeProfileService $profiles): void
     {
@@ -88,12 +96,12 @@ class EditEmploymentStep extends Component
         $this->effectiveFrom = max($today, $hire);
         $this->otEffectiveFrom = $this->effectiveFrom;
         $this->lateEffectiveFrom = $this->effectiveFrom;
+        $this->breakEffectiveFrom = $this->effectiveFrom;
 
         $profile = $profiles->on($employment, $today);
-        $this->otMode = $profile?->ot_mode instanceof OtMode
-            ? $profile->ot_mode->value
-            : ($profile?->ot_mode !== null ? (string) $profile->ot_mode : OtMode::NONE->value);
-        $this->lateDeduction = (bool) ($profile?->late_deduction ?? false);
+        $this->otMode = $profile?->ot_mode instanceof OtMode ? $profile->ot_mode->value : 'DEFAULT';
+        $this->lateDeduction = $this->yesNo($profile?->late_deduction);
+        $this->breakAvailable = $this->yesNo($profile?->break_available);
 
         $this->loadAssignmentFields();
     }
@@ -322,7 +330,7 @@ class EditEmploymentStep extends Component
 
         $this->validate([
             'otEffectiveFrom' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$this->employment->hire_date->toDateString()],
-            'otMode' => ['required', 'string', 'in:'.implode(',', array_column(OtMode::cases(), 'value'))],
+            'otMode' => ['required', 'string', 'in:DEFAULT,'.implode(',', array_column(OtMode::cases(), 'value'))],
         ], [
             'otEffectiveFrom.after_or_equal' => 'The date cannot be before the hire date.',
         ]);
@@ -335,9 +343,7 @@ class EditEmploymentStep extends Component
             return;
         }
 
-        $currentMode = $current->ot_mode instanceof OtMode
-            ? $current->ot_mode->value
-            : (string) $current->ot_mode;
+        $currentMode = $current->ot_mode instanceof OtMode ? $current->ot_mode->value : 'DEFAULT';
 
         if ($currentMode === $this->otMode) {
             $this->otModeError = 'Nothing was changed.';
@@ -359,7 +365,7 @@ class EditEmploymentStep extends Component
             return;
         }
 
-        $savedMode = $saved->ot_mode instanceof OtMode ? $saved->ot_mode->value : (string) $saved->ot_mode;
+        $savedMode = $saved->ot_mode instanceof OtMode ? $saved->ot_mode->value : 'DEFAULT';
         $this->otMode = $savedMode;
 
         $attendance = $current->attendance_mode instanceof AttendanceMode
@@ -384,7 +390,7 @@ class EditEmploymentStep extends Component
 
         $this->validate([
             'lateEffectiveFrom' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$this->employment->hire_date->toDateString()],
-            'lateDeduction' => ['boolean'],
+            'lateDeduction' => ['required', 'string', 'in:DEFAULT,YES,NO'],
         ], [
             'lateEffectiveFrom.after_or_equal' => 'The date cannot be before the hire date.',
         ]);
@@ -397,7 +403,7 @@ class EditEmploymentStep extends Component
             return;
         }
 
-        if ((bool) $current->late_deduction === $this->lateDeduction) {
+        if ($this->yesNo($current->late_deduction) === $this->lateDeduction) {
             $this->lateDeductionError = 'Nothing was changed.';
 
             return;
@@ -417,19 +423,63 @@ class EditEmploymentStep extends Component
             return;
         }
 
-        $this->lateDeduction = (bool) $saved->late_deduction;
+        $this->lateDeduction = $this->yesNo($saved->late_deduction);
 
         $attendance = $current->attendance_mode instanceof AttendanceMode
             ? $current->attendance_mode
             : AttendanceMode::from((string) $current->attendance_mode);
 
-        if ($attendance === AttendanceMode::NO_PUNCH && $requested && ! $saved->late_deduction) {
+        if ($attendance === AttendanceMode::NO_PUNCH && $requested !== 'NO' && $saved->late_deduction === false) {
             $this->lateDeductionMessage = 'No-punch attendance keeps late deduction off.';
 
             return;
         }
 
         $this->lateDeductionMessage = 'Late deduction updated.';
+    }
+
+    public function saveBreakAvailable(TimeProfileService $profiles): void
+    {
+        $this->authorize('employee.update');
+        $this->ensureNotResigned();
+        $this->breakAvailableMessage = '';
+        $this->breakAvailableError = '';
+
+        $this->validate([
+            'breakEffectiveFrom' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$this->employment->hire_date->toDateString()],
+            'breakAvailable' => ['required', 'string', 'in:DEFAULT,YES,NO'],
+        ], [
+            'breakEffectiveFrom.after_or_equal' => 'The date cannot be before the hire date.',
+        ]);
+
+        $current = $profiles->on($this->employment, $this->breakEffectiveFrom);
+
+        if ($current === null) {
+            $this->breakAvailableError = 'No time profile is in force. Set a shift on the time profile before changing break available.';
+
+            return;
+        }
+
+        if ($this->yesNo($current->break_available) === $this->breakAvailable) {
+            $this->breakAvailableError = 'Nothing was changed.';
+
+            return;
+        }
+
+        try {
+            $saved = $profiles->set($this->employment, [
+                'effective_from' => $this->breakEffectiveFrom,
+                'shift_id' => $current->shift_id,
+                'break_available' => $this->breakAvailable,
+            ]);
+        } catch (DomainException $e) {
+            $this->breakAvailableError = $e->getMessage();
+
+            return;
+        }
+
+        $this->breakAvailable = $this->yesNo($saved->break_available);
+        $this->breakAvailableMessage = 'Break available updated.';
     }
 
     public function render(): View
@@ -444,6 +494,7 @@ class EditEmploymentStep extends Component
             'types' => EmploymentType::cases(),
             'otModes' => OtMode::cases(),
             'otProfile' => app(TimeProfileService::class)->on($employment, $today),
+            'categoryTimeStatus' => $this->categoryTimeStatus(),
             'employeeCategories' => EmployeeCategory::query()
                 ->where(function ($query) use ($employment) {
                     $query->where('is_active', true);
@@ -464,5 +515,25 @@ class EditEmploymentStep extends Component
                 ->get(['id', 'code', 'name']),
             ...$this->assignmentOptions((int) $employment->company_id),
         ]);
+    }
+
+    private function yesNo(?bool $value): string
+    {
+        return match ($value) {
+            null => 'DEFAULT',
+            true => 'YES',
+            false => 'NO',
+        };
+    }
+
+    private function categoryTimeStatus(): string
+    {
+        if ($this->employeeCategoryId === null || $this->employeeCategoryId === '') {
+            return '';
+        }
+
+        $category = EmployeeCategory::query()->with('breaks')->find($this->employeeCategoryId);
+
+        return $category?->timeRuleSummary() ?? '';
     }
 }

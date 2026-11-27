@@ -170,9 +170,11 @@ class HireWizard extends Component
 
     public string $attendanceMode = 'PUNCH';
 
-    public string $otMode = 'NONE';
+    public string $otMode = 'DEFAULT';
 
-    public bool $lateDeduction = false;
+    public string $lateDeduction = 'DEFAULT';
+
+    public string $breakAvailable = 'DEFAULT';
 
     // Step 4: payroll, bank and fingerprint
     public string $basicSalary = '';
@@ -496,6 +498,7 @@ class HireWizard extends Component
                     'attendance_mode' => AttendanceMode::PUNCH->value,
                     'ot_mode' => $this->otMode,
                     'late_deduction' => $this->lateDeduction,
+                    'break_available' => $this->breakAvailable,
                 ]);
 
                 if ($this->attendanceActive && trim($this->deviceGroup) !== '') {
@@ -800,8 +803,9 @@ class HireWizard extends Component
                 'gradeId' => ['required', 'integer', Rule::exists('grades', 'id')],
                 'locationId' => ['required', 'integer', Rule::exists('locations', 'id')],
                 'shiftId' => ['required', 'integer', Rule::exists('shifts', 'id')->where('is_active', true)],
-                'otMode' => ['required', Rule::enum(OtMode::class)],
-                'lateDeduction' => ['boolean'],
+                'otMode' => ['required', 'in:DEFAULT,NONE,MORNING,EVENING,BOTH'],
+                'lateDeduction' => ['required', 'in:DEFAULT,YES,NO'],
+                'breakAvailable' => ['required', 'in:DEFAULT,YES,NO'],
             ],
             4 => [
                 'basicSalary' => ['required', 'string', 'max:25'],
@@ -1355,6 +1359,7 @@ class HireWizard extends Component
             'staffWorkCategories' => StaffWorkCategory::query()->where('is_active', true)->orderBy('name')->get(['id', 'name', 'code']),
             'shifts' => Shift::query()->where('is_active', true)->orderBy('code')->get(['id', 'code', 'name']),
             'otModes' => OtMode::cases(),
+            'categoryTimeStatus' => $this->categoryTimeStatus(),
             'otRateModes' => OtRateMode::cases(),
             'departments' => $companyId === null ? [] : OrgUnitOptions::departments($companyId),
             'sectionOptions' => $companyId === null || $this->departmentId === null || $this->departmentId === ''
@@ -1684,5 +1689,16 @@ class HireWizard extends Component
             fn (array $row) => ($names[$row['code']] ?? $row['code']).' '.$this->formatMoneyDisplay($row['amount']),
             $filled,
         ));
+    }
+
+    private function categoryTimeStatus(): string
+    {
+        if ($this->employeeCategoryId === null || $this->employeeCategoryId === '') {
+            return '';
+        }
+
+        $category = EmployeeCategory::query()->with('breaks')->find($this->employeeCategoryId);
+
+        return $category?->timeRuleSummary() ?? '';
     }
 }

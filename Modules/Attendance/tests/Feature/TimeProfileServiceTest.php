@@ -14,6 +14,7 @@ use Modules\CoreHr\Enums\ExitReason;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Readiness\ReadinessService;
 use Modules\CoreHr\Services\EmploymentService;
+use Modules\Organisation\Models\EmployeeCategory;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
 
@@ -144,5 +145,69 @@ class TimeProfileServiceTest extends TestCase
         $codes = fn (Employment $e) => app(ReadinessService::class)->forEmployment($e, '2026-11-01')->pluck('code')->all();
         $this->assertNotContains('HR012', $codes($with));
         $this->assertContains('HR012', $codes($without));
+    }
+
+    public function test_explicit_profile_rules_beat_the_category_and_default_uses_it(): void
+    {
+        $category = EmployeeCategory::factory()->create([
+            'early_ot' => true,
+            'evening_ot' => false,
+            'late_deduction' => true,
+        ]);
+        $category->breaks()->create([
+            'name' => 'Lunch',
+            'start_time' => '12:00:00',
+            'end_time' => '12:30:00',
+            'is_paid' => false,
+        ]);
+
+        $shift = $this->shift();
+        $employment = $this->hired('2026-01-01');
+        $employment->update(['employee_category_id' => $category->id]);
+
+        $default = $this->svc->set($employment, [
+            'effective_from' => '2026-01-01',
+            'shift_id' => $shift->id,
+            'ot_mode' => null,
+            'late_deduction' => null,
+            'break_available' => null,
+        ]);
+
+        $resolved = $this->svc->resolve($employment->fresh(), $default);
+        $this->assertSame(OtMode::MORNING, $resolved['ot_mode']);
+        $this->assertTrue($resolved['late_deduction']);
+        $this->assertCount(1, $resolved['breaks']);
+        $this->assertStringStartsWith('12:00', $resolved['breaks'][0]['start']);
+
+        $explicit = $this->svc->set($employment, [
+            'effective_from' => '2026-01-01',
+            'shift_id' => $shift->id,
+            'ot_mode' => 'NONE',
+            'late_deduction' => false,
+            'break_available' => 'NO',
+        ]);
+
+        $overridden = $this->svc->resolve($employment->fresh(), $explicit);
+        $this->assertSame(OtMode::NONE, $overridden['ot_mode']);
+        $this->assertFalse($overridden['late_deduction']);
+        $this->assertSame([], $overridden['breaks']);
+    }
+
+    public function test_default_breaks_use_the_shift_when_the_category_has_none(): void
+    {
+        $category = EmployeeCategory::factory()->create();
+        $shift = $this->shift();
+        $employment = $this->hired('2026-01-01');
+        $employment->update(['employee_category_id' => $category->id]);
+
+        $profile = $this->svc->set($employment, [
+            'effective_from' => '2026-01-01',
+            'shift_id' => $shift->id,
+            'break_available' => 'YES',
+        ]);
+
+        $resolved = $this->svc->resolve($employment->fresh(), $profile);
+
+        $this->assertStringStartsWith('20:00', $resolved['breaks'][0]['start']);
     }
 }

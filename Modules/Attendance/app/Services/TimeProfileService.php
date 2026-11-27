@@ -12,6 +12,7 @@ use Modules\Attendance\Models\Shift;
 use Modules\Calendar\Services\PayPeriodService;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Models\Employment;
+use Modules\Organisation\Models\EmployeeCategory;
 
 final class TimeProfileService
 {
@@ -44,12 +45,16 @@ final class TimeProfileService
             : ($previous?->attendance_mode ?? AttendanceMode::PUNCH);
 
         $otMode = array_key_exists('ot_mode', $data)
-            ? OtMode::from(is_string($data['ot_mode']) ? $data['ot_mode'] : $data['ot_mode']->value)
-            : ($previous?->ot_mode ?? OtMode::NONE);
+            ? $this->optionalOtMode($data['ot_mode'])
+            : ($previous !== null ? $previous->ot_mode : OtMode::NONE);
 
         $lateDeduction = array_key_exists('late_deduction', $data)
-            ? (bool) $data['late_deduction']
-            : ($previous?->late_deduction ?? false);
+            ? $this->optionalBool($data['late_deduction'])
+            : ($previous !== null ? $previous->late_deduction : false);
+
+        $breakAvailable = array_key_exists('break_available', $data)
+            ? $this->optionalBool($data['break_available'])
+            : ($previous !== null ? $previous->break_available : null);
 
         if ($attendanceMode === AttendanceMode::NO_PUNCH) {
             $otMode = OtMode::NONE;
@@ -67,6 +72,7 @@ final class TimeProfileService
                 'attendance_mode' => $attendanceMode,
                 'ot_mode' => $otMode,
                 'late_deduction' => $lateDeduction,
+                'break_available' => $breakAvailable,
             ]);
             $starting->save();
             $saved = $starting;
@@ -79,6 +85,7 @@ final class TimeProfileService
                 'attendance_mode' => $attendanceMode,
                 'ot_mode' => $otMode,
                 'late_deduction' => $lateDeduction,
+                'break_available' => $breakAvailable,
             ]);
 
             /** @var EmploymentTimeProfile $saved */
@@ -121,5 +128,86 @@ final class TimeProfileService
         }
 
         return $results;
+    }
+
+    /**
+     * Employee value wins. Null OT or late uses the category. Break available No sends no breaks.
+     *
+     * @return array{ot_mode: OtMode, late_deduction: bool, breaks: list<array{start: string, end: string, paid: bool}>}
+     */
+    public function resolve(Employment $employment, EmploymentTimeProfile $profile): array
+    {
+        $employment->loadMissing('employeeCategory.breaks');
+        $profile->loadMissing('shift.breaks');
+        $category = $employment->employeeCategory;
+
+        return [
+            'ot_mode' => $profile->ot_mode ?? $this->categoryOtMode($category),
+            'late_deduction' => $profile->late_deduction ?? (bool) ($category?->late_deduction ?? false),
+            'breaks' => $this->resolvedBreaks($profile, $category),
+        ];
+    }
+
+    private function optionalOtMode(mixed $value): ?OtMode
+    {
+        if ($value === null || $value === '' || $value === 'DEFAULT') {
+            return null;
+        }
+
+        return OtMode::from(is_string($value) ? $value : $value->value);
+    }
+
+    private function optionalBool(mixed $value): ?bool
+    {
+        if ($value === null || $value === '' || $value === 'DEFAULT') {
+            return null;
+        }
+
+        if ($value === true || $value === 1 || $value === '1' || $value === 'YES') {
+            return true;
+        }
+
+        return false;
+    }
+
+    private function categoryOtMode(?EmployeeCategory $category): OtMode
+    {
+        if ($category === null) {
+            return OtMode::NONE;
+        }
+
+        $early = (bool) $category->early_ot;
+        $evening = (bool) $category->evening_ot;
+
+        return match (true) {
+            $early && $evening => OtMode::BOTH,
+            $early => OtMode::MORNING,
+            $evening => OtMode::EVENING,
+            default => OtMode::NONE,
+        };
+    }
+
+    /**
+     * @return list<array{start: string, end: string, paid: bool}>
+     */
+    private function resolvedBreaks(EmploymentTimeProfile $profile, ?EmployeeCategory $category): array
+    {
+        if ($profile->break_available === false) {
+            return [];
+        }
+
+        if ($category !== null && $category->breaks->isNotEmpty()) {
+            return $category->breaks->map(fn ($break) => [
+                'start' => (string) $break->start_time,
+                'end' => (string) $break->end_time,
+                'paid' => (bool) $break->is_paid,
+            ])->all();
+        }
+
+        return $profile->shift->breaks->map(fn ($break) => [
+            'start' => (string) $break->start_time,
+            'end' => (string) $break->end_time,
+            'paid' => (bool) $break->is_paid,
+        ])->all();
     }
 }

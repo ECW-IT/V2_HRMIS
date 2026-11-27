@@ -131,7 +131,7 @@ class OrganisationScreensTest extends TestCase
         $this->assertFalse($category->fresh()->is_active);
     }
 
-    public function test_category_screen_shows_no_rule_fields(): void
+    public function test_category_screen_shows_time_rules(): void
     {
         $user = User::factory()->allCompanies()->withPermissions('org.view', 'org.manage')->create([
             'must_change_password' => false,
@@ -140,11 +140,13 @@ class OrganisationScreensTest extends TestCase
         Livewire::actingAs($user)
             ->test(EmployeeCategoriesIndex::class)
             ->call('openCreate')
+            ->assertSee('Early OT')
+            ->assertSee('Evening OT')
+            ->assertSee('Late deduction')
+            ->assertSee('Breaks')
             ->assertDontSee('On duty')
             ->assertDontSee('OT rate')
-            ->assertDontSee('Annual')
-            ->assertDontSee('Break')
-            ->assertSee('A category is a label');
+            ->assertDontSee('Annual');
     }
 
     public function test_break_types_page_is_gone(): void

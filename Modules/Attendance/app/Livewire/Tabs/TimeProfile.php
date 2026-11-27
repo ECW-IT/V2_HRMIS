@@ -11,6 +11,7 @@ use Modules\Attendance\Models\EmploymentTimeProfile;
 use Modules\Attendance\Models\Shift;
 use Modules\Attendance\Services\TimeProfileService;
 use Modules\CoreHr\Models\Employment;
+use Modules\Organisation\Models\EmployeeCategory;
 
 class TimeProfile extends Component
 {
@@ -24,9 +25,11 @@ class TimeProfile extends Component
 
     public string $attendance_mode = 'PUNCH';
 
-    public string $ot_mode = 'NONE';
+    public string $ot_mode = 'DEFAULT';
 
-    public bool $late_deduction = false;
+    public string $late_deduction = 'DEFAULT';
+
+    public string $break_available = 'DEFAULT';
 
     public string $error = '';
 
@@ -45,8 +48,9 @@ class TimeProfile extends Component
         $current = app(TimeProfileService::class)->on($this->employment, now(config('app.timezone'))->toDateString());
         $this->shift_id = $current?->shift_id;
         $this->attendance_mode = $current?->attendance_mode->value ?? AttendanceMode::PUNCH->value;
-        $this->ot_mode = $current?->ot_mode->value ?? OtMode::NONE->value;
-        $this->late_deduction = (bool) ($current?->late_deduction ?? false);
+        $this->ot_mode = $current?->ot_mode?->value ?? 'DEFAULT';
+        $this->late_deduction = $current?->late_deduction === null ? 'DEFAULT' : ($current->late_deduction ? 'YES' : 'NO');
+        $this->break_available = $current?->break_available === null ? 'DEFAULT' : ($current->break_available ? 'YES' : 'NO');
         $this->effective_from = now(config('app.timezone'))->toDateString();
         $this->error = '';
         $this->showForm = true;
@@ -62,8 +66,9 @@ class TimeProfile extends Component
             'effective_from' => ['required', 'date_format:Y-m-d'],
             'shift_id' => ['required', 'integer', 'exists:shifts,id'],
             'attendance_mode' => ['required'],
-            'ot_mode' => ['required'],
-            'late_deduction' => ['boolean'],
+            'ot_mode' => ['required', 'in:DEFAULT,NONE,MORNING,EVENING,BOTH'],
+            'late_deduction' => ['required', 'in:DEFAULT,YES,NO'],
+            'break_available' => ['required', 'in:DEFAULT,YES,NO'],
         ]);
 
         try {
@@ -73,6 +78,7 @@ class TimeProfile extends Component
                 'attendance_mode' => $validated['attendance_mode'],
                 'ot_mode' => $validated['ot_mode'],
                 'late_deduction' => $validated['late_deduction'],
+                'break_available' => $validated['break_available'],
             ]);
             $this->showForm = false;
             $this->message = 'Time profile saved.';
@@ -96,8 +102,13 @@ class TimeProfile extends Component
             now(config('app.timezone'))->toDateString(),
         );
 
+        $category = $this->employment->employee_category_id === null
+            ? null
+            : EmployeeCategory::query()->with('breaks')->find($this->employment->employee_category_id);
+
         return view('attendance::livewire.tabs.time-profile', [
             'current' => $current,
+            'categoryTimeStatus' => $category?->timeRuleSummary() ?? '',
             'history' => $history,
             'shifts' => Shift::query()->where('is_active', true)->orderBy('code')->get(),
             'attendanceModes' => AttendanceMode::cases(),

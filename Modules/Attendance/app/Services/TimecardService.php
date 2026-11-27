@@ -152,18 +152,14 @@ final class TimecardService
             ];
         } else {
             $shift = $profile->shift;
-            $breaks = $shift->breaks->map(fn ($b) => [
-                'start' => (string) $b->start_time,
-                'end' => (string) $b->end_time,
-                'paid' => (bool) $b->is_paid,
-            ])->all();
+            $resolved = $this->profiles->resolve($employment, $profile);
 
             $result = $this->calculator->calculate(
                 $day,
                 $shift,
-                $breaks,
-                $profile->ot_mode,
-                (bool) $profile->late_deduction,
+                $resolved['breaks'],
+                $resolved['ot_mode'],
+                $resolved['late_deduction'],
                 $punches,
             );
 

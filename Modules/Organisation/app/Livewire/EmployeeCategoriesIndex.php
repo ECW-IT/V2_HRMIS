@@ -24,6 +24,15 @@ class EmployeeCategoriesIndex extends Component
 
     public string $level = '';
 
+    public bool $earlyOt = false;
+
+    public bool $eveningOt = false;
+
+    public bool $lateDeduction = false;
+
+    /** @var list<array{name: string, start_time: string, end_time: string, is_paid: bool}> */
+    public array $breaks = [];
+
     public function openCreate(): void
     {
         $this->authorize('org.manage');
@@ -40,6 +49,15 @@ class EmployeeCategoriesIndex extends Component
         $this->code = $category->code;
         $this->name = $category->name;
         $this->level = (string) $category->level;
+        $this->earlyOt = (bool) $category->early_ot;
+        $this->eveningOt = (bool) $category->evening_ot;
+        $this->lateDeduction = (bool) $category->late_deduction;
+        $this->breaks = $category->breaks->map(fn ($break) => [
+            'name' => $break->name,
+            'start_time' => substr((string) $break->start_time, 0, 5),
+            'end_time' => substr((string) $break->end_time, 0, 5),
+            'is_paid' => (bool) $break->is_paid,
+        ])->all();
         $this->showForm = true;
     }
 
@@ -58,16 +76,37 @@ class EmployeeCategoriesIndex extends Component
             'code' => ['required', 'string', 'max:20', Rule::unique('employee_categories', 'code')->ignore($this->editingId)],
             'name' => ['required', 'string', 'max:150'],
             'level' => ['required', 'integer', 'min:1', Rule::unique('employee_categories', 'level')->ignore($this->editingId)],
+            'earlyOt' => ['boolean'],
+            'eveningOt' => ['boolean'],
+            'lateDeduction' => ['boolean'],
+            'breaks' => ['array'],
         ]);
+
+        $breaks = $this->filledBreaks();
+        if ($breaks === null) {
+            return;
+        }
+
+        $payload = [
+            'code' => $validated['code'],
+            'name' => $validated['name'],
+            'level' => (int) $validated['level'],
+            'early_ot' => $validated['earlyOt'],
+            'evening_ot' => $validated['eveningOt'],
+            'late_deduction' => $validated['lateDeduction'],
+            'breaks' => $breaks,
+        ];
 
         try {
             if ($this->editingId === null) {
-                $categories->create($validated);
+                $categories->create($payload);
             } else {
-                $categories->update(EmployeeCategory::query()->findOrFail($this->editingId), $validated);
+                $categories->update(EmployeeCategory::query()->findOrFail($this->editingId), $payload);
             }
         } catch (DomainException $e) {
-            $field = str_contains(strtolower($e->getMessage()), 'level') ? 'level' : 'name';
+            $field = str_contains(strtolower($e->getMessage()), 'level')
+                ? 'level'
+                : (str_contains(strtolower($e->getMessage()), 'break') ? 'breaks' : 'name');
             $this->addError($field, $e->getMessage());
 
             return;
@@ -88,6 +127,7 @@ class EmployeeCategoriesIndex extends Component
         $this->authorize('org.view');
 
         $rows = EmployeeCategory::query()
+            ->with('breaks')
             ->when($this->search !== '', function ($query) {
                 $query->where(function ($inner) {
                     $inner->where('code', 'like', '%'.$this->search.'%')
@@ -113,5 +153,51 @@ class EmployeeCategoriesIndex extends Component
         $this->code = '';
         $this->name = '';
         $this->level = '';
+        $this->earlyOt = false;
+        $this->eveningOt = false;
+        $this->lateDeduction = false;
+        $this->breaks = [];
+    }
+
+    public function addBreak(): void
+    {
+        $this->breaks[] = ['name' => '', 'start_time' => '', 'end_time' => '', 'is_paid' => false];
+    }
+
+    public function removeBreak(int $index): void
+    {
+        unset($this->breaks[$index]);
+        $this->breaks = array_values($this->breaks);
+    }
+
+    /** @return list<array{name: string, start_time: string, end_time: string, is_paid: bool}>|null */
+    private function filledBreaks(): ?array
+    {
+        $rows = [];
+
+        foreach ($this->breaks as $row) {
+            $name = trim((string) ($row['name'] ?? ''));
+            $start = trim((string) ($row['start_time'] ?? ''));
+            $end = trim((string) ($row['end_time'] ?? ''));
+
+            if ($name === '' && $start === '' && $end === '') {
+                continue;
+            }
+
+            if ($name === '' || $start === '' || $end === '') {
+                $this->addError('breaks', 'Each break needs a name, start, and end.');
+
+                return null;
+            }
+
+            $rows[] = [
+                'name' => $name,
+                'start_time' => $start,
+                'end_time' => $end,
+                'is_paid' => (bool) ($row['is_paid'] ?? false),
+            ];
+        }
+
+        return $rows;
     }
 }

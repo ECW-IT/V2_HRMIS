@@ -26,6 +26,7 @@ class EmploymentTimeProfileFactory extends Factory
             'attendance_mode' => AttendanceMode::PUNCH,
             'ot_mode' => OtMode::NONE,
             'late_deduction' => false,
+            'break_available' => null,
         ];
     }
 }

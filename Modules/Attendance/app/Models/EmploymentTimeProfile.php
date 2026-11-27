@@ -7,6 +7,7 @@ use App\Support\Effective\EffectiveDated;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Modules\Attendance\Casts\NullableBoolean;
 use Modules\Attendance\Database\Factories\EmploymentTimeProfileFactory;
 use Modules\Attendance\Enums\AttendanceMode;
 use Modules\Attendance\Enums\OtMode;
@@ -27,6 +28,7 @@ class EmploymentTimeProfile extends Model
         'attendance_mode',
         'ot_mode',
         'late_deduction',
+        'break_available',
     ];
 
     protected function casts(): array
@@ -36,7 +38,8 @@ class EmploymentTimeProfile extends Model
             'effective_to' => 'date',
             'attendance_mode' => AttendanceMode::class,
             'ot_mode' => OtMode::class,
-            'late_deduction' => 'boolean',
+            'late_deduction' => NullableBoolean::class,
+            'break_available' => NullableBoolean::class,
         ];
     }
 

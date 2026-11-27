@@ -332,13 +332,16 @@
                     <label class="mb-1 block text-xs font-medium text-gray-600">
                         Employee category <span class="text-red-500">*</span>
                     </label>
-                    <select wire:model="employeeCategoryId" class="{{ $input }} @error('employeeCategoryId') border-red-400 @enderror">
+                    <select wire:model.live="employeeCategoryId" class="{{ $input }} @error('employeeCategoryId') border-red-400 @enderror">
                         <option value="">Select</option>
                         @foreach($employeeCategories as $category)
                             <option value="{{ $category->id }}">{{ $category->name }} </option>
                         @endforeach
                     </select>
                     @error('employeeCategoryId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    @if ($categoryTimeStatus !== '')
+                        <p class="mt-1 text-xs text-gray-600">{{ $categoryTimeStatus }}</p>
+                    @endif
                 </div>
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">Office / shop category</label>
@@ -411,16 +414,33 @@
                 <div>
                     <label class="mb-1 block text-xs font-medium text-gray-600">OT mode <span class="text-red-500">*</span></label>
                     <select wire:model="otMode" class="{{ $input }} @error('otMode') border-red-400 @enderror">
+                        <option value="DEFAULT">Default</option>
                         @foreach($otModes as $mode)
                             <option value="{{ $mode->value }}">{{ $mode->value }}</option>
                         @endforeach
                     </select>
                     @error('otMode')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                    @if ($categoryTimeStatus !== '')
+                        <p class="mt-1 text-xs text-gray-600">{{ $categoryTimeStatus }}</p>
+                    @endif
                 </div>
-                <div class="flex items-end">
-                    <label class="flex items-center gap-2 text-sm text-gray-700">
-                        <input wire:model="lateDeduction" type="checkbox" class="rounded border" /> Late deduction applies
-                    </label>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Late deduction</label>
+                    <select wire:model="lateDeduction" class="{{ $input }} @error('lateDeduction') border-red-400 @enderror">
+                        <option value="DEFAULT">Default</option>
+                        <option value="YES">Yes</option>
+                        <option value="NO">No</option>
+                    </select>
+                    @error('lateDeduction')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
+                </div>
+                <div>
+                    <label class="mb-1 block text-xs font-medium text-gray-600">Break available</label>
+                    <select wire:model="breakAvailable" class="{{ $input }} @error('breakAvailable') border-red-400 @enderror">
+                        <option value="DEFAULT">Default</option>
+                        <option value="YES">Yes</option>
+                        <option value="NO">No</option>
+                    </select>
+                    @error('breakAvailable')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
                 </div>
             </div>
         @endif

@@ -171,7 +171,7 @@ class EditEmploymentStepTest extends TestCase
 
         Livewire::test(EditEmploymentStep::class, ['employment' => $employment])
             ->assertSee('Save late deduction')
-            ->set('lateDeduction', true)
+            ->set('lateDeduction', 'YES')
             ->set('lateEffectiveFrom', '2026-06-01')
             ->call('saveLateDeduction')
             ->assertHasNoErrors()
@@ -203,5 +203,31 @@ class EditEmploymentStepTest extends TestCase
             ->assertSee('No time profile is in force');
 
         $this->assertSame(0, $employment->timeProfiles()->count());
+    }
+
+    public function test_selecting_a_category_shows_its_ot_late_and_break_status(): void
+    {
+        $company = $this->company();
+        $employment = $this->hired('2026-01-01', $company);
+        $category = EmployeeCategory::factory()->create([
+            'early_ot' => true,
+            'evening_ot' => false,
+            'late_deduction' => true,
+        ]);
+        $category->breaks()->create([
+            'name' => 'Lunch',
+            'start_time' => '12:00:00',
+            'end_time' => '12:30:00',
+            'is_paid' => false,
+        ]);
+
+        $this->loginAs('hr-manager', $company);
+
+        Livewire::test(EditEmploymentStep::class, ['employment' => $employment])
+            ->set('employeeCategoryId', $category->id)
+            ->assertSee('early OT on')
+            ->assertSee('evening OT off')
+            ->assertSee('late on')
+            ->assertSee('Lunch');
     }
 }
