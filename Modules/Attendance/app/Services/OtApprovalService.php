@@ -46,8 +46,45 @@ final class OtApprovalService
         return $this->writeDecision($t, $approved, $by, $reason, DecisionLogKind::OT_APPROVED);
     }
 
-    /** Approve all computed OT on each timecard. Returns ['approved' => n, 'skipped' => [timecard_id => reason]]. */
-    public function approveMany(array $timecardIds, User $by): array
+    /**
+     * Approve each timecard. Null minutes means all computed OT.
+     *
+     * @param  list<int|string>  $timecardIds
+     * @return array{approved: int, skipped: array<int, string>}
+     */
+    public function approveMany(array $timecardIds, User $by, ?int $minutes = null, ?string $reason = null): array
+    {
+        return $this->applyMany($timecardIds, fn (Timecard $timecard) => $this->approve($timecard, $minutes, $by, $reason));
+    }
+
+    /**
+     * Refuse each timecard. A blank reason is recorded as a skip.
+     *
+     * @param  list<int|string>  $timecardIds
+     * @return array{approved: int, skipped: array<int, string>}
+     */
+    public function refuseMany(array $timecardIds, User $by, string $reason): array
+    {
+        return $this->applyMany($timecardIds, fn (Timecard $timecard) => $this->refuse($timecard, $by, $reason));
+    }
+
+    /**
+     * Clear the decision on each timecard.
+     *
+     * @param  list<int|string>  $timecardIds
+     * @return array{approved: int, skipped: array<int, string>}
+     */
+    public function resetMany(array $timecardIds, User $by): array
+    {
+        return $this->applyMany($timecardIds, fn (Timecard $timecard) => $this->reset($timecard, $by));
+    }
+
+    /**
+     * @param  list<int|string>  $timecardIds
+     * @param  callable(Timecard): mixed  $apply
+     * @return array{approved: int, skipped: array<int, string>}
+     */
+    private function applyMany(array $timecardIds, callable $apply): array
     {
         $approved = 0;
         $skipped = [];
@@ -61,7 +98,7 @@ final class OtApprovalService
             }
 
             try {
-                $this->approve($timecard, null, $by);
+                $apply($timecard);
                 $approved++;
             } catch (\Throwable $e) {
                 $skipped[(int) $id] = $e->getMessage();
