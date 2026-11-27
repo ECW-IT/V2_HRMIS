@@ -5,9 +5,11 @@ namespace Modules\Attendance\Tests\Feature\Screens;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Modules\Attendance\Enums\AdjustmentType;
 use Modules\Attendance\Enums\OtMode;
 use Modules\Attendance\Enums\PunchResolution;
 use Modules\Attendance\Livewire\EmployeeTimecards;
+use Modules\Attendance\Models\AttendanceAdjustment;
 use Modules\Attendance\Models\Punch;
 use Modules\Attendance\Services\TimecardService;
 use Modules\Calendar\Services\PayPeriodService;
@@ -69,10 +71,36 @@ class EmployeeTimecardsTest extends TestCase
         Livewire::test(EmployeeTimecards::class, ['employment' => $employment, 'month' => '2026-12'])
             ->assertSee('Missing punch')
             ->call('openAdd', '2026-12-01')
-            ->set('punchedAt', '2026-12-01 17:00')
+            ->set('lastOut', '17:00')
             ->set('reason', 'Forgot the out punch')
             ->call('saveAdd')
             ->assertSee('Full');
+    }
+
+    public function test_add_punch_saves_first_in_and_last_out(): void
+    {
+        Carbon::setTestNow('2026-12-10 09:00:00');
+        $employment = $this->profiled('2026-01-01');
+        $this->loginAs('hr-manager', $employment->company);
+
+        Livewire::test(EmployeeTimecards::class, ['employment' => $employment, 'month' => '2026-12'])
+            ->call('openAdd', '2026-12-02')
+            ->assertSet('addDate', '2026-12-02')
+            ->assertSet('firstIn', '')
+            ->assertSet('lastOut', '')
+            ->set('firstIn', '08:00')
+            ->set('lastOut', '17:05')
+            ->set('reason', 'Forgot both punches')
+            ->call('saveAdd')
+            ->assertSet('showAdd', false)
+            ->assertSee('08:00')
+            ->assertSee('17:05')
+            ->assertSee('Full');
+
+        $this->assertSame(2, AttendanceAdjustment::query()
+            ->where('employment_id', $employment->id)
+            ->where('type', AdjustmentType::ADD_PUNCH)
+            ->count());
     }
 
     public function test_actions_are_hidden_in_a_closed_period(): void

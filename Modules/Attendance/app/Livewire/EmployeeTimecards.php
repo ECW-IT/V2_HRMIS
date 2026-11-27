@@ -7,6 +7,7 @@ use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 use Livewire\Component;
 use Maatwebsite\Excel\Facades\Excel;
@@ -49,7 +50,11 @@ class EmployeeTimecards extends Component
 
     public bool $showOt = false;
 
-    public string $punchedAt = '';
+    public string $addDate = '';
+
+    public string $firstIn = '';
+
+    public string $lastOut = '';
 
     public string $reason = '';
 
@@ -79,15 +84,47 @@ class EmployeeTimecards extends Component
         $this->authorize('attendance.adjust');
         $this->resetDialogs();
         $this->showAdd = true;
-        $this->punchedAt = $date.' 08:00';
+        $this->addDate = $date;
+        $this->firstIn = '';
+        $this->lastOut = '';
     }
 
     public function saveAdd(): void
     {
         $this->authorize('attendance.adjust');
+        $this->error = '';
+
+        $times = [];
+        foreach ([$this->firstIn, $this->lastOut] as $time) {
+            if (trim($time) === '') {
+                continue;
+            }
+
+            $punchedAt = $this->datedPunch($time);
+            if ($punchedAt === null) {
+                $this->error = 'Enter a valid time.';
+
+                return;
+            }
+
+            $times[] = $punchedAt;
+        }
+
+        if ($times === []) {
+            $this->error = 'Enter a first in time, a last out time, or both.';
+
+            return;
+        }
 
         try {
-            app(AdjustmentService::class)->addPunch($this->employment(), $this->punchedAt, $this->reason, $this->user());
+            DB::transaction(function () use ($times): void {
+                $service = app(AdjustmentService::class);
+                $employment = $this->employment();
+                $user = $this->user();
+                foreach ($times as $punchedAt) {
+                    $service->addPunch($employment, $punchedAt, $this->reason, $user);
+                }
+            });
             $this->resetDialogs();
         } catch (DomainException $e) {
             $this->error = $e->getMessage();
@@ -247,11 +284,26 @@ class EmployeeTimecards extends Component
         $this->showVoid = false;
         $this->showWaive = false;
         $this->showOt = false;
+        $this->addDate = '';
+        $this->firstIn = '';
+        $this->lastOut = '';
         $this->reason = '';
         $this->error = '';
         $this->otMinutes = '';
         $this->punchId = null;
         $this->actionTimecardId = null;
+    }
+
+    private function datedPunch(string $time): ?string
+    {
+        $time = trim($time);
+        if (preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d$/', $time) === 1) {
+            $time .= ':00';
+        } elseif (preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d$/', $time) !== 1) {
+            return null;
+        }
+
+        return $this->addDate.' '.$time;
     }
 
     /** @return array{0: ?PayPeriod, 1: bool, 2: ?SummaryFigures, 3: ?string} */

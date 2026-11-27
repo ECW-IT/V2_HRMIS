@@ -1,8 +1,13 @@
 <div class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-black/40 p-6">
     <div class="popup mt-10 w-full max-w-md bg-white p-5 shadow-xl">
         <h3 class="text-sm font-semibold text-gray-800">Add punch</h3>
-        <label class="mt-3 block text-xs text-gray-600">Time
-            <input type="text" wire:model="punchedAt" class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+        <p class="mt-3 text-xs text-gray-600">Date</p>
+        <p class="mt-1 text-sm text-gray-800">{{ $addDate }}</p>
+        <label class="mt-3 block text-xs text-gray-600">First in
+            <input type="time" wire:model="firstIn" class="mt-1 w-full rounded border px-3 py-2 text-sm" />
+        </label>
+        <label class="mt-3 block text-xs text-gray-600">Last out
+            <input type="time" wire:model="lastOut" class="mt-1 w-full rounded border px-3 py-2 text-sm" />
         </label>
         <label class="mt-3 block text-xs text-gray-600">Reason
             <input type="text" wire:model="reason" class="mt-1 w-full rounded border px-3 py-2 text-sm" />
