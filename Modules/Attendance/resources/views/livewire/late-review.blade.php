@@ -1,13 +1,18 @@
 <div class="mx-auto max-w-[1280px] space-y-4 px-6 py-4">
     <div class="flex flex-wrap items-end justify-between gap-3">
         <h1 class="text-lg font-semibold text-gray-800">Late review</h1>
-        <label class="text-xs text-gray-600">Period
+        <div class="flex flex-wrap items-end gap-3">
+            <label class="text-xs text-gray-600">Search
+                <input type="search" wire:model.live.debounce.300ms="search" placeholder="Employee number or name" class="mt-1 block w-64 rounded border px-3 py-1 text-sm">
+            </label>
+            <label class="text-xs text-gray-600">Period
             <select wire:model.live="periodId" class="mt-1 block rounded border px-3 py-1 text-sm">
                 @foreach($periods as $item)
                     <option value="{{ $item->id }}">{{ $item->year }}-{{ str_pad((string) $item->month, 2, '0', STR_PAD_LEFT) }}</option>
                 @endforeach
             </select>
         </label>
+        </div>
     </div>
 
     @if($notice !== '')
@@ -51,7 +56,7 @@
             </table>
         </div>
     @empty
-        <p class="text-sm text-gray-500">No late minutes in this period.</p>
+        <p class="text-sm text-gray-500">{{ trim($search) !== '' ? 'No late minutes match this employee.' : 'No late minutes in this period.' }}</p>
     @endforelse
 
     @if($activeId)

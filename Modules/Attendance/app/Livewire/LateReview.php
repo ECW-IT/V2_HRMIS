@@ -5,6 +5,7 @@ namespace Modules\Attendance\Livewire;
 use App\Exceptions\Domain\DomainException;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 use Livewire\Component;
@@ -18,6 +19,8 @@ use Modules\CoreHr\Models\Employment;
 class LateReview extends Component
 {
     public ?int $periodId = null;
+
+    public string $search = '';
 
     public string $reason = '';
 
@@ -85,7 +88,18 @@ class LateReview extends Component
                 $query->where('late_in_minutes', '>', 0)
                     ->orWhere('early_out_minutes', '>', 0)
                     ->orWhere('late_waived', true);
-            })
+            });
+
+        $term = trim($this->search);
+        if ($term !== '') {
+            $like = '%'.addcslashes($term, '%_\\').'%';
+            $cards->whereHas('employment', function (Builder $employment) use ($like): void {
+                $employment->where('employee_no', 'like', $like)
+                    ->orWhereHas('person', fn (Builder $person) => $person->where('name_with_initials', 'like', $like));
+            });
+        }
+
+        $cards = $cards
             ->orderBy('employment_id')
             ->orderBy('work_date')
             ->get()

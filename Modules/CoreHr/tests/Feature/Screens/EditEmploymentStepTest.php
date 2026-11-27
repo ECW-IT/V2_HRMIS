@@ -160,6 +160,35 @@ class EditEmploymentStepTest extends TestCase
         $this->assertSame($before->late_deduction, $after->late_deduction);
     }
 
+    public function test_late_deduction_can_be_updated_without_changing_shift(): void
+    {
+        $company = $this->company();
+        $employment = $this->profiled('2026-01-01', $company, ['late_deduction' => false]);
+        $shiftId = $employment->timeProfiles()->sole()->shift_id;
+        $otMode = $employment->timeProfiles()->sole()->ot_mode;
+
+        $this->loginAs('hr-manager', $company);
+
+        Livewire::test(EditEmploymentStep::class, ['employment' => $employment])
+            ->assertSee('Save late deduction')
+            ->set('lateDeduction', true)
+            ->set('lateEffectiveFrom', '2026-06-01')
+            ->call('saveLateDeduction')
+            ->assertHasNoErrors()
+            ->assertSee('Late deduction updated.');
+
+        $profiles = app(TimeProfileService::class);
+        $before = $profiles->on($employment, '2026-05-31');
+        $after = $profiles->on($employment, '2026-06-01');
+
+        $this->assertFalse($before->late_deduction);
+        $this->assertSame($shiftId, $before->shift_id);
+        $this->assertTrue($after->late_deduction);
+        $this->assertSame($shiftId, $after->shift_id);
+        $this->assertSame($otMode, $after->ot_mode);
+        $this->assertSame($before->attendance_mode, $after->attendance_mode);
+    }
+
     public function test_ot_mode_without_a_time_profile_shows_an_error(): void
     {
         $company = $this->company();

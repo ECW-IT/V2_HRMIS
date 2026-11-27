@@ -63,6 +63,14 @@ class EditEmploymentStep extends Component
 
     public string $otModeError = '';
 
+    public bool $lateDeduction = false;
+
+    public string $lateEffectiveFrom = '';
+
+    public string $lateDeductionMessage = '';
+
+    public string $lateDeductionError = '';
+
     public function mount(Employment $employment, TimeProfileService $profiles): void
     {
         $this->authorize('employee.update');
@@ -79,11 +87,13 @@ class EditEmploymentStep extends Component
         $hire = $employment->hire_date->toDateString();
         $this->effectiveFrom = max($today, $hire);
         $this->otEffectiveFrom = $this->effectiveFrom;
+        $this->lateEffectiveFrom = $this->effectiveFrom;
 
         $profile = $profiles->on($employment, $today);
         $this->otMode = $profile?->ot_mode instanceof OtMode
             ? $profile->ot_mode->value
             : ($profile?->ot_mode !== null ? (string) $profile->ot_mode : OtMode::NONE->value);
+        $this->lateDeduction = (bool) ($profile?->late_deduction ?? false);
 
         $this->loadAssignmentFields();
     }
@@ -363,6 +373,63 @@ class EditEmploymentStep extends Component
         }
 
         $this->otModeMessage = 'OT mode updated.';
+    }
+
+    public function saveLateDeduction(TimeProfileService $profiles): void
+    {
+        $this->authorize('employee.update');
+        $this->ensureNotResigned();
+        $this->lateDeductionMessage = '';
+        $this->lateDeductionError = '';
+
+        $this->validate([
+            'lateEffectiveFrom' => ['required', 'date_format:Y-m-d', 'after_or_equal:'.$this->employment->hire_date->toDateString()],
+            'lateDeduction' => ['boolean'],
+        ], [
+            'lateEffectiveFrom.after_or_equal' => 'The date cannot be before the hire date.',
+        ]);
+
+        $current = $profiles->on($this->employment, $this->lateEffectiveFrom);
+
+        if ($current === null) {
+            $this->lateDeductionError = 'No time profile is in force. Set a shift on the time profile before changing late deduction.';
+
+            return;
+        }
+
+        if ((bool) $current->late_deduction === $this->lateDeduction) {
+            $this->lateDeductionError = 'Nothing was changed.';
+
+            return;
+        }
+
+        $requested = $this->lateDeduction;
+
+        try {
+            $saved = $profiles->set($this->employment, [
+                'effective_from' => $this->lateEffectiveFrom,
+                'shift_id' => $current->shift_id,
+                'late_deduction' => $requested,
+            ]);
+        } catch (DomainException $e) {
+            $this->lateDeductionError = $e->getMessage();
+
+            return;
+        }
+
+        $this->lateDeduction = (bool) $saved->late_deduction;
+
+        $attendance = $current->attendance_mode instanceof AttendanceMode
+            ? $current->attendance_mode
+            : AttendanceMode::from((string) $current->attendance_mode);
+
+        if ($attendance === AttendanceMode::NO_PUNCH && $requested && ! $saved->late_deduction) {
+            $this->lateDeductionMessage = 'No-punch attendance keeps late deduction off.';
+
+            return;
+        }
+
+        $this->lateDeductionMessage = 'Late deduction updated.';
     }
 
     public function render(): View

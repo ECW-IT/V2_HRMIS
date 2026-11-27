@@ -56,18 +56,34 @@ final class TimeProfileService
             $lateDeduction = false;
         }
 
-        $profile = new EmploymentTimeProfile([
-            'employment_id' => $e->id,
-            'effective_from' => $from,
-            'effective_to' => null,
-            'shift_id' => $shift->id,
-            'attendance_mode' => $attendanceMode,
-            'ot_mode' => $otMode,
-            'late_deduction' => $lateDeduction,
-        ]);
+        $starting = EmploymentTimeProfile::query()
+            ->where('employment_id', $e->id)
+            ->whereDate('effective_from', $from)
+            ->first();
 
-        /** @var EmploymentTimeProfile $saved */
-        $saved = EffectiveDating::insert($profile);
+        if ($starting !== null) {
+            $starting->fill([
+                'shift_id' => $shift->id,
+                'attendance_mode' => $attendanceMode,
+                'ot_mode' => $otMode,
+                'late_deduction' => $lateDeduction,
+            ]);
+            $starting->save();
+            $saved = $starting;
+        } else {
+            $profile = new EmploymentTimeProfile([
+                'employment_id' => $e->id,
+                'effective_from' => $from,
+                'effective_to' => null,
+                'shift_id' => $shift->id,
+                'attendance_mode' => $attendanceMode,
+                'ot_mode' => $otMode,
+                'late_deduction' => $lateDeduction,
+            ]);
+
+            /** @var EmploymentTimeProfile $saved */
+            $saved = EffectiveDating::insert($profile);
+        }
 
         // Recompute open dates when changing an existing profile (not the first assignment).
         if ($previous !== null) {

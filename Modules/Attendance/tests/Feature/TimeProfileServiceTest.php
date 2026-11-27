@@ -47,6 +47,31 @@ class TimeProfileServiceTest extends TestCase
         $this->assertNull($this->svc->on($e, '2025-12-31'));
     }
 
+    public function test_setting_the_same_start_date_updates_the_existing_profile(): void
+    {
+        $e = $this->hired('2026-01-01');
+        $shift = $this->shift();
+        $this->svc->set($e, [
+            'effective_from' => '2026-01-01',
+            'shift_id' => $shift->id,
+            'ot_mode' => 'EVENING',
+            'late_deduction' => false,
+        ]);
+
+        $updated = $this->svc->set($e, [
+            'effective_from' => '2026-01-01',
+            'shift_id' => $shift->id,
+            'late_deduction' => true,
+        ]);
+
+        $this->assertSame(1, EmploymentTimeProfile::query()->where('employment_id', $e->id)->count());
+        $this->assertTrue($updated->late_deduction);
+        $this->assertSame($shift->id, $updated->shift_id);
+        $this->assertSame(OtMode::EVENING, $updated->ot_mode);
+        $this->assertSame('2026-01-01', $updated->effective_from->toDateString());
+        $this->assertNull($updated->effective_to);
+    }
+
     public function test_defaults_for_a_first_profile(): void
     {
         $p = $this->svc->set($this->hired('2026-01-01'), ['effective_from' => '2026-01-01', 'shift_id' => $this->shift()->id]);
