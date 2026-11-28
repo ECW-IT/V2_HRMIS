@@ -84,10 +84,27 @@ class PayslipTest extends TestCase
         ));
     }
 
-    public function test_payslip_is_not_available_before_approval(): void
+    public function test_payslip_is_available_when_calculated_as_draft(): void
     {
         DB::table('pay_runs')->where('id', $this->run->id)->update([
             'status' => PayRunStatus::CALCULATED->value,
+            'approved_by' => null,
+            'approved_at' => null,
+            'locked_by' => null,
+            'locked_at' => null,
+        ]);
+        $this->run->refresh();
+
+        $data = app(PayslipData::class)->for($this->row($this->employeeA));
+
+        $this->assertStringContainsString('DRAFT', $data['period_label']);
+        $this->assertStringContainsString('not approved', $data['period_label']);
+    }
+
+    public function test_payslip_is_not_available_before_calculation(): void
+    {
+        DB::table('pay_runs')->where('id', $this->run->id)->update([
+            'status' => PayRunStatus::DRAFT->value,
             'approved_by' => null,
             'approved_at' => null,
             'locked_by' => null,

@@ -227,6 +227,9 @@ final class TimecardService
 
     public function computeRange(int $companyId, \DateTimeInterface|string $from, \DateTimeInterface|string $to, ?array $employmentIds = null): int
     {
+        // Day × employee loops routinely exceed PHP's default 30s request limit.
+        set_time_limit(0);
+
         $fromDate = Carbon::parse($from, config('app.timezone'))->startOfDay();
         $toDate = Carbon::parse($to, config('app.timezone'))->startOfDay();
         $today = Carbon::now(config('app.timezone'))->startOfDay();

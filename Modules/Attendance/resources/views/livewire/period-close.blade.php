@@ -53,8 +53,11 @@
             <div class="rounded border border-amber-300 bg-amber-50 px-5 py-4 text-sm text-gray-800">
                 <p>{{ $confirmText }}</p>
                 <div class="mt-3 flex gap-2">
-                    <button type="button" wire:click="closePeriod" class="rounded bg-blue-600 px-3 py-1 text-xs text-white">Confirm close</button>
-                    <button type="button" wire:click="$set('confirming', false)" class="rounded border px-3 py-1 text-xs">Cancel</button>
+                    <button type="button" wire:click="closePeriod" wire:loading.attr="disabled" class="rounded bg-blue-600 px-3 py-1 text-xs text-white disabled:opacity-60">
+                        <span wire:loading.remove wire:target="closePeriod">Confirm close</span>
+                        <span wire:loading wire:target="closePeriod">Closing… please wait</span>
+                    </button>
+                    <button type="button" wire:click="$set('confirming', false)" wire:loading.attr="disabled" wire:target="closePeriod" class="rounded border px-3 py-1 text-xs disabled:opacity-60">Cancel</button>
                 </div>
             </div>
         @endif

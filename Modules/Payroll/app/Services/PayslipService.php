@@ -35,7 +35,7 @@ final class PayslipService
     {
         $user = Auth::user();
         $this->access->assertCanExport($run, $user);
-        $this->access->assertApproved($run);
+        $this->access->assertDraftable($run);
 
         $payslips = [];
         foreach ($this->access->okEmployees($run, $orgUnitId) as $employee) {

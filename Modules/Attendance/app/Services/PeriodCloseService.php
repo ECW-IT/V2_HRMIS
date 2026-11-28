@@ -114,6 +114,9 @@ final class PeriodCloseService
     {
         $this->authorize($by, 'period.close', (int) $p->company_id);
 
+        // Full-month recompute for large companies exceeds the default 30s web limit.
+        set_time_limit(0);
+
         $this->timecards->computeRange((int) $p->company_id, $p->start_date, $p->end_date);
 
         $blocking = array_values(array_filter(

@@ -35,7 +35,7 @@ final class PayslipData
         $run = $e->payRun;
         $user = Auth::user();
         $this->access->assertCanView($run, $user);
-        $this->access->assertApproved($run);
+        $this->access->assertDraftable($run);
 
         $e->loadMissing('lines');
         $period = $run->payPeriod;
@@ -98,7 +98,7 @@ final class PayslipData
         return [
             'company_name' => $company?->name,
             'period' => sprintf('%04d-%02d', (int) $period->year, (int) $period->month),
-            'period_label' => sprintf('%04d-%02d', (int) $period->year, (int) $period->month),
+            'period_label' => sprintf('%04d-%02d', (int) $period->year, (int) $period->month).$this->access->draftSuffix($run),
             'employee_no' => $e->employee_no,
             'name' => $e->name,
             'job' => $e->designation?->name ?? Designation::query()->find($e->designation_id)?->name,
