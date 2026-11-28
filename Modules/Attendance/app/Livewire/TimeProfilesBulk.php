@@ -13,14 +13,14 @@ use Modules\Attendance\Services\TimeProfileService;
 use Modules\Attendance\Support\AttendanceNav;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Models\Employment;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\OrgUnit;
 
 class TimeProfilesBulk extends Component
 {
     public ?int $filterOrgUnitId = null;
 
-    public ?int $filterGradeId = null;
+    public ?int $filterCategoryId = null;
 
     public ?int $filterShiftId = null;
 
@@ -100,8 +100,8 @@ class TimeProfilesBulk extends Component
                 ->when($this->filterOrgUnitId, function ($q) {
                     $q->whereHas('assignments', fn ($a) => $a->current()->where('org_unit_id', $this->filterOrgUnitId));
                 })
-                ->when($this->filterGradeId, function ($q) {
-                    $q->whereHas('assignments', fn ($a) => $a->current()->where('grade_id', $this->filterGradeId));
+                ->when($this->filterCategoryId, function ($q) {
+                    $q->where('employee_category_id', $this->filterCategoryId);
                 })
                 ->when($this->filterShiftId, function ($q) {
                     $q->whereHas('timeProfiles', fn ($p) => $p->current()->where('shift_id', $this->filterShiftId));
@@ -114,7 +114,7 @@ class TimeProfilesBulk extends Component
             'companyId' => $companyId,
             'employees' => $employees,
             'orgUnits' => $companyId ? OrgUnit::query()->where('company_id', $companyId)->orderBy('name')->get() : collect(),
-            'grades' => Grade::query()->where('is_active', true)->orderBy('rank')->get(),
+            'categories' => EmployeeCategory::query()->where('is_active', true)->orderBy('level')->orderBy('name')->get(),
             'shifts' => Shift::query()->where('is_active', true)->orderBy('code')->get(),
             'attendanceModes' => AttendanceMode::cases(),
             'otModes' => OtMode::cases(),

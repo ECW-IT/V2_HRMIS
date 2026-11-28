@@ -10,7 +10,7 @@ use Modules\Leave\Database\Seeders\LeaveSeeder;
 use Modules\Leave\Models\LeavePolicy;
 use Modules\Leave\Models\LeaveType;
 use Modules\Leave\Services\LeavePolicyService;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
 
@@ -41,10 +41,10 @@ class LeavePolicyServiceTest extends TestCase
     public function test_most_specific_policy_wins(): void
     {
         $e = $this->hired('2026-01-01');
-        $grade = $e->currentAssignment()->grade_id;
-        LeavePolicy::factory()->create(['leave_type_id' => $this->ml, 'grade_id' => $grade, 'days_per_period' => 6, 'effective_from' => '2026-01-01']);
-        LeavePolicy::factory()->create(['leave_type_id' => $this->ml, 'grade_id' => $grade, 'company_id' => $e->company_id, 'days_per_period' => 5, 'effective_from' => '2026-01-01']);
-        LeavePolicy::factory()->create(['leave_type_id' => $this->ml, 'grade_id' => Grade::factory()->create()->id, 'days_per_period' => 2, 'effective_from' => '2026-01-01']);
+        $category = $this->categoryFor($e);
+        LeavePolicy::factory()->create(['leave_type_id' => $this->ml, 'employee_category_id' => $category->id, 'days_per_period' => 6, 'effective_from' => '2026-01-01']);
+        LeavePolicy::factory()->create(['leave_type_id' => $this->ml, 'employee_category_id' => $category->id, 'company_id' => $e->company_id, 'days_per_period' => 5, 'effective_from' => '2026-01-01']);
+        LeavePolicy::factory()->create(['leave_type_id' => $this->ml, 'employee_category_id' => EmployeeCategory::factory()->create()->id, 'days_per_period' => 2, 'effective_from' => '2026-01-01']);
         $this->assertSame('5.0', $this->svc->resolve($e, $this->ml, '2026-12-01')->days_per_period);
     }
 

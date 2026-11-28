@@ -71,7 +71,7 @@ class StatutoryReportsTest extends TestCase
             'status' => 'OK',
             'employee_no' => $notLiable->employee_no,
             'name' => 'No EPF',
-            'grade_id' => $this->row($this->employeeA)->grade_id,
+            'employee_category_id' => $this->row($this->employeeA)->employee_category_id,
             'employment_type' => 'PERMANENT',
             'epf_liable' => 0,
             'basic_salary' => '10000.00',

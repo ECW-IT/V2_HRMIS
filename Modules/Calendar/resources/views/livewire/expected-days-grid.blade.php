@@ -1,7 +1,7 @@
 <div class="p-4">
     <div class="mb-4">
         <h1 class="text-lg font-semibold text-slate-800">Expected working days</h1>
-        <p class="text-sm text-slate-500">Days each grade must work in a pay period. Entered, not derived from the calendar.</p>
+        <p class="text-sm text-slate-500">Days each category must work in a pay period. Entered, not derived from the calendar.</p>
     </div>
 
     @if ($companyId === null)
@@ -37,7 +37,7 @@
             <table class="min-w-full text-left text-sm">
                 <thead class="bg-slate-50 text-xs uppercase text-slate-500">
                     <tr>
-                        <th class="sticky left-0 bg-slate-50 px-3 py-2">Grade</th>
+                        <th class="sticky left-0 bg-slate-50 px-3 py-2">Category</th>
                         @foreach ($periodColumns as $period)
                             <th class="px-3 py-2 text-center">
                                 <div>{{ $period->start_date->format('M Y') }}</div>
@@ -54,12 +54,12 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @forelse ($grades as $grade)
-                        <tr class="border-t" wire:key="grade-{{ $grade->id }}">
-                            <td class="sticky left-0 bg-white px-3 py-2 font-medium">{{ $grade->name }}</td>
+                    @forelse ($categories as $category)
+                        <tr class="border-t" wire:key="category-{{ $category->id }}">
+                            <td class="sticky left-0 bg-white px-3 py-2 font-medium">{{ $category->name }}</td>
                             @foreach ($periodColumns as $period)
                                 @php
-                                    $key = $period->id.':'.$grade->id;
+                                    $key = $period->id.':'.$category->id;
                                     $value = $cells[$key] ?? null;
                                     $empty = $value === null || $value === '';
                                     $open = $period->status->value === 'OPEN';
@@ -78,7 +78,7 @@
                                                     wire:model="cells.{{ $key }}"
                                                     class="w-20 rounded border px-2 py-1 text-sm"
                                                 >
-                                                <button type="button" wire:click="saveCell({{ $period->id }}, {{ $grade->id }})" class="text-xs text-[var(--color-erp-accent)] hover:underline">
+                                                <button type="button" wire:click="saveCell({{ $period->id }}, {{ $category->id }})" class="text-xs text-[var(--color-erp-accent)] hover:underline">
                                                     Save
                                                 </button>
                                             </div>
@@ -93,7 +93,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="{{ 1 + $periodColumns->count() }}" class="px-3 py-6 text-center text-slate-500">No active grades.</td>
+                            <td colspan="{{ 1 + $periodColumns->count() }}" class="px-3 py-6 text-center text-slate-500">No active categories.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -7,19 +7,21 @@ use App\Support\Effective\EffectiveDated;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Modules\Organisation\Models\Grade;
-use Modules\Payroll\Database\Factories\GradePayRuleFactory;
+use Modules\Organisation\Models\EmployeeCategory;
+use Modules\Payroll\Database\Factories\CategoryPayRuleFactory;
 use Modules\Payroll\Enums\ExtraDayMethod;
 
-class GradePayRule extends Model
+class CategoryPayRule extends Model
 {
-    /** @use HasFactory<GradePayRuleFactory> */
+    /** @use HasFactory<CategoryPayRuleFactory> */
     use Auditable, EffectiveDated, HasFactory;
 
-    protected string $effectiveOwnerKey = 'grade_id';
+    protected $table = 'category_pay_rules';
+
+    protected string $effectiveOwnerKey = 'employee_category_id';
 
     protected $fillable = [
-        'grade_id',
+        'employee_category_id',
         'extra_day_method',
         'effective_from',
         'effective_to',
@@ -34,13 +36,13 @@ class GradePayRule extends Model
         ];
     }
 
-    public function grade(): BelongsTo
+    public function employeeCategory(): BelongsTo
     {
-        return $this->belongsTo(Grade::class);
+        return $this->belongsTo(EmployeeCategory::class);
     }
 
-    protected static function newFactory(): GradePayRuleFactory
+    protected static function newFactory(): CategoryPayRuleFactory
     {
-        return GradePayRuleFactory::new();
+        return CategoryPayRuleFactory::new();
     }
 }

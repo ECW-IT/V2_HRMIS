@@ -21,7 +21,7 @@
                 <tr>
                     <th class="px-3 py-2">Leave type</th>
                     <th class="px-3 py-2">Company</th>
-                    <th class="px-3 py-2">Grade</th>
+                    <th class="px-3 py-2">Category</th>
                     <th class="px-3 py-2">Employment type</th>
                     <th class="px-3 py-2">Days</th>
                     <th class="px-3 py-2">From</th>
@@ -36,7 +36,7 @@
                     <tr>
                         <td class="px-3 py-2">{{ $policy->leaveType?->code }}</td>
                         <td class="px-3 py-2">{{ $policy->company?->name ?? 'Any' }}</td>
-                        <td class="px-3 py-2">{{ $policy->grade?->name ?? 'Any' }}</td>
+                        <td class="px-3 py-2">{{ $policy->employeeCategory?->name ?? 'Any' }}</td>
                         <td class="px-3 py-2">{{ $policy->employment_type ?? 'Any' }}</td>
                         <td class="px-3 py-2">{{ $policy->days_per_period }}</td>
                         <td class="px-3 py-2">{{ $policy->effective_from?->toDateString() }}</td>
@@ -77,11 +77,11 @@
                     </select>
                 </label>
                 <label class="block text-sm">
-                    <span class="text-slate-700">Grade</span>
-                    <select wire:model="gradeId" class="mt-1 w-full rounded border-slate-300">
+                    <span class="text-slate-700">Category</span>
+                    <select wire:model="employeeCategoryId" class="mt-1 w-full rounded border-slate-300">
                         <option value="">Any</option>
-                        @foreach ($grades as $grade)
-                            <option value="{{ $grade->id }}">{{ $grade->name }}</option>
+                        @foreach ($categories as $category)
+                            <option value="{{ $category->id }}">{{ $category->name }}</option>
                         @endforeach
                     </select>
                 </label>

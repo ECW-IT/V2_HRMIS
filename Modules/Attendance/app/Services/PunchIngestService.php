@@ -8,7 +8,6 @@ use Modules\Attendance\Enums\PunchResolution;
 use Modules\Attendance\Enums\RejectionReason;
 use Modules\Attendance\Jobs\RecomputeTimecards;
 use Modules\Attendance\Models\Device;
-use Modules\Attendance\Models\PunchRejection;
 use Modules\Attendance\Support\IngestResult;
 use Modules\Attendance\Timecards\WorkDate;
 
@@ -27,6 +26,8 @@ final class PunchIngestService
         $duplicatesInBatch = 0;
         $candidates = [];
         $seenKeys = [];
+        $lookups = [];
+        $rejectionRows = [];
 
         foreach ($punches as $item) {
             $payload = $item;
@@ -38,7 +39,7 @@ final class PunchIngestService
                 || ! is_string($item['punched_at'])
                 || preg_match('/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/', $item['punched_at']) !== 1
             ) {
-                $this->reject($device, $payload, RejectionReason::MALFORMED, $receivedAt);
+                $rejectionRows[] = $this->rejectionRow($device, $payload, RejectionReason::MALFORMED, $receivedAt);
                 $rejected++;
 
                 continue;
@@ -46,7 +47,7 @@ final class PunchIngestService
 
             $uid = $item['device_user_id'];
             if (! is_int($uid) || $uid < 1) {
-                $this->reject($device, $payload, RejectionReason::BAD_USER_ID, $receivedAt);
+                $rejectionRows[] = $this->rejectionRow($device, $payload, RejectionReason::BAD_USER_ID, $receivedAt);
                 $rejected++;
 
                 continue;
@@ -54,7 +55,7 @@ final class PunchIngestService
 
             $punchedAt = $item['punched_at'];
             if ($punchedAt < $earliest || $punchedAt > $latestAllowed) {
-                $this->reject($device, $payload, RejectionReason::BAD_TIMESTAMP, $receivedAt);
+                $rejectionRows[] = $this->rejectionRow($device, $payload, RejectionReason::BAD_TIMESTAMP, $receivedAt);
                 $rejected++;
 
                 continue;
@@ -68,7 +69,7 @@ final class PunchIngestService
             }
             $seenKeys[$key] = true;
 
-            $employmentId = $this->enrolments->resolve($device->device_group, $uid, $punchedAt);
+            $lookups[] = [$uid, $punchedAt];
             $verifyMode = $this->optionalByte($item['verify_mode'] ?? null);
             $rawState = $this->optionalByte($item['state'] ?? null);
 
@@ -76,28 +77,37 @@ final class PunchIngestService
                 'device_id' => $device->id,
                 'device_user_id' => $uid,
                 'punched_at' => $punchedAt,
-                'employment_id' => $employmentId,
-                'resolution' => $employmentId !== null
-                    ? PunchResolution::RESOLVED->value
-                    : PunchResolution::UNRESOLVED->value,
+                'employment_id' => null,
+                'resolution' => PunchResolution::UNRESOLVED->value,
                 'verify_mode' => $verifyMode,
                 'raw_state' => $rawState,
                 'received_at' => $receivedAt,
             ];
         }
 
+        foreach (array_chunk($rejectionRows, 500) as $chunk) {
+            DB::table('punch_rejections')->insert($chunk);
+        }
+
+        $resolved = $this->enrolments->resolveMany($device->device_group, $lookups);
+        foreach ($candidates as $i => $row) {
+            $mapKey = $row['device_user_id'].'|'.substr($row['punched_at'], 0, 10);
+            $employmentId = $resolved[$mapKey] ?? null;
+            if ($employmentId !== null) {
+                $candidates[$i]['employment_id'] = $employmentId;
+                $candidates[$i]['resolution'] = PunchResolution::RESOLVED->value;
+            }
+        }
+
         $existingKeys = [];
         if ($candidates !== []) {
+            $uids = array_values(array_unique(array_map(fn (array $row) => $row['device_user_id'], $candidates)));
+            $times = array_values(array_unique(array_map(fn (array $row) => $row['punched_at'], $candidates)));
+
             $existing = DB::table('punches')
                 ->where('device_id', $device->id)
-                ->where(function ($q) use ($candidates) {
-                    foreach ($candidates as $row) {
-                        $q->orWhere(function ($inner) use ($row) {
-                            $inner->where('device_user_id', $row['device_user_id'])
-                                ->where('punched_at', $row['punched_at']);
-                        });
-                    }
-                })
+                ->whereIn('device_user_id', $uids)
+                ->whereIn('punched_at', $times)
                 ->get(['device_user_id', 'punched_at']);
 
             foreach ($existing as $row) {
@@ -147,14 +157,17 @@ final class PunchIngestService
         return new IngestResult($received, $inserted, $duplicates, $unresolved, $rejected);
     }
 
-    private function reject(Device $device, mixed $payload, RejectionReason $reason, string $receivedAt): void
+    /**
+     * @return array{device_id: int, payload: string, reason: string, received_at: string}
+     */
+    private function rejectionRow(Device $device, mixed $payload, RejectionReason $reason, string $receivedAt): array
     {
-        PunchRejection::query()->create([
+        return [
             'device_id' => $device->id,
-            'payload' => is_array($payload) ? $payload : ['value' => $payload],
-            'reason' => $reason,
+            'payload' => json_encode(is_array($payload) ? $payload : ['value' => $payload], JSON_THROW_ON_ERROR),
+            'reason' => $reason->value,
             'received_at' => $receivedAt,
-        ]);
+        ];
     }
 
     /**

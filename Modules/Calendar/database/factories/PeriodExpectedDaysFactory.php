@@ -5,7 +5,7 @@ namespace Modules\Calendar\Database\Factories;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Modules\Calendar\Models\PayPeriod;
 use Modules\Calendar\Models\PeriodExpectedDays;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 
 /**
  * @extends Factory<PeriodExpectedDays>
@@ -18,7 +18,7 @@ class PeriodExpectedDaysFactory extends Factory
     {
         return [
             'pay_period_id' => PayPeriod::factory(),
-            'grade_id' => Grade::factory(),
+            'employee_category_id' => EmployeeCategory::factory(),
             'days' => fake()->randomElement([20.0, 22.0, 24.0, 24.5, 25.0, 26.0]),
             'set_by' => null,
         ];

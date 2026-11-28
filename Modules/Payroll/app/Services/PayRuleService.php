@@ -8,13 +8,13 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Payroll\Enums\ExtraDayMethod;
 use Modules\Payroll\Enums\PayRunStatus;
 use Modules\Payroll\Exceptions\InvalidPayRule;
 use Modules\Payroll\Models\AttendanceAllowanceTier;
+use Modules\Payroll\Models\CategoryPayRule;
 use Modules\Payroll\Models\CompanyPaySetting;
-use Modules\Payroll\Models\GradePayRule;
 use Modules\Payroll\Models\PayRun;
 use Modules\Payroll\Models\StatutoryRate;
 use Modules\Payroll\Models\TaxSlab;
@@ -202,24 +202,24 @@ final class PayRuleService
             ->first();
     }
 
-    public function setExtraDayMethod(Grade $g, ExtraDayMethod $m, string $from): GradePayRule
+    public function setExtraDayMethod(EmployeeCategory $category, ExtraDayMethod $m, string $from): CategoryPayRule
     {
         Gate::authorize('payroll.config');
         $this->assertFirstOfMonth($from);
         $this->assertNotInLockedPeriod($from);
 
-        return EffectiveDating::insert(new GradePayRule([
-            'grade_id' => $g->id,
+        return EffectiveDating::insert(new CategoryPayRule([
+            'employee_category_id' => $category->id,
             'extra_day_method' => $m,
             'effective_from' => $from,
             'effective_to' => null,
         ]));
     }
 
-    public function extraDayMethod(int $gradeId, \DateTimeInterface|string $on): ?ExtraDayMethod
+    public function extraDayMethod(int $categoryId, \DateTimeInterface|string $on): ?ExtraDayMethod
     {
-        $row = GradePayRule::query()
-            ->where('grade_id', $gradeId)
+        $row = CategoryPayRule::query()
+            ->where('employee_category_id', $categoryId)
             ->effectiveOn($on)
             ->first();
 
@@ -242,17 +242,18 @@ final class PayRuleService
         ]));
     }
 
-    public function gradesWithoutRule(\DateTimeInterface|string $on): Collection
+    public function categoriesWithoutRule(\DateTimeInterface|string $on): Collection
     {
         $day = $this->asDate($on);
-        $gradedIds = GradePayRule::query()
+        $coveredIds = CategoryPayRule::query()
             ->effectiveOn($day)
-            ->pluck('grade_id');
+            ->pluck('employee_category_id');
 
-        return Grade::query()
+        return EmployeeCategory::query()
             ->where('is_active', true)
-            ->whereNotIn('id', $gradedIds)
-            ->orderBy('rank')
+            ->whereNotIn('id', $coveredIds)
+            ->orderBy('level')
+            ->orderBy('name')
             ->get();
     }
 

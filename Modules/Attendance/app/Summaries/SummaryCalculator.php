@@ -31,10 +31,10 @@ final class SummaryCalculator
     public function for(Employment $e, PayPeriod $p, bool $applyOverrides = true): SummaryFigures
     {
         [$from, $to] = $this->window($e, $p);
-        $gradeId = (int) ($e->assignmentOn($to)?->grade_id ?? 0);
+        $categoryId = $e->employee_category_id !== null ? (int) $e->employee_category_id : null;
         $profile = $this->profiles->on($e, $to);
         $mode = $profile?->attendance_mode ?? AttendanceMode::PUNCH;
-        $expected = $this->expectedDays->for($p, $gradeId);
+        $expected = $categoryId === null ? null : $this->expectedDays->for($p, $categoryId);
         $expectedDays = $expected ?? 0.0;
         $employedDays = $this->inclusiveDays($from, $to);
         [$paidLeave, $unpaidLeave, $paidByDate] = $this->leave($e, $p);
@@ -109,7 +109,7 @@ final class SummaryCalculator
         }
 
         return new SummaryFigures(
-            gradeId: $gradeId,
+            categoryId: $categoryId,
             attendanceMode: $mode,
             employedDays: $employedDays,
             expectedDays: $this->days($expectedDays),

@@ -382,7 +382,7 @@ final class PayRunService
                 'error' => mb_substr($ex->getMessage(), 0, 255),
                 'employee_no' => (string) (Employment::query()->find($summary->employment_id)?->employee_no ?? ''),
                 'name' => 'Error',
-                'grade_id' => (int) $summary->grade_id,
+                'employee_category_id' => $summary->employee_category_id,
                 'org_unit_id' => null,
                 'designation_id' => null,
                 'employment_type' => 'PERMANENT',

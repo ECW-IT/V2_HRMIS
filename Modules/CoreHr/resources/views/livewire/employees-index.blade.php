@@ -298,6 +298,7 @@
                     </th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Service period</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Designation</th>
+                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Category</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Type</th>
                     <th class="px-3 py-2 text-right text-xs font-semibold text-gray-600">Actions</th>
                 </tr>
@@ -336,6 +337,7 @@
                         <td class="px-3 py-1.5 text-xs text-gray-600">{{ $employee->hire_date->format('Y-m-d') }}</td>
                         <td class="px-3 py-1.5 text-xs text-gray-600">{{ $this->servicePeriod($employee) }}</td>
                         <td class="px-3 py-1.5 text-xs text-gray-600">{{ $employee->designation_name ?: '—' }}</td>
+                        <td class="px-3 py-1.5 text-xs text-gray-600">{{ $employee->category_name ?: '—' }}</td>
                         <td class="px-3 py-1.5">@include('corehr::partials.type-badge', ['type' => $employee->type])</td>
                         <td class="px-3 py-1.5 text-right whitespace-nowrap" onclick="event.stopPropagation()">
                             <div class="inline-flex items-center gap-1.5">
@@ -356,7 +358,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="px-3 py-6 text-center text-sm text-gray-500">{{ $emptyMessage }}</td>
+                        <td colspan="11" class="px-3 py-6 text-center text-sm text-gray-500">{{ $emptyMessage }}</td>
                     </tr>
                 @endforelse
             </tbody>

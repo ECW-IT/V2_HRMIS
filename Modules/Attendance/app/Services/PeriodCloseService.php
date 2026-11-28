@@ -52,13 +52,16 @@ final class PeriodCloseService
         $previous = $this->periods->previous($p);
         $c02 = ($previous !== null && $previous->status === PeriodStatus::OPEN) ? 1 : 0;
 
-        $gradesMissing = [];
+        $categoriesMissing = [];
+        $withoutCategory = 0;
         $withoutProfile = 0;
         foreach ($employments as $employment) {
             $to = $this->lastEmployedDay($employment, $p);
-            $gradeId = (int) ($employment->assignmentOn($to)?->grade_id ?? 0);
-            if ($gradeId !== 0 && $this->expectedDays->for($p, $gradeId) === null) {
-                $gradesMissing[$gradeId] = true;
+            $categoryId = $employment->employee_category_id !== null ? (int) $employment->employee_category_id : 0;
+            if ($categoryId === 0) {
+                $withoutCategory++;
+            } elseif ($this->expectedDays->for($p, $categoryId) === null) {
+                $categoriesMissing[$categoryId] = true;
             }
             if ($this->profiles->on($employment, $to) === null) {
                 $withoutProfile++;
@@ -95,7 +98,7 @@ final class PeriodCloseService
         return [
             $this->item('C01', 'The period has ended', true, $c01),
             $this->item('C02', 'The previous period is closed', true, $c02),
-            $this->item('C03', 'Expected working days are set for every grade in use', true, count($gradesMissing)),
+            $this->item('C03', 'Expected working days are set for every category in use', true, count($categoriesMissing) + $withoutCategory),
             $this->item('C04', 'Every employee has a time profile', true, $withoutProfile),
             $this->item('C05', 'No missing punches', true, $c05),
             $this->item('C06', 'No attendance adjustments are waiting', true, $this->adjustments->pendingCount($p)),

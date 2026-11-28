@@ -23,7 +23,6 @@ use Modules\CoreHr\Models\EmploymentEvent;
 use Modules\CoreHr\Models\Person;
 use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\Designation;
-use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 
@@ -36,7 +35,7 @@ final class EmploymentService
     ) {}
 
     /** $employment keys: type, hire_date, epf_liable?, epf_no?, legacy_employee_no?, employee_no? (import only), employee_category_id?, staff_work_category_id?.
-     *  $assignment keys: org_unit_id, designation_id, grade_id, location_id, manager_employment_id? */
+     *  $assignment keys: org_unit_id, designation_id, location_id, manager_employment_id? */
     public function hire(Person $person, Company $company, array $employment, array $assignment): Employment
     {
         return $this->createEmployment($person, $company, $employment, $assignment, EventType::HIRE, null);
@@ -102,13 +101,12 @@ final class EmploymentService
             throw new OutsideEmploymentPeriod('No assignment exists on this date.');
         }
 
-        $keys = ['org_unit_id', 'designation_id', 'grade_id', 'location_id', 'manager_employment_id'];
+        $keys = ['org_unit_id', 'designation_id', 'location_id', 'manager_employment_id'];
         $fromValues = [];
         $toValues = [];
         $merged = [
             'org_unit_id' => $current->org_unit_id,
             'designation_id' => $current->designation_id,
-            'grade_id' => $current->grade_id,
             'location_id' => $current->location_id,
             'manager_employment_id' => $current->manager_employment_id,
         ];
@@ -138,7 +136,6 @@ final class EmploymentService
                 'effective_from' => $fromDate,
                 'org_unit_id' => $merged['org_unit_id'],
                 'designation_id' => $merged['designation_id'],
-                'grade_id' => $merged['grade_id'],
                 'location_id' => $merged['location_id'],
                 'manager_employment_id' => $merged['manager_employment_id'],
                 'change_reason' => $reason,
@@ -470,7 +467,6 @@ final class EmploymentService
                 'effective_from' => $hireDate,
                 'org_unit_id' => $assignment['org_unit_id'],
                 'designation_id' => $assignment['designation_id'],
-                'grade_id' => $assignment['grade_id'],
                 'location_id' => $assignment['location_id'],
                 'manager_employment_id' => $assignment['manager_employment_id'] ?? null,
             ]);
@@ -493,11 +489,6 @@ final class EmploymentService
         $job = Designation::query()->find($assignment['designation_id'] ?? null);
         if ($job === null || ! $job->is_active) {
             throw new InvalidEmploymentData('Job is invalid.');
-        }
-
-        $grade = Grade::query()->find($assignment['grade_id'] ?? null);
-        if ($grade === null || ! $grade->is_active) {
-            throw new InvalidEmploymentData('Grade is invalid.');
         }
 
         $location = Location::query()->find($assignment['location_id'] ?? null);

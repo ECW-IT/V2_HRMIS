@@ -30,7 +30,7 @@ Copy this file to `ecw_hrmis/docs/GLOSSARY.md`. When a new term is needed, add i
 | **Employment status** | Active, Suspended, Exited | `employments.status` | HRM `is_resigned`, `deleted`; payroll `status` (1/2) | Three flags replaced by one value |
 | **Exit** | The end of an employment, for any reason | `EmploymentService::exit()`, `exit_date`, `exit_reason` | "Resign", `is_resigned`, `resign_date` | Not every exit is a resignation |
 | **Sister-company transfer** | Exit from one company and a new employment in the other, same person | `transferToSisterCompany()` | "Company re-register", "branch transfer" | — |
-| **Assignment** | Where an employee sits over a date range: org unit, job, grade, location, manager | `assignments` | Columns on HRM `employees` + `section_employees` | Now dated, so history is kept |
+| **Assignment** | Where an employee sits over a date range: org unit, designation, location, manager | `assignments` | Columns on HRM `employees` + `section_employees` | Now dated, so history is kept |
 
 ## 2. Organisation
 
@@ -40,7 +40,7 @@ Copy this file to `ecw_hrmis/docs/GLOSSARY.md`. When a new term is needed, add i
 | **Location** | A physical site | `locations` | "Branch" | A place, not an employer |
 | **Org unit** | A department, section or sub-section in one tree | `org_units` | `departments`, `sections`, `leave_mgt_company_departments` | Three lists became one tree |
 | **Designation** | What the work is, e.g. "Auto Electrician" | `designations` | `job_titles`, "job", `hr_jobs`, `leave_mgt_job_titles` | UI term kept; table renamed from `hr_jobs` so it is not confused with Laravel's queue `jobs` |
-| **Grade** | The level on the single ladder; drives pay and time rules | `grades` | HRM `employeeschemas` ("employee schema"); payroll `employeeschemas` ("Staff II"…); `emp_salary_grade`; `leave_mgt_position_levels`; `hrm_roles` | "Schema" is a database word; five lists did one job |
+| **Employee category** | The level on the single ladder (Director, HOD, Executive, Worker, and the other seeded categories). It decides expected working days, which leave policy matches, and how an extra day is paid | `employments.employee_category_id` | HRM `employeeschemas` ("employee schema"); payroll `employeeschemas` ("Staff II"…); `emp_salary_grade`; `leave_mgt_position_levels`; `hrm_roles` | "Schema" is a database word; the old `grades` ladder is not used |
 | **Role** | What a **user** may do in the system | Spatie `roles` | `roles`; also `hrm_roles` (which were really levels) | Role is about system access only |
 | **Manager** | The person an employee reports to | `assignments.manager_employment_id` | `hrm_employee_reporting`, `leave_mgt_employee_hierarchy`, "HOD", "supervisor" | — |
 
@@ -77,7 +77,7 @@ Copy this file to `ecw_hrmis/docs/GLOSSARY.md`. When a new term is needed, add i
 | v2 term | Meaning | In code | Old term(s) | Why renamed |
 |---|---|---|---|---|
 | **Pay period** | One calendar month for one company | `pay_periods` | Payroll `payr_paycycles` ("paycycle"); HRM `pay_cycles`, `leave_mgt_pay_cycles` | One list instead of three |
-| **Expected working days** | Days an employee of a grade must work in a pay period to earn full basic | `period_expected_days` | HRM `entitle_working_days` ("entitle working days"), `working_week_days`; payroll `payr_expected_workdays`; `emp_payroll_workdays` | Two tables disagreed; "entitle" was unclear |
+| **Expected working days** | Days an employee of a category must work in a pay period to earn full basic | `period_expected_days` | HRM `entitle_working_days` ("entitle working days"), `working_week_days`; payroll `payr_expected_workdays`; `emp_payroll_workdays` | Two tables disagreed; "entitle" was unclear |
 | **Worked days** | Sum of day values in the period | `period_time_summaries.worked_days` | `total_work_days` | — |
 | **Credited days** | Worked days plus paid-leave days | `period_time_summaries.credited_days` | (not separate) | — |
 | **Extra days** | Credited days above expected | `extra_days` | `extra_work_days` | — |
@@ -124,7 +124,7 @@ Copy this file to `ecw_hrmis/docs/GLOSSARY.md`. When a new term is needed, add i
 |---|---|---|
 | emp_id, uid | employment ID / employee number / device user ID — whichever is meant | Each meant several things |
 | job category | shift | |
-| employee schema, schema | grade | |
+| employee schema, schema, grade | employee category | The grades table is not used |
 | work rate | period time summary | |
 | paycycle | pay period | |
 | adjustment, adjustment type | pay component | |

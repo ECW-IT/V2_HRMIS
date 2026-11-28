@@ -5,6 +5,7 @@ namespace Modules\Payroll\Tests\Feature;
 use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -112,7 +113,7 @@ class PayEntryImportTest extends TestCase
         $a = $this->paid();
         $otherCompany = Company::factory()->create();
         $b = $this->paid(c: $otherCompany);
-        $b->update(['employee_no' => $a->employee_no]);
+        DB::table('employments')->where('id', $b->id)->update(['employee_no' => $a->employee_no]);
 
         $p = app(PayPeriodService::class)->ensure($a->company, 2026, 12);
         $by = $this->manager($a->company);

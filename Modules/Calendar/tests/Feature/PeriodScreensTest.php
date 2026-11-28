@@ -12,7 +12,7 @@ use Modules\Calendar\Livewire\PayPeriodsIndex;
 use Modules\Calendar\Services\ExpectedDaysService;
 use Modules\Calendar\Services\PayPeriodService;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Spatie\Permission\Models\Permission;
 use Tests\TestCase;
 
@@ -31,7 +31,7 @@ class PeriodScreensTest extends TestCase
     public function test_grid_needs_period_manage_to_save(): void
     {
         $company = Company::factory()->create();
-        $grade = Grade::factory()->create();
+        $grade = EmployeeCategory::factory()->create();
         $this->travelTo('2026-12-15');
         $period = app(PayPeriodService::class)->ensure($company, 2026, 12);
 
@@ -65,7 +65,7 @@ class PeriodScreensTest extends TestCase
     public function test_closed_period_cells_are_read_only(): void
     {
         $company = Company::factory()->create();
-        $grade = Grade::factory()->create();
+        $grade = EmployeeCategory::factory()->create();
         $pp = app(PayPeriodService::class);
         $expected = app(ExpectedDaysService::class);
 
@@ -95,7 +95,7 @@ class PeriodScreensTest extends TestCase
     {
         $this->travelTo('2026-12-15');
         $company = Company::factory()->create();
-        Grade::factory()->count(2)->create();
+        EmployeeCategory::factory()->count(2)->create();
         app(PayPeriodService::class)->ensure($company, 2026, 12);
 
         $user = User::factory()->allCompanies()->withPermissions('org.view')->create([

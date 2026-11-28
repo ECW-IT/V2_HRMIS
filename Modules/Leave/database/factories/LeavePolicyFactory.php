@@ -18,7 +18,7 @@ class LeavePolicyFactory extends Factory
         return [
             'leave_type_id' => LeaveType::factory(),
             'company_id' => null,
-            'grade_id' => null,
+            'employee_category_id' => null,
             'employment_type' => null,
             'days_per_period' => 8.0,
             'effective_from' => '2026-01-01',

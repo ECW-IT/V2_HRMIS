@@ -10,11 +10,9 @@ use Livewire\Livewire;
 use Modules\Organisation\Enums\OrgUnitType;
 use Modules\Organisation\Livewire\DesignationsIndex;
 use Modules\Organisation\Livewire\EmployeeCategoriesIndex;
-use Modules\Organisation\Livewire\GradesIndex;
 use Modules\Organisation\Livewire\OrgTree;
 use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\EmployeeCategory;
-use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Organisation\Services\OrgUnitService;
@@ -44,7 +42,6 @@ class OrganisationScreensTest extends TestCase
             'org.designations.index',
             'org.categories.index',
             'org.staff-work-categories.index',
-            'org.grades.index',
         ];
 
         $without = User::factory()->allCompanies()->create(['must_change_password' => false]);
@@ -468,24 +465,6 @@ class OrganisationScreensTest extends TestCase
             ->assertForbidden();
     }
 
-    public function test_grade_rank_must_be_unique(): void
-    {
-        Grade::factory()->create(['rank' => 1, 'code' => 'G1', 'name' => 'Grade 1']);
-
-        $user = User::factory()->allCompanies()->withPermissions('org.view', 'org.manage')->create([
-            'must_change_password' => false,
-        ]);
-
-        Livewire::actingAs($user)
-            ->test(GradesIndex::class)
-            ->call('openCreate')
-            ->set('code', 'G2')
-            ->set('name', 'Grade 2')
-            ->set('rank', 1)
-            ->call('save')
-            ->assertHasErrors('rank');
-    }
-
     public function test_seeder_can_run_twice(): void
     {
         $this->seed(OrganisationSeeder::class);
@@ -493,6 +472,5 @@ class OrganisationScreensTest extends TestCase
 
         $this->assertSame(2, Company::query()->count());
         $this->assertSame(2, Location::query()->count());
-        $this->assertSame(4, Grade::query()->count());
     }
 }

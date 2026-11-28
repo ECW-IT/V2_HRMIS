@@ -407,7 +407,7 @@ class EmployeesIndex extends Component
                 'ou.name as department_name',
                 'pou.name as parent_unit_name',
                 'j.name as designation_name',
-                'g.name as grade_name',
+                'ec.name as category_name',
             ])
             ->where('employments.hrmis_active', $this->hrmisActiveFilter())
             ->join('persons as p', 'p.id', '=', 'employments.person_id')
@@ -419,7 +419,7 @@ class EmployeesIndex extends Component
             ->leftJoin('org_units as ou', 'ou.id', '=', 'a.org_unit_id')
             ->leftJoin('org_units as pou', 'pou.id', '=', 'ou.parent_id')
             ->leftJoin('designations as j', 'j.id', '=', 'a.designation_id')
-            ->leftJoin('grades as g', 'g.id', '=', 'a.grade_id');
+            ->leftJoin('employee_categories as ec', 'ec.id', '=', 'employments.employee_category_id');
 
         $this->applySearch($query);
 

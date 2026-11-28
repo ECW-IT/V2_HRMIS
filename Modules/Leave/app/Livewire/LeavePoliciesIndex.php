@@ -9,7 +9,7 @@ use Modules\Leave\Models\LeavePolicy;
 use Modules\Leave\Models\LeaveType;
 use Modules\Leave\Services\LeavePolicyService;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 
 class LeavePoliciesIndex extends Component
 {
@@ -19,7 +19,7 @@ class LeavePoliciesIndex extends Component
 
     public ?int $companyId = null;
 
-    public ?int $gradeId = null;
+    public ?int $employeeCategoryId = null;
 
     public string $employmentType = '';
 
@@ -47,7 +47,7 @@ class LeavePoliciesIndex extends Component
         $data = $this->validate([
             'leaveTypeId' => 'required|integer|exists:leave_types,id',
             'companyId' => 'nullable|integer|exists:companies,id',
-            'gradeId' => 'nullable|integer|exists:grades,id',
+            'employeeCategoryId' => 'nullable|integer|exists:employee_categories,id',
             'employmentType' => 'nullable|string|max:12',
             'daysPerPeriod' => 'required|numeric|min:0',
             'effectiveFrom' => 'required|date',
@@ -56,7 +56,7 @@ class LeavePoliciesIndex extends Component
         LeavePolicy::query()->create([
             'leave_type_id' => $data['leaveTypeId'],
             'company_id' => $data['companyId'] ?: null,
-            'grade_id' => $data['gradeId'] ?: null,
+            'employee_category_id' => $data['employeeCategoryId'] ?: null,
             'employment_type' => $data['employmentType'] !== '' ? $data['employmentType'] : null,
             'days_per_period' => $data['daysPerPeriod'],
             'effective_from' => $data['effectiveFrom'],
@@ -65,7 +65,7 @@ class LeavePoliciesIndex extends Component
 
         $this->leaveTypeId = null;
         $this->companyId = null;
-        $this->gradeId = null;
+        $this->employeeCategoryId = null;
         $this->employmentType = '';
         $this->daysPerPeriod = '8.0';
     }
@@ -102,14 +102,14 @@ class LeavePoliciesIndex extends Component
 
         $why = [];
         $why[] = $policy->company_id ? 'company' : 'any company';
-        $why[] = $policy->grade_id ? 'grade' : 'any grade';
+        $why[] = $policy->employee_category_id ? 'category' : 'any category';
         $why[] = $policy->employment_type ? 'employment type '.$policy->employment_type : 'any employment type';
         $this->whoResult = "{$policy->days_per_period} days/period (matched: ".implode(', ', $why).')';
     }
 
     public function render()
     {
-        $query = LeavePolicy::query()->with(['leaveType', 'company', 'grade'])->orderByDesc('effective_from');
+        $query = LeavePolicy::query()->with(['leaveType', 'company', 'employeeCategory'])->orderByDesc('effective_from');
         if ($this->filterTypeId) {
             $query->where('leave_type_id', $this->filterTypeId);
         }
@@ -118,7 +118,7 @@ class LeavePoliciesIndex extends Component
             'policies' => $query->get(),
             'types' => LeaveType::query()->orderBy('code')->get(),
             'companies' => Company::query()->orderBy('name')->get(),
-            'grades' => Grade::query()->orderBy('name')->get(),
+            'categories' => EmployeeCategory::query()->orderBy('level')->orderBy('name')->get(),
         ])->layout('components.layouts.app');
     }
 }

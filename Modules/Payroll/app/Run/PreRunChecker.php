@@ -116,15 +116,21 @@ final class PreRunChecker
 
     private function pr05($summaries, string $end): PreRunCheck
     {
-        $gradeIds = $summaries->pluck('grade_id')->unique()->filter()->map(fn ($id) => (int) $id)->all();
-        $ids = [];
-        foreach ($gradeIds as $gradeId) {
-            if ($this->payRules->extraDayMethod($gradeId, $end) === null) {
-                $ids[] = $gradeId;
+        $categoryIds = $summaries->pluck('employee_category_id')->unique()->filter()->map(fn ($id) => (int) $id)->all();
+        $ids = $summaries
+            ->filter(fn ($row) => $row->employee_category_id === null)
+            ->pluck('employment_id')
+            ->unique()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+        foreach ($categoryIds as $categoryId) {
+            if ($this->payRules->extraDayMethod($categoryId, $end) === null) {
+                $ids[] = $categoryId;
             }
         }
 
-        return $this->check('PR05', 'Grades in the run without an extra-day method', true, count($ids), $ids);
+        return $this->check('PR05', 'Categories in the run without an extra-day method', true, count($ids), $ids);
     }
 
     /** @param  list<int>  $employmentIds */

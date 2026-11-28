@@ -45,7 +45,6 @@ use Modules\CoreHr\Support\SriLankaGeo;
 use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\EmployeeCategory;
-use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Organisation\Models\StaffWorkCategory;
@@ -161,8 +160,6 @@ class HireWizard extends Component
     public string|int|null $orgUnitId = null;
 
     public string|int|null $designationId = null;
-
-    public string|int|null $gradeId = null;
 
     public string|int|null $locationId = null;
 
@@ -674,14 +671,14 @@ class HireWizard extends Component
     {
         $this->validateStep(2);
         $this->attendanceMode = AttendanceMode::PUNCH->value;
-        $this->ensureDefaultGradeAndLocation();
+        $this->ensureDefaultLocation();
         $this->step = 3;
     }
 
     private function completeEmployment(): void
     {
         $this->attendanceMode = AttendanceMode::PUNCH->value;
-        $this->ensureDefaultGradeAndLocation();
+        $this->ensureDefaultLocation();
         $this->validateStep(3);
         $this->step = 4;
 
@@ -800,7 +797,6 @@ class HireWizard extends Component
                     },
                 ],
                 'designationId' => ['required', 'integer', Rule::exists('designations', 'id')],
-                'gradeId' => ['required', 'integer', Rule::exists('grades', 'id')],
                 'locationId' => ['required', 'integer', Rule::exists('locations', 'id')],
                 'shiftId' => ['required', 'integer', Rule::exists('shifts', 'id')->where('is_active', true)],
                 'otMode' => ['required', 'in:DEFAULT,NONE,MORNING,EVENING,BOTH'],
@@ -1140,7 +1136,6 @@ class HireWizard extends Component
         return [
             'org_unit_id' => (int) $this->orgUnitId,
             'designation_id' => (int) $this->designationId,
-            'grade_id' => (int) $this->gradeId,
             'location_id' => (int) $this->locationId,
             'manager_employment_id' => null,
         ];
@@ -1480,12 +1475,8 @@ class HireWizard extends Component
         return implode(' ', $initials).' '.$last;
     }
 
-    private function ensureDefaultGradeAndLocation(): void
+    private function ensureDefaultLocation(): void
     {
-        if ($this->gradeId === null || $this->gradeId === '') {
-            $this->gradeId = Grade::query()->where('is_active', true)->orderBy('rank')->value('id');
-        }
-
         if ($this->locationId === null || $this->locationId === '') {
             $this->locationId = Location::query()->where('is_active', true)->orderBy('name')->value('id');
         }

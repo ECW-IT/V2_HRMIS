@@ -4,7 +4,6 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Location;
 
 class OrganisationSeeder extends Seeder
@@ -35,15 +34,5 @@ class OrganisationSeeder extends Seeder
             );
         }
 
-        foreach (require database_path('seeders/data/grades.php') as $row) {
-            Grade::query()->updateOrCreate(
-                ['code' => $row['code']],
-                [
-                    'name' => $row['name'],
-                    'rank' => $row['rank'],
-                    'is_active' => true,
-                ],
-            );
-        }
     }
 }

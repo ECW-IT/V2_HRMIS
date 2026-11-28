@@ -18,7 +18,7 @@ use Modules\CoreHr\Enums\ExitReason;
 use Modules\CoreHr\Services\EmploymentService;
 use Modules\Leave\Database\Seeders\LeaveSeeder;
 use Modules\Leave\Enums\LeavePortion;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Tests\Support\HrFixtures;
 use Tests\Support\PeriodSummaryHelpers;
 use Tests\TestCase;
@@ -205,19 +205,19 @@ class SummaryCalculatorTest extends TestCase
         $this->assertNotContains($other->id, $ids);
     }
 
-    public function test_grade_on_the_last_employed_day_decides_expected_days(): void
+    public function test_the_employees_category_decides_expected_days(): void
     {
         $e = $this->profiled('2026-01-01');
-        $gradeA = Grade::query()->findOrFail($e->assignmentOn('2026-12-14')->grade_id);
-        $gradeB = Grade::factory()->create(['code' => 'G-B', 'name' => 'Grade B']);
+        $categoryA = $this->categoryFor($e);
+        $categoryB = EmployeeCategory::factory()->create(['code' => 'CATB', 'name' => 'Category B']);
         $period = app(PayPeriodService::class)->ensure($e->company, 2026, 12);
-        app(ExpectedDaysService::class)->set($period, $gradeA, 25);
-        app(EmploymentService::class)->changeAssignment($e, '2026-12-15', ['grade_id' => $gradeB->id], 'Moved to grade B');
-        app(ExpectedDaysService::class)->set($period, $gradeB, 22);
+        app(ExpectedDaysService::class)->set($period, $categoryA, 25);
+        $e->update(['employee_category_id' => $categoryB->id]);
+        app(ExpectedDaysService::class)->set($period, $categoryB, 22);
 
         $f = $this->fig($e->fresh());
 
-        $this->assertSame([22.0, $gradeB->id], [$f->expectedDays, $f->gradeId]);
+        $this->assertSame([22.0, $categoryB->id], [$f->expectedDays, $f->categoryId]);
     }
 
     public function test_missing_expected_days_gives_zero_expected(): void

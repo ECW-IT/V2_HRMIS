@@ -92,7 +92,7 @@ class PayRunOverrideTest extends TestCase
     {
         $this->actingAs($this->officer);
         Gate::authorize('payroll.config');
-        $grade = $employment->assignmentOn('2026-12-31')->grade;
+        $grade = $this->categoryFor($employment);
         app(PayRuleService::class)->setExtraDayMethod($grade, ExtraDayMethod::HOURLY, '2026-01-01');
     }
 

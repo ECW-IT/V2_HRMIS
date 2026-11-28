@@ -87,8 +87,6 @@
                     · Payroll {{ $employment->payroll_active ? 'on' : 'off' }}
                 @endcan
             </dd>
-            <dt class="text-xs text-gray-500">Grade</dt>
-            <dd class="col-span-2 text-gray-700">{{ $assignment?->grade?->name ?? '—' }}</dd>
             <dt class="text-xs text-gray-500">Location</dt>
             <dd class="col-span-2 text-gray-700">{{ $assignment?->location?->name ?? '—' }}</dd>
             <dt class="text-xs text-gray-500">Reports to</dt>

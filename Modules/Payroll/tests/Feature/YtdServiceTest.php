@@ -11,7 +11,6 @@ use Modules\Calendar\Models\PayPeriod;
 use Modules\Calendar\Services\PayPeriodService;
 use Modules\CoreHr\Models\Employment;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
 use Modules\Payroll\Database\Seeders\PayComponentSeeder;
 use Modules\Payroll\Enums\ComponentKind;
 use Modules\Payroll\Enums\PayRunEmployeeStatus;
@@ -92,8 +91,7 @@ class YtdServiceTest extends TestCase
             'status' => PayRunEmployeeStatus::OK,
             'employee_no' => $employment->employee_no,
             'name' => 'YTD Employee',
-            'grade_id' => $employment->assignmentOn($period->end_date)?->grade_id
-                ?? Grade::factory()->create()->id,
+            'employee_category_id' => $this->categoryFor($employment)->id,
             'employment_type' => 'PERMANENT',
             'epf_liable' => true,
             'basic_salary' => '250000.00',
@@ -193,7 +191,7 @@ class YtdServiceTest extends TestCase
             'status' => PayRunEmployeeStatus::OK,
             'employee_no' => $e->employee_no,
             'name' => 'YTD Employee',
-            'grade_id' => Grade::factory()->create()->id,
+            'employee_category_id' => $this->categoryFor($e)->id,
             'employment_type' => 'PERMANENT',
             'epf_liable' => true,
             'basic_salary' => '250000.00',

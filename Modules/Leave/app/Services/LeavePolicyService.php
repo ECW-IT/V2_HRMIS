@@ -12,8 +12,7 @@ final class LeavePolicyService
     public function resolve(Employment $e, int $leaveTypeId, \DateTimeInterface|string $date): ?LeavePolicy
     {
         $day = Carbon::parse($date, config('app.timezone'))->toDateString();
-        $assignment = $e->assignmentOn($day);
-        $gradeId = $assignment?->grade_id;
+        $categoryId = $e->employee_category_id;
         $employmentType = $e->type?->value ?? (string) $e->type;
 
         $candidates = LeavePolicy::query()
@@ -24,11 +23,11 @@ final class LeavePolicyService
                     ->orWhereDate('effective_to', '>=', $day);
             })
             ->get()
-            ->filter(function (LeavePolicy $policy) use ($e, $gradeId, $employmentType) {
+            ->filter(function (LeavePolicy $policy) use ($e, $categoryId, $employmentType) {
                 if ($policy->company_id !== null && (int) $policy->company_id !== (int) $e->company_id) {
                     return false;
                 }
-                if ($policy->grade_id !== null && (int) $policy->grade_id !== (int) $gradeId) {
+                if ($policy->employee_category_id !== null && (int) $policy->employee_category_id !== (int) $categoryId) {
                     return false;
                 }
                 if ($policy->employment_type !== null && $policy->employment_type !== $employmentType) {
@@ -45,10 +44,10 @@ final class LeavePolicyService
         return $candidates
             ->sort(function (LeavePolicy $a, LeavePolicy $b) {
                 $scoreA = ($a->company_id !== null ? 1 : 0)
-                    + ($a->grade_id !== null ? 1 : 0)
+                    + ($a->employee_category_id !== null ? 1 : 0)
                     + ($a->employment_type !== null ? 1 : 0);
                 $scoreB = ($b->company_id !== null ? 1 : 0)
-                    + ($b->grade_id !== null ? 1 : 0)
+                    + ($b->employee_category_id !== null ? 1 : 0)
                     + ($b->employment_type !== null ? 1 : 0);
 
                 if ($scoreA !== $scoreB) {

@@ -6,7 +6,6 @@ use Livewire\Livewire;
 use Modules\Organisation\Livewire\CompaniesIndex;
 use Modules\Organisation\Livewire\DesignationsIndex;
 use Modules\Organisation\Livewire\EmployeeCategoriesIndex;
-use Modules\Organisation\Livewire\GradesIndex;
 use Modules\Organisation\Livewire\LocationsIndex;
 use Modules\Organisation\Livewire\OrgTree;
 use Modules\Organisation\Livewire\StaffWorkCategoriesIndex;
@@ -51,6 +50,5 @@ class OrganisationServiceProvider extends ModuleServiceProvider
         Livewire::component('organisation.designations-index', DesignationsIndex::class);
         Livewire::component('organisation.employee-categories-index', EmployeeCategoriesIndex::class);
         Livewire::component('organisation.staff-work-categories-index', StaffWorkCategoriesIndex::class);
-        Livewire::component('organisation.grades-index', GradesIndex::class);
     }
 }

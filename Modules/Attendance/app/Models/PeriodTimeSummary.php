@@ -10,7 +10,7 @@ use Modules\Attendance\Database\Factories\PeriodTimeSummaryFactory;
 use Modules\Attendance\Enums\AttendanceMode;
 use Modules\Calendar\Models\PayPeriod;
 use Modules\CoreHr\Models\Employment;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 
 class PeriodTimeSummary extends Model
 {
@@ -24,7 +24,7 @@ class PeriodTimeSummary extends Model
         'pay_period_id',
         'employment_id',
         'version',
-        'grade_id',
+        'employee_category_id',
         'attendance_mode',
         'employed_days',
         'expected_days',
@@ -82,9 +82,9 @@ class PeriodTimeSummary extends Model
         return $this->belongsTo(Employment::class);
     }
 
-    public function grade(): BelongsTo
+    public function employeeCategory(): BelongsTo
     {
-        return $this->belongsTo(Grade::class);
+        return $this->belongsTo(EmployeeCategory::class);
     }
 
     public function update(array $attributes = [], array $options = []): bool

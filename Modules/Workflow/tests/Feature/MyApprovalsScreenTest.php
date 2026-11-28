@@ -123,6 +123,26 @@ class MyApprovalsScreenTest extends TestCase
             ->assertHasErrors('remarks');
     }
 
+    public function test_approve_selected_approves_only_the_ticked_requests(): void
+    {
+        $manager = $this->user('hr-manager');
+        $officer = $this->user('hr-officer');
+
+        $ticked = $this->svc->submit('PROBE', $this->c->id, ScopedProbe::class, $this->probe->id, ApprovalActionType::UPDATE, ['name' => 'B'], $officer);
+        $unticked = $this->svc->submit('PROBE', $this->c->id, ScopedProbe::class, $this->probe->id, ApprovalActionType::UPDATE, ['name' => 'C'], $officer);
+
+        Livewire::actingAs($manager)
+            ->test(MyApprovals::class)
+            ->set('selectedIds', [$ticked->id])
+            ->call('approveSelected')
+            ->assertSee('Approved 1, skipped 0.')
+            ->assertSet('selectedIds', []);
+
+        $this->assertSame(ApprovalStatus::APPROVED, $ticked->fresh()->status);
+        $this->assertSame(ApprovalStatus::PENDING, $unticked->fresh()->status);
+        $this->assertSame('B', $this->probe->fresh()->name);
+    }
+
     public function test_personal_change_review_shows_clear_field_diffs(): void
     {
         $this->seed(RolesAndPermissionsSeeder::class);

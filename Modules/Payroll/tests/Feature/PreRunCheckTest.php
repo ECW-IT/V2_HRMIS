@@ -69,7 +69,7 @@ class PreRunCheckTest extends TestCase
     {
         $this->actingAs($by);
         Gate::authorize('payroll.config');
-        $grade = $employment->assignmentOn('2026-12-31')->grade;
+        $grade = $this->categoryFor($employment);
         app(PayRuleService::class)->setExtraDayMethod($grade, ExtraDayMethod::HOURLY, '2026-01-01');
     }
 
@@ -233,7 +233,7 @@ class PreRunCheckTest extends TestCase
         $this->assertFalse($missing->ok);
         $this->assertTrue($missing->blocking);
         $this->assertSame(1, $missing->count);
-        $this->assertSame([(int) $employment->assignmentOn('2026-12-31')->grade_id], $missing->employmentIds);
+        $this->assertSame([(int) $this->categoryFor($employment)->id], $missing->employmentIds);
 
         $this->hourly($employment, $officer);
 

@@ -14,6 +14,7 @@ use Modules\Payroll\Livewire\CompensationIndex;
 use Modules\Payroll\Livewire\EmployeeCompensationPanel;
 use Modules\Payroll\Models\EmployeeCompensation;
 use Modules\Payroll\Services\CompensationService;
+use Modules\Workflow\Models\ApprovalDefinition;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
 
@@ -32,6 +33,7 @@ class CompensationScreenTest extends TestCase
 
         $this->loginAs('super-admin', $company);
         CompanyContext::set($company->id);
+        $this->compensationDefinition();
         $employment = $this->hired('2026-01-01', $company);
 
         Livewire::test(CompensationIndex::class)
@@ -84,6 +86,7 @@ class CompensationScreenTest extends TestCase
         $this->loginAs('super-admin', $company);
         CompanyContext::set($company->id);
 
+        $this->compensationDefinition();
         $employment = $this->paid('2026-01-01', $company, [], ['FUEL' => '5000.00']);
         $fuel = app(CompensationService::class)->componentsOn($employment, '2026-01-01')->first(
             fn ($row) => $row->payComponent?->code === 'FUEL'
@@ -105,5 +108,14 @@ class CompensationScreenTest extends TestCase
             '6500.00',
             app(CompensationService::class)->componentsOn($employment, '2026-06-01')->sole()->amount
         );
+    }
+
+    private function compensationDefinition(): void
+    {
+        ApprovalDefinition::query()->create([
+            'code' => 'COMPENSATION_CHANGE',
+            'name' => 'Compensation change',
+            'is_active' => true,
+        ]);
     }
 }

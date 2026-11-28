@@ -10,7 +10,7 @@ final class PeriodSummaryColumns
         return [
             'Employee no.',
             'Name',
-            'Grade',
+            'Category',
             'Mode',
             'Employed days',
             'Expected working days',

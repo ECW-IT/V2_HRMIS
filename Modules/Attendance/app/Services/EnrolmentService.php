@@ -98,28 +98,76 @@ final class EnrolmentService
     /** employment_id holding the id at that moment (date part of $at, inclusive range), or null. */
     public function resolve(string $deviceGroup, int $deviceUserId, \DateTimeInterface|string $at): ?int
     {
-        $day = $this->dateString($at);
+        $key = $deviceUserId.'|'.$this->dateString($at);
 
-        $enrolment = BiometricEnrolment::query()
+        return $this->resolveMany($deviceGroup, [[$deviceUserId, $at]])[$key] ?? null;
+    }
+
+    /**
+     * Same rules as resolve(), in two queries for a whole batch.
+     *
+     * @param  list<array{0: int, 1: \DateTimeInterface|string}>  $lookups
+     * @return array<string, int|null> keyed by "{device_user_id}|{Y-m-d}"
+     */
+    public function resolveMany(string $deviceGroup, array $lookups): array
+    {
+        $results = [];
+        $uids = [];
+
+        foreach ($lookups as $lookup) {
+            $uid = (int) $lookup[0];
+            $day = $this->dateString($lookup[1]);
+            $key = $uid.'|'.$day;
+            if (! array_key_exists($key, $results)) {
+                $results[$key] = null;
+                $uids[$uid] = true;
+            }
+        }
+
+        if ($uids === []) {
+            return $results;
+        }
+
+        $enrolments = BiometricEnrolment::query()
             ->where('device_group', $deviceGroup)
-            ->where('device_user_id', $deviceUserId)
-            ->whereDate('valid_from', '<=', $day)
-            ->where(function ($q) use ($day) {
-                $q->whereNull('valid_to')
-                    ->orWhereDate('valid_to', '>=', $day);
-            })
-            ->first();
+            ->whereIn('device_user_id', array_keys($uids))
+            ->get(['employment_id', 'device_user_id', 'valid_from', 'valid_to']);
 
-        if ($enrolment === null) {
-            return null;
+        $byUid = [];
+        foreach ($enrolments as $enrolment) {
+            $byUid[(int) $enrolment->device_user_id][] = $enrolment;
         }
 
-        $employment = Employment::query()->find($enrolment->employment_id);
-        if ($employment === null || ! $employment->attendance_active) {
-            return null;
+        $employmentIds = $enrolments->pluck('employment_id')->unique()->values()->all();
+        $activeIds = [];
+        if ($employmentIds !== []) {
+            $activeIds = Employment::query()
+                ->whereIn('id', $employmentIds)
+                ->where('attendance_active', true)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->flip()
+                ->all();
         }
 
-        return (int) $enrolment->employment_id;
+        foreach ($results as $key => $_) {
+            [$uid, $day] = explode('|', $key, 2);
+            $uid = (int) $uid;
+
+            foreach ($byUid[$uid] ?? [] as $enrolment) {
+                $from = $enrolment->valid_from->toDateString();
+                $to = $enrolment->valid_to?->toDateString();
+                if ($from <= $day && ($to === null || $to >= $day)) {
+                    $employmentId = (int) $enrolment->employment_id;
+                    if (isset($activeIds[$employmentId])) {
+                        $results[$key] = $employmentId;
+                    }
+                    break;
+                }
+            }
+        }
+
+        return $results;
     }
 
     private function rangesOverlap(string $aFrom, ?string $aTo, string $bFrom, ?string $bTo): bool

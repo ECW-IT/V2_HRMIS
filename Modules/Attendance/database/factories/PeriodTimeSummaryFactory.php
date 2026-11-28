@@ -8,7 +8,7 @@ use Modules\Attendance\Models\PeriodTimeSummary;
 use Modules\Calendar\Services\PayPeriodService;
 use Modules\CoreHr\Models\Employment;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 
 /**
  * @extends Factory<PeriodTimeSummary>
@@ -28,7 +28,7 @@ class PeriodTimeSummaryFactory extends Factory
             'pay_period_id' => $period->id,
             'employment_id' => $employment->id,
             'version' => 1,
-            'grade_id' => Grade::factory(),
+            'employee_category_id' => EmployeeCategory::factory(),
             'attendance_mode' => AttendanceMode::PUNCH,
             'employed_days' => 31,
             'expected_days' => 25,

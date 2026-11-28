@@ -19,7 +19,7 @@ final class LegacySyncExport implements WithMultipleSheets
     {
         $hireHeadings = [
             'Company', 'Employee no.', 'Old employee no.', 'Name with initials', 'Calling name', 'NIC',
-            'Hire date', 'Type', 'Department', 'Section', 'Job', 'Grade', 'EPF no.',
+            'Hire date', 'Type', 'Department', 'Section', 'Job', 'Category', 'EPF no.',
             'Bank', 'Branch', 'Account no.', 'Fingerprint group', 'Fingerprint ID',
         ];
         $exitHeadings = [

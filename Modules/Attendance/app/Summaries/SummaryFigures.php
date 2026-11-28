@@ -7,7 +7,7 @@ use Modules\Attendance\Enums\AttendanceMode;
 final readonly class SummaryFigures
 {
     public function __construct(
-        public int $gradeId,
+        public ?int $categoryId,
         public AttendanceMode $attendanceMode,
         public int $employedDays,
         public float $expectedDays,
@@ -32,7 +32,7 @@ final readonly class SummaryFigures
     public function toArray(): array
     {
         return [
-            'grade_id' => $this->gradeId,
+            'employee_category_id' => $this->categoryId,
             'attendance_mode' => $this->attendanceMode->value,
             'employed_days' => $this->employedDays,
             'expected_days' => $this->expectedDays,

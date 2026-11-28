@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Support\Company\CompanyContext;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
+use Modules\Attendance\Enums\AttendanceMode;
+use Modules\Attendance\Enums\OtMode;
 use Modules\Attendance\Livewire\ShiftsIndex;
 use Modules\Attendance\Livewire\TimeProfilesBulk;
 use Modules\Attendance\Services\TimeProfileService;
@@ -15,7 +17,13 @@ use Modules\CoreHr\Enums\ArriveWorkFrom;
 use Modules\CoreHr\Enums\MaritalStatus;
 use Modules\CoreHr\Livewire\HireWizard;
 use Modules\CoreHr\Models\Employment;
+use Modules\CoreHr\Services\EmploymentService;
+use Modules\Organisation\Enums\OrgUnitType;
+use Modules\Organisation\Models\Company;
+use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\EmployeeCategory;
+use Modules\Organisation\Models\Location;
+use Modules\Organisation\Models\OrgUnit;
 use Spatie\Permission\Models\Permission;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
@@ -114,7 +122,7 @@ class ShiftScreensTest extends TestCase
             ->call('next')
             ->set('type', 'PERMANENT')->set('hireDate', '2026-12-01')->set('attendanceActive', false)
             ->set('employeeCategoryId', $categoryId)
-            ->set('departmentId', $a['org_unit_id'])->set('orgUnitId', $a['org_unit_id'])->set('designationId', $a['designation_id'])->set('gradeId', $a['grade_id'])->set('locationId', $a['location_id'])
+            ->set('departmentId', $a['org_unit_id'])->set('orgUnitId', $a['org_unit_id'])->set('designationId', $a['designation_id'])->set('locationId', $a['location_id'])
             ->set('shiftId', $shift->id)->call('next')
             ->set('basicSalary', '55000.00')->set('isCash', true)->call('next')
             ->call('hire')
@@ -151,5 +159,92 @@ class ShiftScreensTest extends TestCase
 
         $this->assertSame($s2->id, app(TimeProfileService::class)->on($a, '2026-07-01')->shift_id);
         $this->assertSame($s1->id, app(TimeProfileService::class)->on($b, '2026-07-01')->shift_id);
+    }
+
+    public function test_roster_lists_the_employee_name_and_subsection(): void
+    {
+        $this->travelTo('2026-06-15');
+        $c = $this->company();
+        $department = OrgUnit::factory()->create([
+            'company_id' => $c->id,
+            'type' => OrgUnitType::DEPARTMENT,
+            'name' => 'Sewing',
+        ]);
+        $section = OrgUnit::factory()->create([
+            'company_id' => $c->id,
+            'parent_id' => $department->id,
+            'type' => OrgUnitType::SECTION,
+            'name' => 'Cutting hall',
+        ]);
+        $subsection = OrgUnit::factory()->create([
+            'company_id' => $c->id,
+            'parent_id' => $section->id,
+            'type' => OrgUnitType::SUBSECTION,
+            'name' => 'Collar line',
+        ]);
+
+        $shift = $this->shift(['code' => 'R0700']);
+        $otherShift = $this->shift(['code' => 'R0800']);
+        $emptyShift = $this->shift(['code' => 'R0900']);
+
+        $onSubsection = $this->hireOnto($c, $subsection->id, 'Kamal', 'Kamal Silva');
+        $onSection = $this->hireOnto($c, $section->id, 'Nimal', 'Nimal Perera');
+        $onOther = $this->hireOnto($c, $subsection->id, 'Sunil', 'Sunil Fernando');
+
+        $this->putOnShift($onSubsection, $shift->id);
+        $this->putOnShift($onSection, $shift->id);
+        $this->putOnShift($onOther, $otherShift->id);
+
+        $user = User::factory()->forCompanies([$c])->withPermissions('org.view')->create([
+            'must_change_password' => false,
+        ]);
+        $this->actingAs($user);
+        CompanyContext::set($c->id);
+
+        Livewire::actingAs($user)
+            ->test(ShiftsIndex::class)
+            ->call('openRoster', $shift->id)
+            ->assertSee('R0700 — Employees now')
+            ->assertSee($onSubsection->employee_no)
+            ->assertSee('Kamal')
+            ->assertSee('Collar line')
+            ->assertSee($onSection->employee_no)
+            ->assertSee('Nimal')
+            ->assertSee('Cutting hall')
+            ->assertSeeHtmlInOrder(['Kamal', 'Nimal', 'Cutting hall'])
+            ->assertDontSee('Kamal Silva')
+            ->assertDontSee('Nimal Perera')
+            ->assertDontSee('Sunil')
+            ->assertSee('Assigned unit')
+            ->call('openRoster', $emptyShift->id)
+            ->assertSee('No employees on this shift.')
+            ->assertDontSee('Kamal')
+            ->call('closeRoster')
+            ->assertDontSee('No employees on this shift.');
+    }
+
+    private function hireOnto(Company $company, int $orgUnitId, string $callingName, string $fullName): Employment
+    {
+        return app(EmploymentService::class)->hire(
+            $this->person(['calling_name' => $callingName, 'full_name' => $fullName]),
+            $company,
+            $this->emp(['hire_date' => '2026-01-01']),
+            [
+                'org_unit_id' => $orgUnitId,
+                'designation_id' => Designation::factory()->create()->id,
+                'location_id' => Location::factory()->create()->id,
+            ],
+        );
+    }
+
+    private function putOnShift(Employment $employment, int $shiftId): void
+    {
+        app(TimeProfileService::class)->set($employment, [
+            'effective_from' => '2026-01-01',
+            'shift_id' => $shiftId,
+            'attendance_mode' => AttendanceMode::PUNCH,
+            'ot_mode' => OtMode::NONE,
+            'late_deduction' => false,
+        ]);
     }
 }

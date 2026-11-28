@@ -189,7 +189,6 @@ class EditEmploymentStep extends Component
         $new = [
             'org_unit_id' => (int) $this->orgUnitId,
             'designation_id' => (int) $this->designationId,
-            'grade_id' => $current?->grade_id !== null ? (int) $current->grade_id : null,
             'location_id' => (int) $this->locationId,
             'manager_employment_id' => $current?->manager_employment_id !== null
                 ? (int) $current->manager_employment_id

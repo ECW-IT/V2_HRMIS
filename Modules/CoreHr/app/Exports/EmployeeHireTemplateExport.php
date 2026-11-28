@@ -13,7 +13,6 @@ use Modules\CoreHr\Models\Region;
 use Modules\CoreHr\Support\SriLankaGeo;
 use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\EmployeeCategory;
-use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Payroll\Enums\CalcMethod;
@@ -66,7 +65,6 @@ final class EmployeeHireTemplateExport implements WithMultipleSheets
             'epf_no',
             'org_unit',
             'designation',
-            'grade',
             'location',
             'shift',
             'employee_category',
@@ -115,7 +113,6 @@ final class EmployeeHireTemplateExport implements WithMultipleSheets
                 ->all();
 
         $designations = Designation::query()->where('is_active', true)->orderBy('name')->pluck('name')->all();
-        $grades = Grade::query()->where('is_active', true)->orderBy('rank')->pluck('name')->all();
         $locations = Location::query()->where('is_active', true)->orderBy('name')->pluck('name')->all();
         $shifts = Shift::query()->where('is_active', true)->orderBy('name')->pluck('name')->all();
         $categories = EmployeeCategory::query()->where('is_active', true)->orderBy('name')->pluck('name')->all();
@@ -187,7 +184,6 @@ final class EmployeeHireTemplateExport implements WithMultipleSheets
             '',
             $orgUnits[0] ?? 'Production',
             $designations[0] ?? 'Helper',
-            $grades[0] ?? 'G1',
             $locations[0] ?? 'Factory',
             $shifts[0] ?? 'Day shift',
             $categories[0] ?? '',
@@ -224,7 +220,6 @@ final class EmployeeHireTemplateExport implements WithMultipleSheets
         $listHeadings = [
             'org_unit',
             'designation',
-            'grade',
             'location',
             'shift',
             'employee_category',
@@ -254,7 +249,6 @@ final class EmployeeHireTemplateExport implements WithMultipleSheets
         $max = max(
             count($orgUnits),
             count($designations),
-            count($grades),
             count($locations),
             count($shifts),
             count($categories),
@@ -274,7 +268,6 @@ final class EmployeeHireTemplateExport implements WithMultipleSheets
             $listRows[] = [
                 $orgUnits[$i] ?? '',
                 $designations[$i] ?? '',
-                $grades[$i] ?? '',
                 $locations[$i] ?? '',
                 $shifts[$i] ?? '',
                 $categories[$i] ?? '',

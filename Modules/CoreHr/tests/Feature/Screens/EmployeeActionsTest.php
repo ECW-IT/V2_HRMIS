@@ -21,7 +21,7 @@ use Modules\CoreHr\Livewire\EmployeeProfile;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Services\EmploymentService;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\Designation;
 use Modules\Workflow\Models\ApprovalRequest;
 use Modules\Workflow\Services\ApprovalService;
 use Tests\Support\HrFixtures;
@@ -42,45 +42,44 @@ class EmployeeActionsTest extends TestCase
     public function test_hr_officer_change_creates_pending_request_and_does_not_change_data(): void
     {
         $e = $this->hired('2026-06-01');
-        $g1 = $e->currentAssignment()->grade_id;
-        $g2 = Grade::factory()->create();
+        $d1 = $e->currentAssignment()->designation_id;
+        $d2 = Designation::factory()->create();
         $this->loginAs('hr-officer', $e->company);
 
         Livewire::test(ChangeAssignment::class, ['employment' => $e])
-            ->set('effectiveFrom', '2026-09-01')->set('gradeId', $g2->id)->set('reason', 'Promotion')->call('save')
+            ->set('effectiveFrom', '2026-09-01')->set('designationId', $d2->id)->set('reason', 'Promotion')->call('save')
             ->assertHasNoErrors()->assertSee('Sent for approval');
 
-        $this->assertSame($g1, $e->assignmentOn('2026-09-01')->grade_id);
+        $this->assertSame($d1, $e->assignmentOn('2026-09-01')->designation_id);
         $req = ApprovalRequest::sole();
-        $this->assertSame(['grade_id' => $g2->id], $req->payload['changes']);
+        $this->assertSame(['designation_id' => $d2->id], $req->payload['changes']);
     }
 
     public function test_hr_manager_change_creates_pending_request(): void
     {
         $e = $this->hired('2026-06-01');
-        $g1 = $e->currentAssignment()->grade_id;
-        $g2 = Grade::factory()->create();
+        $d1 = $e->currentAssignment()->designation_id;
+        $d2 = Designation::factory()->create();
         $this->loginAs('hr-manager', $e->company);
 
         Livewire::test(ChangeAssignment::class, ['employment' => $e])
-            ->set('effectiveFrom', '2026-09-01')->set('gradeId', $g2->id)->set('reason', 'Promotion')->call('save')
+            ->set('effectiveFrom', '2026-09-01')->set('designationId', $d2->id)->set('reason', 'Promotion')->call('save')
             ->assertHasNoErrors()->assertSee('Sent for approval');
 
-        $this->assertSame($g1, $e->assignmentOn('2026-09-01')->grade_id);
+        $this->assertSame($d1, $e->assignmentOn('2026-09-01')->designation_id);
         $this->assertSame(1, ApprovalRequest::count());
 
         app(ApprovalService::class)->approve(ApprovalRequest::sole(), $this->approver($e->company));
-        $this->assertSame($g2->id, $e->assignmentOn('2026-09-01')->grade_id);
+        $this->assertSame($d2->id, $e->assignmentOn('2026-09-01')->designation_id);
     }
 
     public function test_change_without_a_reason_is_a_validation_error(): void
     {
         $e = $this->hired('2026-06-01');
-        $g2 = Grade::factory()->create();
         $this->loginAs('hr-manager', $e->company);
 
         Livewire::test(ChangeAssignment::class, ['employment' => $e])
-            ->set('effectiveFrom', '2026-09-01')->set('gradeId', $g2->id)->set('reason', '')->call('save')
+            ->set('effectiveFrom', '2026-09-01')->set('reason', '')->call('save')
             ->assertHasErrors(['reason']);
 
         $this->assertSame(1, $e->assignments()->count());
@@ -104,7 +103,7 @@ class EmployeeActionsTest extends TestCase
         $this->loginAs('hr-manager', $e->company);
 
         Livewire::test(ChangeAssignment::class, ['employment' => $e])
-            ->set('effectiveFrom', '2026-01-01')->set('gradeId', Grade::factory()->create()->id)->set('reason', 'Promotion')->call('save')
+            ->set('effectiveFrom', '2026-01-01')->set('reason', 'Promotion')->call('save')
             ->assertHasErrors(['effectiveFrom']);
     }
 
@@ -221,7 +220,7 @@ class EmployeeActionsTest extends TestCase
 
         Livewire::test(SisterTransfer::class, ['employment' => $e])
             ->set('targetCompanyId', $c->id)->set('lastWorkingDay', '2026-11-30')
-            ->set('orgUnitId', $asg['org_unit_id'])->set('designationId', $asg['designation_id'])->set('gradeId', $asg['grade_id'])->set('locationId', $asg['location_id'])
+            ->set('orgUnitId', $asg['org_unit_id'])->set('designationId', $asg['designation_id'])->set('locationId', $asg['location_id'])
             ->call('save')
             ->assertHasErrors(['targetCompanyId']);
 
@@ -239,7 +238,7 @@ class EmployeeActionsTest extends TestCase
 
         Livewire::test(SisterTransfer::class, ['employment' => $e])
             ->set('targetCompanyId', $b->id)->set('lastWorkingDay', '2026-11-30')
-            ->set('orgUnitId', $asg['org_unit_id'])->set('designationId', $asg['designation_id'])->set('gradeId', $asg['grade_id'])->set('locationId', $asg['location_id'])
+            ->set('orgUnitId', $asg['org_unit_id'])->set('designationId', $asg['designation_id'])->set('locationId', $asg['location_id'])
             ->assertDontSeeHtml('wire:model="epfNo"')
             ->assertSee('77')
             ->call('save')

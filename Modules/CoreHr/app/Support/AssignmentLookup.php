@@ -17,7 +17,7 @@ final class AssignmentLookup
     {
         $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
 
-        $query = fn () => $employment->assignments()->with(['orgUnit.parent', 'designation', 'grade', 'location', 'manager.person']);
+        $query = fn () => $employment->assignments()->with(['orgUnit.parent', 'designation', 'location', 'manager.person']);
 
         return $query()->effectiveOn($today)->first()
             ?? $query()->orderByDesc('effective_from')->first();

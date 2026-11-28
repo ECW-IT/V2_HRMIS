@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Modules\CoreHr\Models\Employment;
 use Modules\Organisation\Models\Designation;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Payroll\Database\Factories\PayRunEmployeeFactory;
 use Modules\Payroll\Enums\ExtraDayMethod;
@@ -31,7 +31,7 @@ class PayRunEmployee extends Model
         'error',
         'employee_no',
         'name',
-        'grade_id',
+        'employee_category_id',
         'org_unit_id',
         'designation_id',
         'employment_type',
@@ -100,9 +100,9 @@ class PayRunEmployee extends Model
         return $this->belongsTo(Employment::class);
     }
 
-    public function grade(): BelongsTo
+    public function employeeCategory(): BelongsTo
     {
-        return $this->belongsTo(Grade::class);
+        return $this->belongsTo(EmployeeCategory::class);
     }
 
     public function orgUnit(): BelongsTo

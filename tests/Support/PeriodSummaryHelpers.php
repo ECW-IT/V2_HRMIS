@@ -21,7 +21,6 @@ use Modules\Leave\Models\LeavePolicy;
 use Modules\Leave\Models\LeaveType;
 use Modules\Leave\Services\LeaveService;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
 
 trait PeriodSummaryHelpers
 {
@@ -74,12 +73,9 @@ trait PeriodSummaryHelpers
         $exit = $e->exit_date !== null ? Carbon::parse($e->exit_date)->toDateString() : $end;
         $from = max($start, $hire);
         $to = min($end, $exit);
-        $on = $from <= $to ? $to : $end;
-        $gradeId = $e->assignmentOn($on)?->grade_id;
-
-        if ($gradeId !== null && app(ExpectedDaysService::class)->for($period, (int) $gradeId) === null) {
-            $grade = Grade::query()->findOrFail($gradeId);
-            app(ExpectedDaysService::class)->set($period, $grade, 25);
+        $category = $this->categoryFor($e);
+        if (app(ExpectedDaysService::class)->for($period, (int) $category->id) === null) {
+            app(ExpectedDaysService::class)->set($period, $category, 25);
         }
 
         return $period;
@@ -93,8 +89,7 @@ trait PeriodSummaryHelpers
     protected function setExpected(Employment $e, float $days, string $on = '2026-12-31'): void
     {
         $period = app(PayPeriodService::class)->ensure($e->company, 2026, 12);
-        $grade = Grade::query()->findOrFail($e->assignmentOn($on)->grade_id);
-        app(ExpectedDaysService::class)->set($period, $grade, $days);
+        app(ExpectedDaysService::class)->set($period, $this->categoryFor($e), $days);
     }
 
     protected function hr(Employment $e): User
@@ -154,7 +149,7 @@ trait PeriodSummaryHelpers
         LeavePolicy::query()->create([
             'leave_type_id' => $type->id,
             'company_id' => null,
-            'grade_id' => null,
+            'employee_category_id' => null,
             'employment_type' => null,
             'days_per_period' => 10,
             'effective_from' => '2026-01-01',

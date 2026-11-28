@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Calendar\Database\Factories\PeriodExpectedDaysFactory;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 
 class PeriodExpectedDays extends Model
 {
@@ -19,7 +19,7 @@ class PeriodExpectedDays extends Model
 
     protected $fillable = [
         'pay_period_id',
-        'grade_id',
+        'employee_category_id',
         'days',
         'set_by',
     ];
@@ -36,9 +36,9 @@ class PeriodExpectedDays extends Model
         return $this->belongsTo(PayPeriod::class);
     }
 
-    public function grade(): BelongsTo
+    public function employeeCategory(): BelongsTo
     {
-        return $this->belongsTo(Grade::class);
+        return $this->belongsTo(EmployeeCategory::class);
     }
 
     public function setByUser(): BelongsTo

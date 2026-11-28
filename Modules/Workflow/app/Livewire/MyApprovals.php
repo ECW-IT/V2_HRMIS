@@ -2,6 +2,7 @@
 
 namespace Modules\Workflow\Livewire;
 
+use App\Exceptions\Domain\DomainException;
 use Illuminate\View\View;
 use Livewire\Component;
 use Modules\Workflow\Models\ApprovalRequest;
@@ -15,6 +16,17 @@ class MyApprovals extends Component
     public ?int $selectedId = null;
 
     public string $remarks = '';
+
+    /** @var list<int|string> */
+    public array $selectedIds = [];
+
+    public string $notice = '';
+
+    public function updatedTab(): void
+    {
+        $this->selectedIds = [];
+        $this->notice = '';
+    }
 
     public function open(int $requestId): void
     {
@@ -57,6 +69,51 @@ class MyApprovals extends Component
         $approvals->cancel($request, auth()->user());
     }
 
+    public function toggleAll(ApprovalService $approvals): void
+    {
+        $this->authorize('approval.act');
+        $waitingIds = $approvals->pendingFor(auth()->user())->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $selected = array_map('intval', $this->selectedIds);
+        $allSelected = $waitingIds !== [] && count(array_intersect($selected, $waitingIds)) === count($waitingIds);
+        $this->selectedIds = $allSelected ? [] : $waitingIds;
+    }
+
+    public function approveSelected(ApprovalService $approvals): void
+    {
+        $this->authorize('approval.act');
+
+        $ids = array_values(array_unique(array_map('intval', $this->selectedIds)));
+
+        if ($ids === []) {
+            $this->notice = 'Tick at least one row.';
+
+            return;
+        }
+
+        $approved = 0;
+        $skipped = 0;
+
+        foreach ($ids as $id) {
+            $request = ApprovalRequest::query()->find($id);
+
+            if ($request === null) {
+                $skipped++;
+
+                continue;
+            }
+
+            try {
+                $approvals->approve($request, auth()->user());
+                $approved++;
+            } catch (DomainException) {
+                $skipped++;
+            }
+        }
+
+        $this->selectedIds = [];
+        $this->notice = "Approved {$approved}, skipped {$skipped}.";
+    }
+
     public function render(ApprovalService $approvals): View
     {
         $this->authorize('approval.act');
@@ -93,6 +150,11 @@ class MyApprovals extends Component
             );
         }
 
+        $waitingIds = $waiting->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $selectedInts = array_map('intval', $this->selectedIds);
+        $allSelected = $waitingIds !== []
+            && count(array_intersect($selectedInts, $waitingIds)) === count($waitingIds);
+
         return view('workflow::livewire.my-approvals', [
             'waiting' => $waiting,
             'mine' => $mine,
@@ -100,6 +162,7 @@ class MyApprovals extends Component
             'reviewRows' => $reviewRows,
             'hideCompensationPayload' => $hideCompensationPayload,
             'summaries' => $summaries,
+            'allSelected' => $allSelected,
         ])->layout('components.layouts.app', [
             'title' => 'My approvals',
         ]);

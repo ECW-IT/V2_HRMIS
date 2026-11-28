@@ -4,7 +4,7 @@ namespace Modules\Payroll\Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Modules\CoreHr\Models\Employment;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Payroll\Enums\PayRunEmployeeStatus;
 use Modules\Payroll\Models\PayRun;
 use Modules\Payroll\Models\PayRunEmployee;
@@ -20,7 +20,7 @@ class PayRunEmployeeFactory extends Factory
     {
         $run = PayRun::factory()->create();
         $employment = Employment::factory()->create(['company_id' => $run->company_id]);
-        $grade = Grade::factory()->create();
+        $category = EmployeeCategory::factory()->create();
 
         return [
             'pay_run_id' => $run->id,
@@ -30,7 +30,7 @@ class PayRunEmployeeFactory extends Factory
             'error' => null,
             'employee_no' => $employment->employee_no ?? 'E001',
             'name' => 'Test Employee',
-            'grade_id' => $grade->id,
+            'employee_category_id' => $category->id,
             'org_unit_id' => null,
             'designation_id' => null,
             'employment_type' => 'PERMANENT',

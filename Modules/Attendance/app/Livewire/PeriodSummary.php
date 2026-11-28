@@ -21,7 +21,7 @@ use Modules\Attendance\Support\AttendanceNav;
 use Modules\Calendar\Enums\PeriodStatus;
 use Modules\Calendar\Models\PayPeriod;
 use Modules\CoreHr\Models\Employment;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class PeriodSummary extends Component
@@ -173,11 +173,11 @@ class PeriodSummary extends Component
                 ->whereNull('cancelled_at')
                 ->get();
 
-            $grade = Grade::query()->find($values['grade_id']);
+            $category = EmployeeCategory::query()->find($values['employee_category_id']);
             $cells = [
                 (string) $employment->employee_no,
                 (string) $employment->person?->name_with_initials,
-                (string) ($grade?->name ?? ''),
+                (string) ($category?->name ?? ''),
                 (string) $values['mode'],
                 (string) $values['employed'],
                 $this->days($values['expected']),
@@ -237,7 +237,7 @@ class PeriodSummary extends Component
     private function fromFigures(SummaryFigures $figures): array
     {
         return [
-            'grade_id' => $figures->gradeId,
+            'employee_category_id' => $figures->categoryId,
             'mode' => $figures->attendanceMode->value,
             'employed' => $figures->employedDays,
             'expected' => $figures->expectedDays,
@@ -262,7 +262,7 @@ class PeriodSummary extends Component
     private function fromStored(PeriodTimeSummary $row): array
     {
         return [
-            'grade_id' => (int) $row->grade_id,
+            'employee_category_id' => $row->employee_category_id !== null ? (int) $row->employee_category_id : null,
             'mode' => $row->attendance_mode->value,
             'employed' => (int) $row->employed_days,
             'expected' => (float) $row->expected_days,

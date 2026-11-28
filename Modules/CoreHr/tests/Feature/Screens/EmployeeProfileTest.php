@@ -23,7 +23,7 @@ use Modules\CoreHr\Models\PersonQualification;
 use Modules\CoreHr\Services\BankAccountService;
 use Modules\CoreHr\Services\EmploymentRequestService;
 use Modules\CoreHr\Services\EmploymentService;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\Designation;
 use Modules\Workflow\Models\ApprovalRequest;
 use Modules\Workflow\Services\ApprovalService;
 use Tests\Support\HrFixtures;
@@ -65,7 +65,6 @@ class EmployeeProfileTest extends TestCase
             ->assertDontSeeHtml('wire:model="epfNo"')
             ->assertSee($e->person->name_with_initials)
             ->assertSee($assignment->designation->name)
-            ->assertSee($assignment->grade->name)
             ->assertSee($e->person->nic);
     }
 
@@ -100,7 +99,7 @@ class EmployeeProfileTest extends TestCase
     public function test_history_tab_lists_events_newest_first(): void
     {
         $e = $this->hired('2026-01-01');
-        app(EmploymentService::class)->changeAssignment($e, '2026-06-01', ['grade_id' => Grade::factory()->create()->id], 'Promotion');
+        app(EmploymentService::class)->changeAssignment($e, '2026-06-01', ['designation_id' => Designation::factory()->create()->id], 'Promotion');
 
         $this->loginAs('hr-officer', $e->company);
 
@@ -131,10 +130,10 @@ class EmployeeProfileTest extends TestCase
         $this->seed(ApprovalDefinitionSeeder::class);
         $e = $this->hired('2026-06-01');
         $officer = $this->loginAs('hr-officer', $e->company);
-        $grade = Grade::factory()->create();
+        $designation = Designation::factory()->create();
 
-        app(EmploymentRequestService::class)->request($officer, 'CHANGE_ASSIGNMENT', $e, ['from' => '2026-09-01', 'changes' => ['grade_id' => $grade->id], 'reason' => 'Promotion']);
-        app(EmploymentRequestService::class)->request($officer, 'CHANGE_ASSIGNMENT', $e, ['from' => '2026-10-01', 'changes' => ['grade_id' => Grade::factory()->create()->id], 'reason' => 'Promotion']);
+        app(EmploymentRequestService::class)->request($officer, 'CHANGE_ASSIGNMENT', $e, ['from' => '2026-09-01', 'changes' => ['designation_id' => $designation->id], 'reason' => 'Promotion']);
+        app(EmploymentRequestService::class)->request($officer, 'CHANGE_ASSIGNMENT', $e, ['from' => '2026-10-01', 'changes' => ['designation_id' => Designation::factory()->create()->id], 'reason' => 'Promotion']);
 
         Livewire::test(EmployeeProfile::class, ['employment' => $e])
             ->assertSee('2 changes are waiting for approval.');

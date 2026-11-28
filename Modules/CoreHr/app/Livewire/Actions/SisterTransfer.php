@@ -28,8 +28,6 @@ class SisterTransfer extends Component
 
     public string|int|null $designationId = null;
 
-    public string|int|null $gradeId = null;
-
     public string|int|null $locationId = null;
 
     public function mount(Employment $employment): void
@@ -87,7 +85,6 @@ class SisterTransfer extends Component
             'lastWorkingDay' => ['required', 'date_format:Y-m-d'],
             'orgUnitId' => ['required', 'integer'],
             'designationId' => ['required', 'integer'],
-            'gradeId' => ['required', 'integer'],
             'locationId' => ['required', 'integer'],
         ], [
             'targetCompanyId.in' => 'Choose one of the companies in the list.',
@@ -102,7 +99,6 @@ class SisterTransfer extends Component
             'assignment' => [
                 'org_unit_id' => (int) $this->orgUnitId,
                 'designation_id' => (int) $this->designationId,
-                'grade_id' => (int) $this->gradeId,
                 'location_id' => (int) $this->locationId,
             ],
             'new_employment' => [],

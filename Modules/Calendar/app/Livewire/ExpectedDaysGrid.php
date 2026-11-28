@@ -15,7 +15,7 @@ use Modules\Calendar\Services\ExpectedDaysService;
 use Modules\Calendar\Services\PayPeriodService;
 use Modules\Calendar\Support\CalendarNav;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 
 class ExpectedDaysGrid extends Component
 {
@@ -25,7 +25,7 @@ class ExpectedDaysGrid extends Component
 
     public string $error = '';
 
-    /** @var array<string, string|null> keyed "periodId:gradeId" */
+    /** @var array<string, string|null> keyed "periodId:categoryId" */
     public array $cells = [];
 
     public function mount(PayPeriodService $periods): void
@@ -35,7 +35,7 @@ class ExpectedDaysGrid extends Component
         $this->hydrateFromCompany($periods);
     }
 
-    public function saveCell(int $periodId, int $gradeId, ExpectedDaysService $expectedDays): void
+    public function saveCell(int $periodId, int $categoryId, ExpectedDaysService $expectedDays): void
     {
         $this->authorize('period.manage');
         $this->error = '';
@@ -48,7 +48,7 @@ class ExpectedDaysGrid extends Component
             return;
         }
 
-        $key = $this->cellKey($periodId, $gradeId);
+        $key = $this->cellKey($periodId, $categoryId);
         $raw = $this->cells[$key] ?? null;
         if ($raw === null || $raw === '') {
             $this->error = 'Enter expected days.';
@@ -56,10 +56,10 @@ class ExpectedDaysGrid extends Component
             return;
         }
 
-        $grade = Grade::query()->findOrFail($gradeId);
+        $category = EmployeeCategory::query()->findOrFail($categoryId);
 
         try {
-            $expectedDays->set($period, $grade, (float) $raw, auth()->user());
+            $expectedDays->set($period, $category, (float) $raw, auth()->user());
             $this->message = 'Expected days saved.';
             $this->loadCells($period->company_id);
         } catch (InvalidExpectedDays $e) {
@@ -116,18 +116,18 @@ class ExpectedDaysGrid extends Component
 
         CompanyContext::ensureSoleSelected();
         $companyId = CompanyContext::id();
-        $grades = collect();
+        $categories = collect();
         $periodColumns = collect();
 
         if ($companyId !== null) {
             $company = Company::query()->findOrFail($companyId);
             $periodColumns = $this->ensureColumns($periods, $company);
-            $grades = Grade::query()->where('is_active', true)->orderBy('rank')->get();
+            $categories = EmployeeCategory::query()->where('is_active', true)->orderBy('level')->orderBy('name')->get();
         }
 
         return view('calendar::livewire.expected-days-grid', [
             'companyId' => $companyId,
-            'grades' => $grades,
+            'categories' => $categories,
             'periodColumns' => $periodColumns,
         ])->layout('components.layouts.module', [
             'moduleName' => 'Calendar',
@@ -169,16 +169,16 @@ class ExpectedDaysGrid extends Component
             ->where('company_id', $companyId)
             ->pluck('id');
 
-        $grades = Grade::query()->where('is_active', true)->pluck('id');
+        $categories = EmployeeCategory::query()->where('is_active', true)->pluck('id');
         $values = PeriodExpectedDays::query()
             ->whereIn('pay_period_id', $periodIds)
             ->get()
-            ->keyBy(fn ($row) => $this->cellKey((int) $row->pay_period_id, (int) $row->grade_id));
+            ->keyBy(fn ($row) => $this->cellKey((int) $row->pay_period_id, (int) $row->employee_category_id));
 
         $cells = [];
         foreach ($periodIds as $periodId) {
-            foreach ($grades as $gradeId) {
-                $key = $this->cellKey((int) $periodId, (int) $gradeId);
+            foreach ($categories as $categoryId) {
+                $key = $this->cellKey((int) $periodId, (int) $categoryId);
                 $cells[$key] = isset($values[$key]) ? (string) ((float) $values[$key]->days) : null;
             }
         }
@@ -186,8 +186,8 @@ class ExpectedDaysGrid extends Component
         $this->cells = $cells;
     }
 
-    private function cellKey(int $periodId, int $gradeId): string
+    private function cellKey(int $periodId, int $categoryId): string
     {
-        return $periodId.':'.$gradeId;
+        return $periodId.':'.$categoryId;
     }
 }

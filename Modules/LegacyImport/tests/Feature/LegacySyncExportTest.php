@@ -14,7 +14,7 @@ use Modules\CoreHr\Services\EmploymentService;
 use Modules\LegacyImport\Livewire\LegacySyncIndex;
 use Modules\LegacyImport\Models\LegacySyncRun;
 use Modules\LegacyImport\Services\LegacySyncExporter;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\Designation;
 use Tests\Support\HrFixtures;
 use Tests\TestCase;
 
@@ -30,8 +30,8 @@ class LegacySyncExportTest extends TestCase
         $before = $this->hired('2026-01-01', $c);
         Carbon::setTestNow('2026-12-01 09:00:00');
         $new = $this->hired('2026-12-01', $c);
-        $g2 = Grade::factory()->create(['code' => 'G2', 'name' => 'Grade Two']);
-        app(EmploymentService::class)->changeAssignment($before, '2026-12-01', ['grade_id' => $g2->id], 'Promotion');
+        $designation = Designation::factory()->create(['name' => 'Senior Technician']);
+        app(EmploymentService::class)->changeAssignment($before, '2026-12-01', ['designation_id' => $designation->id], 'Promotion');
         $leaver = $this->hired('2026-06-01', $c);
         app(EmploymentService::class)->exit($leaver, '2026-12-01', ExitReason::RESIGNATION, 'Moving abroad');
 
@@ -50,7 +50,7 @@ class LegacySyncExportTest extends TestCase
         $change = $rows['changes']->sole();
         $this->assertSame($before->employee_no, $change['Employee no.']);
         $this->assertSame('2026-12-01', $change['Effective date']);
-        $this->assertStringContainsString('Grade Two', $change['To']);
+        $this->assertStringContainsString('Senior Technician', $change['To']);
     }
 
     public function test_back_dated_change_is_caught_by_when_it_was_recorded(): void
@@ -58,7 +58,7 @@ class LegacySyncExportTest extends TestCase
         $c = $this->company();
         $e = $this->hired('2026-01-01', $c);
         Carbon::setTestNow('2026-12-01 09:00:00');
-        app(EmploymentService::class)->changeAssignment($e, '2026-03-01', ['grade_id' => Grade::factory()->create()->id], 'Late paperwork');
+        app(EmploymentService::class)->changeAssignment($e, '2026-03-01', ['designation_id' => Designation::factory()->create()->id], 'Late paperwork');
 
         $rows = app(LegacySyncExporter::class)->collect($c, Carbon::parse('2026-12-01 00:00:00'), Carbon::parse('2026-12-01 23:59:59'));
         $this->assertSame('2026-03-01', $rows['changes']->sole()['Effective date']);

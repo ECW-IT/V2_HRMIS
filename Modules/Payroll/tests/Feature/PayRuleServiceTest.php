@@ -6,7 +6,7 @@ use App\Models\User;
 use Database\Seeders\RolesAndPermissionsSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Payroll\Database\Seeders\PayRuleSeeder;
 use Modules\Payroll\Enums\ExtraDayMethod;
 use Modules\Payroll\Exceptions\InvalidPayRule;
@@ -141,19 +141,19 @@ class PayRuleServiceTest extends TestCase
         $this->assertNull($this->svc->tier('T9', '2026-06-01'));
     }
 
-    public function test_extra_day_method_per_grade_and_grades_without_rule(): void
+    public function test_extra_day_method_per_category_and_categories_without_rule(): void
     {
-        $a = Grade::factory()->create(['code' => 'G1', 'name' => 'Grade 1', 'rank' => 1, 'is_active' => true]);
-        $b = Grade::factory()->create(['code' => 'G2', 'name' => 'Grade 2', 'rank' => 2, 'is_active' => true]);
+        $a = EmployeeCategory::factory()->create(['code' => 'C1', 'name' => 'Category 1', 'is_active' => true]);
+        $b = EmployeeCategory::factory()->create(['code' => 'C2', 'name' => 'Category 2', 'is_active' => true]);
 
         $this->svc->setExtraDayMethod($a, ExtraDayMethod::HOURLY, '2026-01-01');
 
         $this->assertSame(ExtraDayMethod::HOURLY, $this->svc->extraDayMethod($a->id, '2026-06-01'));
         $this->assertNull($this->svc->extraDayMethod($b->id, '2026-06-01'));
 
-        $missing = $this->svc->gradesWithoutRule('2026-06-01');
-        $this->assertTrue($missing->contains(fn (Grade $g) => $g->id === $b->id));
-        $this->assertFalse($missing->contains(fn (Grade $g) => $g->id === $a->id));
+        $missing = $this->svc->categoriesWithoutRule('2026-06-01');
+        $this->assertTrue($missing->contains(fn (EmployeeCategory $category) => $category->id === $b->id));
+        $this->assertFalse($missing->contains(fn (EmployeeCategory $category) => $category->id === $a->id));
     }
 
     public function test_company_settings_are_scoped_and_validated(): void

@@ -63,7 +63,6 @@ class EditEmploymentStepTest extends TestCase
     {
         $company = $this->company();
         $employment = $this->hired('2026-06-01', $company);
-        $originalGradeId = $employment->currentAssignment()->grade_id;
         $hireOrgUnitId = $employment->currentAssignment()->org_unit_id;
         $designation = Designation::factory()->create();
         $orgUnit = OrgUnit::factory()->create(['company_id' => $company->id]);
@@ -92,7 +91,6 @@ class EditEmploymentStepTest extends TestCase
         $assignment = $employment->assignmentOn('2026-09-01');
         $this->assertSame($designation->id, $assignment->designation_id);
         $this->assertSame($orgUnit->id, $assignment->org_unit_id);
-        $this->assertSame($originalGradeId, $assignment->grade_id);
     }
 
     public function test_changing_effective_from_reloads_assignment_fields_for_that_date(): void

@@ -20,11 +20,11 @@
                 </select>
             </div>
             <div>
-                <label class="mb-1 block text-xs font-medium text-slate-600">Grade</label>
-                <select wire:model.live="filterGradeId" class="w-full rounded border px-2 py-1.5 text-sm">
+                <label class="mb-1 block text-xs font-medium text-slate-600">Category</label>
+                <select wire:model.live="filterCategoryId" class="w-full rounded border px-2 py-1.5 text-sm">
                     <option value="">All</option>
-                    @foreach ($grades as $grade)
-                        <option value="{{ $grade->id }}">{{ $grade->name }}</option>
+                    @foreach ($categories as $category)
+                        <option value="{{ $category->id }}">{{ $category->name }}</option>
                     @endforeach
                 </select>
             </div>

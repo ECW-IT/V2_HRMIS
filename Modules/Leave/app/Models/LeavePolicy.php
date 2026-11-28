@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\Leave\Database\Factories\LeavePolicyFactory;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 
 class LeavePolicy extends Model
 {
@@ -18,7 +18,7 @@ class LeavePolicy extends Model
     protected $fillable = [
         'leave_type_id',
         'company_id',
-        'grade_id',
+        'employee_category_id',
         'employment_type',
         'days_per_period',
         'effective_from',
@@ -44,9 +44,9 @@ class LeavePolicy extends Model
         return $this->belongsTo(Company::class);
     }
 
-    public function grade(): BelongsTo
+    public function employeeCategory(): BelongsTo
     {
-        return $this->belongsTo(Grade::class);
+        return $this->belongsTo(EmployeeCategory::class);
     }
 
     protected static function newFactory(): LeavePolicyFactory

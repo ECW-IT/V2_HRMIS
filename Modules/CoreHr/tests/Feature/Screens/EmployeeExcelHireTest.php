@@ -19,7 +19,6 @@ use Modules\CoreHr\Livewire\EmployeesIndex;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Models\Region;
 use Modules\Organisation\Models\Designation;
-use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Payroll\Enums\CalcMethod;
@@ -92,7 +91,6 @@ class EmployeeExcelHireTest extends TestCase
 
         $org = OrgUnit::factory()->create(['company_id' => $a->id, 'name' => 'Assembly', 'is_active' => true]);
         $designation = Designation::factory()->create(['name' => 'Welder', 'is_active' => true]);
-        $grade = Grade::factory()->create(['name' => 'G2', 'is_active' => true]);
         $location = Location::factory()->create(['name' => 'Plant A', 'is_active' => true]);
         $shift = $this->shift(['name' => 'Day Shift', 'code' => 'DAY01']);
 
@@ -109,7 +107,6 @@ class EmployeeExcelHireTest extends TestCase
             'hire_date' => '2026-03-01',
             'org_unit' => $org->name,
             'designation' => $designation->name,
-            'grade' => $grade->name,
             'location' => $location->name,
             'shift' => $shift->name,
             'basic_salary' => '55000.00',
@@ -142,7 +139,6 @@ class EmployeeExcelHireTest extends TestCase
 
         $org = OrgUnit::factory()->create(['company_id' => $a->id, 'name' => 'Soft Shop', 'is_active' => true]);
         $designation = Designation::factory()->create(['name' => 'Soft Worker', 'is_active' => true]);
-        $grade = Grade::factory()->create(['name' => 'G12', 'is_active' => true]);
         $location = Location::factory()->create(['name' => 'Soft Site', 'is_active' => true]);
         $shift = $this->shift(['name' => 'Soft Day', 'code' => 'SOFT01']);
         DeviceGroup::factory()->create(['code' => 'SOFTG', 'name' => 'Soft Group', 'is_active' => true]);
@@ -163,7 +159,6 @@ class EmployeeExcelHireTest extends TestCase
                 'hire_date' => '2026-11-15',
                 'org_unit' => $org->name,
                 'designation' => $designation->name,
-                'grade' => $grade->name,
                 'location' => $location->name,
                 'shift' => $shift->name,
                 'basic_salary' => '0',
@@ -188,7 +183,6 @@ class EmployeeExcelHireTest extends TestCase
                 'hire_date' => '2026-11-15',
                 'org_unit' => $org->name,
                 'designation' => $designation->name,
-                'grade' => $grade->name,
                 'location' => $location->name,
                 'shift' => $shift->name,
                 'basic_salary' => '25000',
@@ -225,7 +219,6 @@ class EmployeeExcelHireTest extends TestCase
 
         $org = OrgUnit::factory()->create(['company_id' => $a->id, 'name' => 'Marital Shop', 'is_active' => true]);
         $designation = Designation::factory()->create(['name' => 'Marital Worker', 'is_active' => true]);
-        $grade = Grade::factory()->create(['name' => 'G11', 'is_active' => true]);
         $location = Location::factory()->create(['name' => 'Marital Site', 'is_active' => true]);
         $shift = $this->shift(['name' => 'Marital Day', 'code' => 'MAR01']);
 
@@ -243,7 +236,6 @@ class EmployeeExcelHireTest extends TestCase
             'hire_date' => '2026-11-01',
             'org_unit' => $org->name,
             'designation' => $designation->name,
-            'grade' => $grade->name,
             'location' => $location->name,
             'shift' => $shift->name,
             'basic_salary' => '33000.00',
@@ -268,7 +260,7 @@ class EmployeeExcelHireTest extends TestCase
         $this->assertSame('SINGLE', $employment->person->marital_status->value);
     }
 
-    public function test_upload_treats_dash_placeholders_and_unknown_category_softly(): void
+    public function test_upload_treats_dash_placeholders_and_rejects_an_unknown_category(): void
     {
         $a = $this->company();
         $this->loginAs('hr-officer', $a);
@@ -276,7 +268,6 @@ class EmployeeExcelHireTest extends TestCase
 
         $org = OrgUnit::factory()->create(['company_id' => $a->id, 'name' => 'Dash Shop', 'is_active' => true]);
         $fallbackDesignation = Designation::factory()->create(['name' => 'Helper Fallback', 'is_active' => true]);
-        $grade = Grade::factory()->create(['name' => 'G10', 'is_active' => true]);
         $location = Location::factory()->create(['name' => 'Dash Site', 'is_active' => true]);
         $shift = $this->shift(['name' => 'Dash Day', 'code' => 'DASH01']);
 
@@ -297,10 +288,9 @@ class EmployeeExcelHireTest extends TestCase
             'hire_date' => '2026-10-01',
             'org_unit' => $org->name,
             'designation' => 'Junior Auto Electrical Technician',
-            'grade' => $grade->name,
             'location' => $location->name,
             'shift' => $shift->name,
-            'employee_category' => 'Production Staff',
+            'employee_category' => '',
             'basic_salary' => '32000.00',
             'emergency_contact_name' => 'Contact',
             'emergency_contact_relationship' => 'Friend',
@@ -325,6 +315,34 @@ class EmployeeExcelHireTest extends TestCase
         $assignment = $employment->assignmentOn('2026-10-01');
         $this->assertNotNull($assignment);
         $this->assertSame($fallbackDesignation->id, $assignment->designation_id);
+
+        $unknown = $this->makeHireUpload([$this->baseHireRow([
+            'passport_no' => 'PP-DASH-002',
+            'first_name' => 'Dash',
+            'last_name' => 'Two',
+            'name_with_initials' => 'D. Two',
+            'calling_name' => 'Dash',
+            'date_of_birth' => '1992-02-02',
+            'mobile' => '0773000003',
+            'address_line_1' => '4 Road',
+            'city' => 'Colombo',
+            'hire_date' => '2026-10-01',
+            'org_unit' => $org->name,
+            'designation' => $fallbackDesignation->name,
+            'location' => $location->name,
+            'shift' => $shift->name,
+            'employee_category' => 'Production Staff',
+            'basic_salary' => '32000.00',
+            'emergency_contact_name' => 'Contact',
+            'emergency_contact_relationship' => 'Friend',
+            'emergency_contact_phone' => '0773000002',
+        ])]);
+
+        Livewire::test(EmployeesIndex::class)
+            ->call('openHireUpload')
+            ->set('hireExcelFile', $unknown)
+            ->call('uploadHires')
+            ->assertSee("Category 'Production Staff' not found.");
     }
 
     public function test_upload_accepts_default_late_deduction(): void
@@ -335,7 +353,6 @@ class EmployeeExcelHireTest extends TestCase
 
         $org = OrgUnit::factory()->create(['company_id' => $a->id, 'name' => 'Late Shop', 'is_active' => true]);
         $designation = Designation::factory()->create(['name' => 'Late Worker', 'is_active' => true]);
-        $grade = Grade::factory()->create(['name' => 'G8', 'is_active' => true]);
         $location = Location::factory()->create(['name' => 'Late Site', 'is_active' => true]);
         $shift = $this->shift(['name' => 'Late Day', 'code' => 'LATEDAY']);
 
@@ -352,7 +369,6 @@ class EmployeeExcelHireTest extends TestCase
             'hire_date' => '2026-09-01',
             'org_unit' => $org->name,
             'designation' => $designation->name,
-            'grade' => $grade->name,
             'location' => $location->name,
             'shift' => $shift->name,
             'basic_salary' => '31000.00',
@@ -383,7 +399,6 @@ class EmployeeExcelHireTest extends TestCase
 
         $org = OrgUnit::factory()->create(['company_id' => $a->id, 'name' => 'OT Shop', 'is_active' => true]);
         $designation = Designation::factory()->create(['name' => 'OT Worker', 'is_active' => true]);
-        $grade = Grade::factory()->create(['name' => 'G7', 'is_active' => true]);
         $location = Location::factory()->create(['name' => 'OT Site', 'is_active' => true]);
         $shift = $this->shift(['name' => 'OT Day', 'code' => 'OTDAY']);
 
@@ -401,7 +416,6 @@ class EmployeeExcelHireTest extends TestCase
                 'hire_date' => '2026-08-01',
                 'org_unit' => $org->name,
                 'designation' => $designation->name,
-                'grade' => $grade->name,
                 'location' => $location->name,
                 'shift' => $shift->name,
                 'basic_salary' => '30000.00',
@@ -423,7 +437,6 @@ class EmployeeExcelHireTest extends TestCase
                 'hire_date' => '2026-08-01',
                 'org_unit' => $org->name,
                 'designation' => $designation->name,
-                'grade' => $grade->name,
                 'location' => $location->name,
                 'shift' => $shift->name,
                 'basic_salary' => '30000.00',
@@ -458,8 +471,6 @@ class EmployeeExcelHireTest extends TestCase
 
         $org = OrgUnit::factory()->create(['company_id' => $a->id, 'name' => 'Paint', 'is_active' => true]);
         $designation = Designation::factory()->create(['name' => 'Painter', 'is_active' => true]);
-        $defaultGrade = Grade::factory()->create(['name' => 'G1', 'rank' => 1, 'is_active' => true]);
-        Grade::factory()->create(['name' => 'G9', 'rank' => 9, 'is_active' => true]);
         $location = Location::factory()->create(['name' => 'Booth', 'is_active' => true]);
         $shift = $this->shift([
             'name' => 'Day 07:30–16:30',
@@ -481,7 +492,6 @@ class EmployeeExcelHireTest extends TestCase
             'hire_date' => '2026-07-01',
             'org_unit' => $org->name,
             'designation' => $designation->name,
-            'grade' => '',
             'location' => $location->name,
             'shift' => '07.30-16.30',
             'basic_salary' => '42000.00',
@@ -502,7 +512,7 @@ class EmployeeExcelHireTest extends TestCase
         $this->assertNotNull($employment);
         $assignment = $employment->assignmentOn('2026-07-01');
         $this->assertNotNull($assignment);
-        $this->assertSame($defaultGrade->id, $assignment->grade_id);
+        $this->assertNull($employment->employee_category_id);
         $this->assertSame($shift->id, $employment->timeProfiles()->latest('id')->first()?->shift_id);
     }
 
@@ -514,7 +524,6 @@ class EmployeeExcelHireTest extends TestCase
 
         $org = OrgUnit::factory()->create(['company_id' => $a->id, 'name' => 'Stores', 'is_active' => true]);
         $designation = Designation::factory()->create(['name' => 'Store Keeper', 'is_active' => true]);
-        $grade = Grade::factory()->create(['name' => 'G6', 'is_active' => true]);
         $location = Location::factory()->create(['name' => 'Depot', 'is_active' => true]);
         $shift = $this->shift(['name' => 'Store Shift', 'code' => 'STO01']);
 
@@ -523,7 +532,6 @@ class EmployeeExcelHireTest extends TestCase
             'full_name' => 'Ruwan Bandara',
             'org_unit' => $org->name,
             'designation' => $designation->name,
-            'grade' => $grade->name,
             'location' => $location->name,
             'shift' => $shift->name,
         ]]);
@@ -552,7 +560,6 @@ class EmployeeExcelHireTest extends TestCase
 
         $org = OrgUnit::factory()->create(['company_id' => $a->id, 'name' => 'Cutting', 'is_active' => true]);
         $designation = Designation::factory()->create(['name' => 'Cutter', 'is_active' => true]);
-        $grade = Grade::factory()->create(['name' => 'G5', 'is_active' => true]);
         $location = Location::factory()->create(['name' => 'Site C', 'is_active' => true]);
         $shift = $this->shift(['name' => 'Mid Shift', 'code' => 'MID01']);
 
@@ -571,7 +578,6 @@ class EmployeeExcelHireTest extends TestCase
             'hire_date' => '2026-06-01',
             'org_unit' => $org->name,
             'designation' => $designation->name,
-            'grade' => $grade->name,
             'location' => $location->name,
             'shift' => $shift->name,
             'basic_salary' => '45000.00',
@@ -605,7 +611,6 @@ class EmployeeExcelHireTest extends TestCase
 
         $org = OrgUnit::factory()->create(['company_id' => $a->id, 'name' => 'Finishing', 'is_active' => true]);
         $designation = Designation::factory()->create(['name' => 'Operator', 'is_active' => true]);
-        $grade = Grade::factory()->create(['name' => 'G4', 'is_active' => true]);
         $location = Location::factory()->create(['name' => 'Site B', 'is_active' => true]);
         $shift = $this->shift(['name' => 'General', 'code' => 'GEN01']);
         Region::factory()->create(['name' => 'Buddhism', 'is_active' => true, 'sort_order' => 1]);
@@ -652,7 +657,6 @@ class EmployeeExcelHireTest extends TestCase
             'epf_no' => 'EPF-EX-99',
             'org_unit' => $org->name,
             'designation' => $designation->name,
-            'grade' => $grade->name,
             'location' => $location->name,
             'shift' => $shift->name,
             'hrmis_active' => 'Yes',
@@ -738,7 +742,6 @@ class EmployeeExcelHireTest extends TestCase
 
         $org = OrgUnit::factory()->create(['company_id' => $a->id, 'name' => 'Packing', 'is_active' => true]);
         $designation = Designation::factory()->create(['name' => 'Packer', 'is_active' => true]);
-        $grade = Grade::factory()->create(['name' => 'G3', 'is_active' => true]);
         $location = Location::factory()->create(['name' => 'Warehouse', 'is_active' => true]);
         $shift = $this->shift(['name' => 'Night Shift', 'code' => 'NGT01']);
 
@@ -755,7 +758,6 @@ class EmployeeExcelHireTest extends TestCase
             'hire_date' => '2026-04-01',
             'org_unit' => $org->name,
             'designation' => $designation->name,
-            'grade' => $grade->name,
             'location' => $location->name,
             'shift' => $shift->name,
             'basic_salary' => '40000.00',
@@ -777,7 +779,6 @@ class EmployeeExcelHireTest extends TestCase
             'hire_date' => '2026-04-01',
             'org_unit' => 'Missing Org Unit',
             'designation' => $designation->name,
-            'grade' => $grade->name,
             'location' => $location->name,
             'shift' => $shift->name,
             'basic_salary' => '40000.00',
@@ -855,7 +856,6 @@ class EmployeeExcelHireTest extends TestCase
             'epf_no' => '',
             'org_unit' => '',
             'designation' => '',
-            'grade' => '',
             'location' => '',
             'shift' => '',
             'employee_category' => '',

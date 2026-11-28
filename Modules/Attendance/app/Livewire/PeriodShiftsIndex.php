@@ -18,7 +18,7 @@ use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Models\Employment;
 use Modules\Organisation\Enums\OrgUnitType;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Organisation\Services\OrgUnitService;
 
@@ -36,7 +36,7 @@ class PeriodShiftsIndex extends Component
 
     public ?int $filterOrgUnitId = null;
 
-    public ?int $filterGradeId = null;
+    public ?int $filterCategoryId = null;
 
     public ?int $filterShiftId = null;
 
@@ -215,7 +215,7 @@ class PeriodShiftsIndex extends Component
                 : collect(),
             'employees' => $employees,
             'orgUnits' => $companyId ? OrgUnit::query()->where('company_id', $companyId)->orderBy('name')->get() : collect(),
-            'grades' => Grade::query()->where('is_active', true)->orderBy('rank')->get(),
+            'categories' => EmployeeCategory::query()->where('is_active', true)->orderBy('level')->orderBy('name')->get(),
             'shifts' => Shift::query()->where('is_active', true)->orderBy('code')->get(),
             'otModes' => OtMode::cases(),
             'currentShift' => function (Employment $e) use ($start) {
@@ -327,12 +327,9 @@ class PeriodShiftsIndex extends Component
                         ->exists();
                 });
             })
-            ->when($this->filterGradeId, function (Collection $rows) use ($start) {
-                return $rows->filter(function (Employment $employment) use ($start) {
-                    return $employment->assignments()
-                        ->effectiveOn($start)
-                        ->where('grade_id', $this->filterGradeId)
-                        ->exists();
+            ->when($this->filterCategoryId, function (Collection $rows) {
+                return $rows->filter(function (Employment $employment) {
+                    return (int) $employment->employee_category_id === (int) $this->filterCategoryId;
                 });
             })
             ->when($this->filterShiftId, function (Collection $rows) use ($start) {

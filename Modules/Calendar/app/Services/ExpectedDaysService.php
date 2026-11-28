@@ -10,18 +10,18 @@ use Modules\Calendar\Enums\PeriodStatus;
 use Modules\Calendar\Exceptions\InvalidExpectedDays;
 use Modules\Calendar\Models\PayPeriod;
 use Modules\Calendar\Models\PeriodExpectedDays;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 
 final class ExpectedDaysService
 {
-    public function set(PayPeriod $p, Grade $g, float $days, ?User $by = null): PeriodExpectedDays
+    public function set(PayPeriod $p, EmployeeCategory $category, float $days, ?User $by = null): PeriodExpectedDays
     {
         if ($p->status === PeriodStatus::CLOSED) {
             throw new InvalidExpectedDays('The period is closed.');
         }
 
-        if (! $g->is_active) {
-            throw new InvalidExpectedDays('Expected days can only be set for active grades.');
+        if (! $category->is_active) {
+            throw new InvalidExpectedDays('Expected days can only be set for active categories.');
         }
 
         $daysInMonth = (int) Carbon::create((int) $p->year, (int) $p->month, 1)->daysInMonth;
@@ -31,13 +31,13 @@ final class ExpectedDaysService
 
         $row = PeriodExpectedDays::query()
             ->where('pay_period_id', $p->id)
-            ->where('grade_id', $g->id)
+            ->where('employee_category_id', $category->id)
             ->first();
 
         if ($row === null) {
             return PeriodExpectedDays::query()->create([
                 'pay_period_id' => $p->id,
-                'grade_id' => $g->id,
+                'employee_category_id' => $category->id,
                 'days' => $days,
                 'set_by' => $by?->id,
             ]);
@@ -51,32 +51,33 @@ final class ExpectedDaysService
         return $row->fresh();
     }
 
-    public function for(PayPeriod $p, int $gradeId): ?float
+    public function for(PayPeriod $p, int $categoryId): ?float
     {
         $row = PeriodExpectedDays::query()
             ->where('pay_period_id', $p->id)
-            ->where('grade_id', $gradeId)
+            ->where('employee_category_id', $categoryId)
             ->first();
 
         return $row === null ? null : (float) $row->days;
     }
 
-    /** Active grades with no value for the period. @return Collection<int, Grade> */
+    /** Active categories with no value for the period. @return Collection<int, EmployeeCategory> */
     public function missing(PayPeriod $p): Collection
     {
         $setIds = PeriodExpectedDays::query()
             ->where('pay_period_id', $p->id)
-            ->pluck('grade_id')
+            ->pluck('employee_category_id')
             ->all();
 
-        return Grade::query()
+        return EmployeeCategory::query()
             ->where('is_active', true)
             ->whereNotIn('id', $setIds)
-            ->orderBy('rank')
+            ->orderBy('level')
+            ->orderBy('name')
             ->get();
     }
 
-    /** Copies every grade's value from the previous period where the target has none. Returns rows added. */
+    /** Copies every category's value from the previous period where the target has none. Returns rows added. */
     public function copyFromPrevious(PayPeriod $p): int
     {
         $previous = app(PayPeriodService::class)->previous($p);
@@ -88,28 +89,28 @@ final class ExpectedDaysService
             $source = PeriodExpectedDays::query()
                 ->where('pay_period_id', $previous->id)
                 ->get()
-                ->keyBy('grade_id');
+                ->keyBy('employee_category_id');
 
             $existing = PeriodExpectedDays::query()
                 ->where('pay_period_id', $p->id)
-                ->pluck('grade_id')
+                ->pluck('employee_category_id')
                 ->all();
 
             $added = 0;
 
-            foreach ($source as $gradeId => $row) {
-                if (in_array($gradeId, $existing, true)) {
+            foreach ($source as $categoryId => $row) {
+                if (in_array($categoryId, $existing, true)) {
                     continue;
                 }
 
-                $grade = Grade::query()->find($gradeId);
-                if ($grade === null || ! $grade->is_active) {
+                $category = EmployeeCategory::query()->find($categoryId);
+                if ($category === null || ! $category->is_active) {
                     continue;
                 }
 
                 PeriodExpectedDays::query()->create([
                     'pay_period_id' => $p->id,
-                    'grade_id' => $gradeId,
+                    'employee_category_id' => $categoryId,
                     'days' => $row->days,
                     'set_by' => null,
                 ]);

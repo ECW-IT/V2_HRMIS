@@ -77,6 +77,7 @@ class EmployeesIndexTest extends TestCase
             ->assertSeeHtml('Search designation')
             ->assertSeeHtml('for="employeeCategoryId"')
             ->assertSeeHtml('>Category</label>')
+            ->assertSeeHtml('>Category</th>')
             ->assertDontSeeHtml('for="gradeId"')
             ->assertSee('EPF-4421')
             ->assertSee($active->employee_no)
@@ -103,11 +104,15 @@ class EmployeesIndexTest extends TestCase
         $this->loginAs('hr-officer', $a);
 
         Livewire::test(EmployeesIndex::class)
+            ->assertSeeHtml('>Category A</td>')
+            ->assertSeeHtml('>Category B</td>')
             ->set('employeeCategoryId', $catA->id)
             ->assertSee($inA->employee_no)
+            ->assertSeeHtml('>Category A</td>')
             ->assertDontSee($inB->employee_no)
             ->set('employeeCategoryId', $catB->id)
             ->assertSee($inB->employee_no)
+            ->assertSeeHtml('>Category B</td>')
             ->assertDontSee($inA->employee_no);
     }
 
@@ -157,7 +162,7 @@ class EmployeesIndexTest extends TestCase
             ->call('setEditStep', 3)
             ->assertSee('Payroll details')
             ->assertSee('60000.00')
-            ->assertSee('New compensation')
+            ->assertSee('Change compensation')
             ->assertSee('Add component');
     }
 

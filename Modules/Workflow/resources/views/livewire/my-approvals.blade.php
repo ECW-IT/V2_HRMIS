@@ -21,17 +21,44 @@
         </button>
     </div>
 
+    @if ($notice !== '')
+        <p class="mb-3 rounded bg-slate-100 px-3 py-2 text-sm text-slate-700">{{ $notice }}</p>
+    @endif
+
+    @if ($tab === 'waiting')
+        <div class="mb-3">
+            <button
+                type="button"
+                wire:click="approveSelected"
+                @disabled($selectedIds === [])
+                class="rounded bg-[var(--color-erp-accent)] px-3 py-1.5 text-sm text-white disabled:cursor-not-allowed disabled:opacity-50"
+            >
+                Approve selected
+            </button>
+        </div>
+    @endif
+
     @php($rows = $tab === 'waiting' ? $waiting : $mine)
+    @php($colspan = $tab === 'waiting' ? 9 : 8)
 
     <div class="overflow-hidden rounded border bg-white">
         <table class="min-w-full text-left text-sm">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500">
                 <tr>
+                    @if ($tab === 'waiting')
+                        <th class="px-3 py-2">
+                            <input
+                                type="checkbox"
+                                aria-label="Select all"
+                                wire:click="toggleAll"
+                                @checked($allSelected)
+                                @disabled($waiting->isEmpty())
+                            />
+                        </th>
+                    @endif
                     <th class="px-3 py-2">Request no.</th>
                     <th class="px-3 py-2">Type</th>
-                    <th class="px-3 py-2">Company</th>
                     <th class="px-3 py-2">Requested by</th>
-                    <th class="px-3 py-2">Requested at</th>
                     <th class="px-3 py-2">Employee</th>
                     <th class="px-3 py-2">Field</th>
                     <th class="px-3 py-2">Old value</th>
@@ -42,12 +69,15 @@
             <tbody>
                 @forelse ($rows as $request)
                     @php($summary = $summaries[$request->id])
-                    <tr class="border-t align-top">
+                    <tr class="border-t align-top" wire:key="approval-{{ $request->id }}">
+                        @if ($tab === 'waiting')
+                            <td class="px-3 py-2">
+                                <input type="checkbox" wire:model="selectedIds" value="{{ $request->id }}" />
+                            </td>
+                        @endif
                         <td class="px-3 py-2 font-medium">#{{ $request->id }}</td>
                         <td class="px-3 py-2">{{ $request->definition->name }}</td>
-                        <td class="px-3 py-2">{{ $request->company?->code }}</td>
                         <td class="px-3 py-2">{{ $request->requester?->name ?? '—' }}</td>
-                        <td class="px-3 py-2">{{ $request->requested_at?->timezone(config('app.timezone'))->format('Y-m-d H:i') }}</td>
                         <td class="px-3 py-2">{{ $summary['employee'] }}</td>
                         @if ($summary['hidden'])
                             <td class="px-3 py-2" colspan="3">{{ $summary['hidden'] }}</td>
@@ -84,7 +114,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="10" class="px-3 py-6 text-center text-slate-500">No requests.</td>
+                        <td colspan="{{ $colspan }}" class="px-3 py-6 text-center text-slate-500">No requests.</td>
                     </tr>
                 @endforelse
             </tbody>

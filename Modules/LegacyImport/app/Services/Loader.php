@@ -23,7 +23,7 @@ use Modules\LegacyImport\Models\StgEmployee;
 use Modules\LegacyImport\Models\StgIssue;
 use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\Designation;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 use RuntimeException;
@@ -216,7 +216,7 @@ final class Loader
             $staged->company_code
         );
         $jobCode = $this->maps->jobCodeForTitle($raw['job_title_id'] ?? null);
-        $gradeCode = $this->maps->gradeCodeForEmployee($staged->legacy_hrm_id);
+        $categoryCode = $this->maps->gradeCodeForEmployee($staged->legacy_hrm_id);
         $locationCode = $this->maps->locationCodeForBranch($staged->legacy_branch_id);
 
         $orgUnit = OrgUnit::query()
@@ -224,13 +224,13 @@ final class Loader
             ->where('code', $orgCode)
             ->firstOrFail();
         $job = Designation::query()->where('code', $jobCode)->firstOrFail();
-        $grade = Grade::query()->where('code', $gradeCode)->firstOrFail();
+        $category = EmployeeCategory::query()->where('code', $categoryCode)->where('is_active', true)->firstOrFail();
         $location = Location::query()->where('code', $locationCode)->firstOrFail();
+        $employmentPayload['employee_category_id'] = $category->id;
 
         $employment = $this->employments->hire($person, $company, $employmentPayload, [
             'org_unit_id' => $orgUnit->id,
             'designation_id' => $job->id,
-            'grade_id' => $grade->id,
             'location_id' => $location->id,
         ]);
 

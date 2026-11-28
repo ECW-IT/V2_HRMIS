@@ -32,16 +32,6 @@
             @error('designationId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
         </div>
         <div>
-            <label class="mb-1 block text-xs font-medium text-gray-600">Grade <span class="text-red-500">*</span></label>
-            <select wire:model="gradeId" class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('gradeId') border-red-400 @enderror">
-                <option value="">— Select —</option>
-                @foreach($grades as $grade)
-                    <option value="{{ $grade->id }}">{{ $grade->name }}</option>
-                @endforeach
-            </select>
-            @error('gradeId')<p class="mt-1 text-xs text-red-500">{{ $message }}</p>@enderror
-        </div>
-        <div>
             <label class="mb-1 block text-xs font-medium text-gray-600">Location <span class="text-red-500">*</span></label>
             <select wire:model="locationId" class="w-full rounded border px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 @error('locationId') border-red-400 @enderror">
                 <option value="">— Select —</option>

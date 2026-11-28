@@ -28,7 +28,6 @@ use Modules\CoreHr\Support\SriLankaGeo;
 use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\EmployeeCategory;
-use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Payroll\Enums\OtRateMode;
@@ -135,15 +134,6 @@ final class EmployeeExcelHireService
             );
         }
 
-        $grade = $this->resolveGrade($data['grade'] ?? '');
-        if ($grade === null) {
-            throw new \InvalidArgumentException(
-                ($data['grade'] ?? '') === ''
-                    ? 'No active grade is available to use as a default.'
-                    : "Grade '{$data['grade']}' not found."
-            );
-        }
-
         $location = Location::query()->where('is_active', true)->where('name', $data['location'])->first();
         if ($location === null) {
             throw new \InvalidArgumentException("Location '{$data['location']}' not found.");
@@ -170,8 +160,10 @@ final class EmployeeExcelHireService
                     ->whereRaw('LOWER(name) = ?', [mb_strtolower($data['employee_category'])])
                     ->first();
             }
-            // Unknown category is optional — leave null rather than failing the row.
-            $categoryId = $category?->id;
+            if ($category === null) {
+                throw new \InvalidArgumentException("Category '{$data['employee_category']}' not found.");
+            }
+            $categoryId = $category->id;
         }
 
         $isCash = $this->parseYesNo($data['paid_in_cash'], 'Paid in cash');
@@ -420,7 +412,6 @@ final class EmployeeExcelHireService
             $type,
             $orgUnit,
             $designation,
-            $grade,
             $location,
             $shift,
             $categoryId,
@@ -531,7 +522,6 @@ final class EmployeeExcelHireService
             $assignment = [
                 'org_unit_id' => $orgUnit->id,
                 'designation_id' => $designation->id,
-                'grade_id' => $grade->id,
                 'location_id' => $location->id,
                 'manager_employment_id' => $managerId,
             ];
@@ -705,17 +695,6 @@ final class EmployeeExcelHireService
         }
 
         return $data;
-    }
-
-    private function resolveGrade(string $value): ?Grade
-    {
-        $value = trim($value);
-        if ($value === '') {
-            return Grade::query()->where('is_active', true)->orderBy('rank')->orderBy('name')->first();
-        }
-
-        return Grade::query()->where('is_active', true)->where('name', $value)->first()
-            ?? Grade::query()->where('is_active', true)->whereRaw('LOWER(name) = ?', [mb_strtolower($value)])->first();
     }
 
     private function resolveDesignation(string $value): ?Designation

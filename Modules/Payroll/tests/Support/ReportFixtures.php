@@ -74,8 +74,7 @@ trait ReportFixtures
     {
         $this->actingAs($this->officer);
         Gate::authorize('payroll.config');
-        $grade = $employment->assignmentOn('2026-12-31')->grade;
-        app(PayRuleService::class)->setExtraDayMethod($grade, ExtraDayMethod::HOURLY, '2026-01-01');
+        app(PayRuleService::class)->setExtraDayMethod($this->categoryFor($employment), ExtraDayMethod::HOURLY, '2026-01-01');
     }
 
     protected function december(): PayPeriod

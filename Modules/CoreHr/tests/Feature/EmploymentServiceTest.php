@@ -15,7 +15,7 @@ use Modules\CoreHr\Exceptions\OutsideEmploymentPeriod;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Services\EmploymentService;
 use Modules\Organisation\Exceptions\OrgUnitInUse;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Organisation\Services\EmployeeCategoryService;
 use Modules\Organisation\Services\OrgUnitService;
@@ -160,33 +160,33 @@ class EmploymentServiceTest extends TestCase
     public function test_assignment_change_closes_previous_and_leaves_no_gap(): void
     {
         $e = $this->hired('2026-06-01');
-        $g1 = $e->currentAssignment()->grade_id;
-        $g2 = Grade::factory()->create()->id;
+        $d1 = $e->currentAssignment()->designation_id;
+        $d2 = Designation::factory()->create()->id;
 
-        $new = $this->svc->changeAssignment($e, '2026-09-01', ['grade_id' => $g2], 'Promotion');
+        $new = $this->svc->changeAssignment($e, '2026-09-01', ['designation_id' => $d2], 'Promotion');
 
-        $this->assertSame($g1, $e->assignmentOn('2026-08-31')->grade_id);
-        $this->assertSame($g2, $e->assignmentOn('2026-09-01')->grade_id);
+        $this->assertSame($d1, $e->assignmentOn('2026-08-31')->designation_id);
+        $this->assertSame($d2, $e->assignmentOn('2026-09-01')->designation_id);
         $this->assertSame('2026-08-31', $e->assignments()->orderBy('effective_from')->first()->effective_to->toDateString());
         $this->assertSame('Promotion', $new->change_reason);
         $this->assertSame($e->assignments()->orderBy('effective_from')->first()->org_unit_id, $new->org_unit_id);
         $ev = $e->events()->where('type', 'ASSIGNMENT_CHANGE')->sole();
-        $this->assertSame(['grade_id' => $g1], $ev->details['from']);
-        $this->assertSame(['grade_id' => $g2], $ev->details['to']);
+        $this->assertSame(['designation_id' => $d1], $ev->details['from']);
+        $this->assertSame(['designation_id' => $d2], $ev->details['to']);
     }
 
     public function test_assignment_change_before_hire_date_is_refused(): void
     {
         $e = $this->hired('2026-06-01');
         $this->expectException(OutsideEmploymentPeriod::class);
-        $this->svc->changeAssignment($e, '2026-05-31', ['grade_id' => Grade::factory()->create()->id], 'x');
+        $this->svc->changeAssignment($e, '2026-05-31', ['designation_id' => Designation::factory()->create()->id], 'x');
     }
 
     public function test_assignment_change_with_no_difference_is_refused(): void
     {
         $e = $this->hired('2026-06-01');
         $this->expectException(InvalidEmploymentData::class);
-        $this->svc->changeAssignment($e, '2026-09-01', ['grade_id' => $e->currentAssignment()->grade_id], 'x');
+        $this->svc->changeAssignment($e, '2026-09-01', ['designation_id' => $e->currentAssignment()->designation_id], 'x');
     }
 
     public function test_manager_must_be_active_in_the_same_company(): void
@@ -220,7 +220,7 @@ class EmploymentServiceTest extends TestCase
     public function test_exit_before_a_later_assignment_change_is_refused(): void
     {
         $e = $this->hired('2026-01-01');
-        $this->svc->changeAssignment($e, '2026-09-01', ['grade_id' => Grade::factory()->create()->id], 'x');
+        $this->svc->changeAssignment($e, '2026-09-01', ['designation_id' => Designation::factory()->create()->id], 'x');
         $this->expectException(OutsideEmploymentPeriod::class);
         $this->svc->exit($e, '2026-08-15', ExitReason::RESIGNATION);
     }

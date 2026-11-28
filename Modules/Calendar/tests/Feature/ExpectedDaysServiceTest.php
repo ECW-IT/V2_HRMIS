@@ -8,7 +8,7 @@ use Modules\Calendar\Models\PeriodExpectedDays;
 use Modules\Calendar\Services\ExpectedDaysService;
 use Modules\Calendar\Services\PayPeriodService;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Tests\TestCase;
 
 class ExpectedDaysServiceTest extends TestCase
@@ -27,9 +27,9 @@ class ExpectedDaysServiceTest extends TestCase
     public function test_set_get_and_missing(): void
     {
         $p = app(PayPeriodService::class)->ensure(Company::factory()->create(), 2026, 12);
-        $g1 = Grade::factory()->create();
-        $g2 = Grade::factory()->create();
-        Grade::factory()->create(['is_active' => false]);
+        $g1 = EmployeeCategory::factory()->create();
+        $g2 = EmployeeCategory::factory()->create();
+        EmployeeCategory::factory()->create(['is_active' => false]);
         $this->svc->set($p, $g1, 24.5);
         $this->assertSame(24.5, $this->svc->for($p, $g1->id));
         $this->assertNull($this->svc->for($p, $g2->id));
@@ -39,7 +39,7 @@ class ExpectedDaysServiceTest extends TestCase
     public function test_setting_again_replaces_the_value(): void
     {
         $p = app(PayPeriodService::class)->ensure(Company::factory()->create(), 2026, 12);
-        $g = Grade::factory()->create();
+        $g = EmployeeCategory::factory()->create();
         $this->svc->set($p, $g, 24);
         $this->svc->set($p, $g, 25);
         $this->assertSame(25.0, $this->svc->for($p, $g->id));
@@ -49,7 +49,7 @@ class ExpectedDaysServiceTest extends TestCase
     public function test_invalid_values_are_refused(): void
     {
         $p = app(PayPeriodService::class)->ensure(Company::factory()->create(), 2027, 2);
-        $g = Grade::factory()->create();
+        $g = EmployeeCategory::factory()->create();
         foreach ([-1, 28.5, 24.3] as $bad) {
             try {
                 $this->svc->set($p, $g, $bad);
@@ -67,7 +67,7 @@ class ExpectedDaysServiceTest extends TestCase
         $pp = app(PayPeriodService::class);
         $p = $pp->markClosed($pp->ensure(Company::factory()->create(), 2026, 12), null);
         $this->expectException(InvalidExpectedDays::class);
-        $this->svc->set($p, Grade::factory()->create(), 24);
+        $this->svc->set($p, EmployeeCategory::factory()->create(), 24);
     }
 
     public function test_copy_from_previous_fills_only_empty_grades(): void
@@ -76,8 +76,8 @@ class ExpectedDaysServiceTest extends TestCase
         $pp = app(PayPeriodService::class);
         $nov = $pp->ensure($c, 2026, 11);
         $dec = $pp->ensure($c, 2026, 12);
-        $g1 = Grade::factory()->create();
-        $g2 = Grade::factory()->create();
+        $g1 = EmployeeCategory::factory()->create();
+        $g2 = EmployeeCategory::factory()->create();
         $this->svc->set($nov, $g1, 24);
         $this->svc->set($nov, $g2, 25);
         $this->svc->set($dec, $g2, 22);

@@ -37,6 +37,8 @@ class ShiftsIndex extends Component
 
     public string $formError = '';
 
+    public ?int $rosterShiftId = null;
+
     public function openCreate(): void
     {
         $this->authorize('shift.manage');
@@ -134,6 +136,18 @@ class ShiftsIndex extends Component
         $this->closeForm();
     }
 
+    public function openRoster(int $shiftId): void
+    {
+        $this->authorize('org.view');
+        Shift::query()->findOrFail($shiftId);
+        $this->rosterShiftId = $shiftId;
+    }
+
+    public function closeRoster(): void
+    {
+        $this->rosterShiftId = null;
+    }
+
     public function deactivate(int $shiftId, ShiftService $service): void
     {
         $this->authorize('shift.manage');
@@ -152,6 +166,7 @@ class ShiftsIndex extends Component
             $employeesNow = EmploymentTimeProfile::query()
                 ->where('shift_id', $shift->id)
                 ->current()
+                ->whereHas('employment')
                 ->count();
 
             return [
@@ -160,9 +175,21 @@ class ShiftsIndex extends Component
             ];
         });
 
+        $roster = null;
+        if ($this->rosterShiftId !== null) {
+            $match = $shifts->first(fn (array $row) => $row['shift']->id === $this->rosterShiftId);
+            if ($match !== null) {
+                $roster = [
+                    'code' => $match['shift']->code,
+                    'employees' => $this->rosterRows($this->rosterShiftId),
+                ];
+            }
+        }
+
         return view('attendance::livewire.shifts-index', [
             'rows' => $shifts,
             'preview' => $this->previewText(),
+            'roster' => $roster,
         ])->layout('components.layouts.module', [
             'moduleName' => 'Attendance',
             'title' => 'Shifts',
@@ -181,6 +208,36 @@ class ShiftsIndex extends Component
         $this->half_day_from = '12:30';
         $this->early_leave_from = '15:00';
         $this->breaks = [];
+    }
+
+    /**
+     * @return list<array{employee_no: string, name: string, unit: string}>
+     */
+    private function rosterRows(int $shiftId): array
+    {
+        return EmploymentTimeProfile::query()
+            ->where('shift_id', $shiftId)
+            ->current()
+            ->whereHas('employment')
+            ->with([
+                'employment.person',
+                'employment.assignments' => fn ($q) => $q->current()->with('orgUnit'),
+            ])
+            ->get()
+            ->map(function (EmploymentTimeProfile $profile): array {
+                $employment = $profile->employment;
+                $callingName = trim((string) ($employment->person?->calling_name ?? ''));
+                $unitName = trim((string) ($employment->assignments->first()?->orgUnit?->name ?? ''));
+
+                return [
+                    'employee_no' => (string) $employment->employee_no,
+                    'name' => $callingName !== '' ? $callingName : '—',
+                    'unit' => $unitName !== '' ? $unitName : '—',
+                ];
+            })
+            ->sortBy('name', SORT_NATURAL | SORT_FLAG_CASE)
+            ->values()
+            ->all();
     }
 
     private function previewText(): string

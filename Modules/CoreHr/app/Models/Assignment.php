@@ -9,7 +9,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Modules\CoreHr\Database\Factories\AssignmentFactory;
 use Modules\Organisation\Models\Designation;
-use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 
@@ -26,7 +25,6 @@ class Assignment extends Model
         'effective_to',
         'org_unit_id',
         'designation_id',
-        'grade_id',
         'location_id',
         'manager_employment_id',
         'change_reason',
@@ -53,11 +51,6 @@ class Assignment extends Model
     public function designation(): BelongsTo
     {
         return $this->belongsTo(Designation::class);
-    }
-
-    public function grade(): BelongsTo
-    {
-        return $this->belongsTo(Grade::class);
     }
 
     public function location(): BelongsTo

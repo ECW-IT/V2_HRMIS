@@ -181,7 +181,7 @@ final class SummaryService
             : AttendanceMode::from((string) $row->attendance_mode);
 
         return new SummaryFigures(
-            gradeId: (int) $row->grade_id,
+            categoryId: $row->employee_category_id !== null ? (int) $row->employee_category_id : null,
             attendanceMode: $mode,
             employedDays: (int) $row->employed_days,
             expectedDays: (float) $row->expected_days,

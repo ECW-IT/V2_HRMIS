@@ -91,7 +91,7 @@ class PayRunServiceTest extends TestCase
     {
         $this->actingAs($by);
         Gate::authorize('payroll.config');
-        $grade = $employment->assignmentOn('2026-12-31')->grade;
+        $grade = $this->categoryFor($employment);
         app(PayRuleService::class)->setExtraDayMethod($grade, ExtraDayMethod::HOURLY, '2026-01-01');
     }
 
@@ -194,7 +194,7 @@ class PayRunServiceTest extends TestCase
         $bad = $this->paid('2026-01-01', $company);
         $this->actingAs($officer);
         Gate::authorize('payroll.config');
-        app(PayRuleService::class)->setExtraDayMethod($bad->assignmentOn('2026-12-31')->grade, ExtraDayMethod::HOURLY, '2026-12-01');
+        app(PayRuleService::class)->setExtraDayMethod($this->categoryFor($bad), ExtraDayMethod::HOURLY, '2026-12-01');
         $bad->update(['exit_date' => '2026-11-20']);
 
         $period = $this->closedPeriod($company);

@@ -35,7 +35,6 @@
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">To</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Department / section</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Designation</th>
-                    <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Grade</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Location</th>
                     <th class="px-3 py-2 text-left text-xs font-semibold text-gray-600">Reports to</th>
                 </tr>
@@ -53,13 +52,12 @@
                             @endif
                         </td>
                         <td class="px-3 py-1.5 text-xs text-gray-600">{{ $row->designation?->name ?? '—' }}</td>
-                        <td class="px-3 py-1.5 text-xs text-gray-600">{{ $row->grade?->name ?? '—' }}</td>
                         <td class="px-3 py-1.5 text-xs text-gray-600">{{ $row->location?->name ?? '—' }}</td>
                         <td class="px-3 py-1.5 text-xs text-gray-600">{{ $row->manager?->person?->name_with_initials ?? '—' }}</td>
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="7" class="px-3 py-6 text-center text-sm text-gray-500">No assignments.</td>
+                        <td colspan="6" class="px-3 py-6 text-center text-sm text-gray-500">No assignments.</td>
                     </tr>
                 @endforelse
             </tbody>

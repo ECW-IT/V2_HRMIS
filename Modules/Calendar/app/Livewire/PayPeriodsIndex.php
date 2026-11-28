@@ -11,7 +11,7 @@ use Modules\Calendar\Services\ExpectedDaysService;
 use Modules\Calendar\Services\PayPeriodService;
 use Modules\Calendar\Support\CalendarNav;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 
 class PayPeriodsIndex extends Component
 {
@@ -22,7 +22,7 @@ class PayPeriodsIndex extends Component
         CompanyContext::ensureSoleSelected();
         $companyId = CompanyContext::id();
         $rows = collect();
-        $activeGradeCount = Grade::query()->where('is_active', true)->count();
+        $activeCategoryCount = EmployeeCategory::query()->where('is_active', true)->count();
 
         if ($companyId !== null) {
             $company = Company::query()->findOrFail($companyId);
@@ -39,14 +39,14 @@ class PayPeriodsIndex extends Component
                 ->orderByDesc('year')
                 ->orderByDesc('month')
                 ->get()
-                ->map(function (PayPeriod $period) use ($expectedDays, $activeGradeCount) {
-                    $setCount = $activeGradeCount - $expectedDays->missing($period)->count();
+                ->map(function (PayPeriod $period) use ($expectedDays, $activeCategoryCount) {
+                    $setCount = $activeCategoryCount - $expectedDays->missing($period)->count();
 
                     return [
                         'period' => $period,
                         'set_count' => $setCount,
-                        'grade_count' => $activeGradeCount,
-                        'missing' => $setCount < $activeGradeCount,
+                        'category_count' => $activeCategoryCount,
+                        'missing' => $setCount < $activeCategoryCount,
                     ];
                 });
         }

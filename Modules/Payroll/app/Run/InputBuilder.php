@@ -51,7 +51,8 @@ final class InputBuilder
 
         $basic = $this->money($comp->basic_salary);
         $otRate = $this->compensation->otRate($comp, $rules);
-        $extraDayMethod = $this->payRules->extraDayMethod((int) $s->grade_id, $lookup);
+        $categoryId = $s->employee_category_id !== null ? (int) $s->employee_category_id : 0;
+        $extraDayMethod = $categoryId === 0 ? null : $this->payRules->extraDayMethod($categoryId, $lookup);
 
         $tier = null;
         $tierCode = $comp->attendance_tier_code;
@@ -104,7 +105,7 @@ final class InputBuilder
             'employment_id' => $employment->id,
             'employee_no' => (string) $employment->employee_no,
             'name' => mb_substr($name, 0, 150),
-            'grade_id' => (int) $s->grade_id,
+            'employee_category_id' => $s->employee_category_id !== null ? (int) $s->employee_category_id : null,
             'org_unit_id' => $assignment?->org_unit_id,
             'designation_id' => $assignment?->designation_id,
             'employment_type' => $employment->type instanceof \BackedEnum ? $employment->type->value : (string) $employment->type,

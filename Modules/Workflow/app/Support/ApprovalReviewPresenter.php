@@ -15,7 +15,6 @@ use Modules\CoreHr\Models\PersonQualification;
 use Modules\CoreHr\Services\BankAccountService;
 use Modules\Organisation\Models\Designation;
 use Modules\Organisation\Models\EmployeeCategory;
-use Modules\Organisation\Models\Grade;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Organisation\Models\StaffWorkCategory;
@@ -659,7 +658,7 @@ final class ApprovalReviewPresenter
         return match ($field) {
             'org_unit_id' => OrgUnit::query()->find($id)?->name ?? (string) $id,
             'designation_id' => Designation::query()->find($id)?->name ?? (string) $id,
-            'grade_id' => Grade::query()->find($id)?->name ?? (string) $id,
+            'grade_id' => (string) $id,
             'location_id' => Location::query()->find($id)?->name ?? (string) $id,
             'manager_employment_id' => Employment::query()->with('person')->find($id)?->person?->name_with_initials
                 ?? (string) $id,

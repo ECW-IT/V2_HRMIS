@@ -87,7 +87,7 @@ class LoadTest extends TestCase
         $this->assertSame('2024-03-01', $a->effective_from->toDateString());
         $this->assertSame('PROD', $a->orgUnit->code);
         $this->assertSame('TECH', $a->designation->code);
-        $this->assertSame('G3', $a->grade->code);
+        $this->assertSame('G3', $e->employeeCategory->code);
         $this->assertSame($e->id, app(EnrolmentService::class)->resolve('NIT', 116, '2026-12-01 08:00:00'));
         $this->assertSame('0771234567', $e->person->contacts()->where('type', 'MOBILE')->sole()->value);
         $this->assertSame(EventType::HIRE, $e->events()->sole()->type);

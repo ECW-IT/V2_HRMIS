@@ -40,12 +40,6 @@ final class OrganisationNav
                 'route' => route('org.staff-work-categories.index'),
                 'active' => $active === 'staff-work-categories',
             ],
-            [
-                'icon' => '📶',
-                'label' => 'Grades',
-                'route' => route('org.grades.index'),
-                'active' => $active === 'grades',
-            ],
         ];
 
         if (auth()->user()?->hasRole('super-admin')) {

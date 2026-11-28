@@ -52,7 +52,7 @@
                             </td>
                             <td class="px-3 py-2">{{ $period->close_version }}</td>
                             <td @class(['px-3 py-2', 'font-medium text-red-600' => $row['missing'], 'text-slate-700' => ! $row['missing']])>
-                                Expected days: {{ $row['set_count'] }} of {{ $row['grade_count'] }} set
+                                Expected days: {{ $row['set_count'] }} of {{ $row['category_count'] }} set
                             </td>
                         </tr>
                     @empty

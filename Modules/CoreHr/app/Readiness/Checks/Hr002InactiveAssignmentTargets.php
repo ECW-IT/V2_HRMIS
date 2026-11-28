@@ -29,25 +29,30 @@ final class Hr002InactiveAssignmentTargets extends AbstractCheck
 
         return $this->ids(
             $this->population($company, $asOf)
-                ->whereExists(function ($q) use ($day) {
-                    $q->selectRaw('1')
-                        ->from('assignments')
-                        ->join('org_units', 'org_units.id', '=', 'assignments.org_unit_id')
-                        ->join('designations', 'designations.id', '=', 'assignments.designation_id')
-                        ->join('grades', 'grades.id', '=', 'assignments.grade_id')
-                        ->join('locations', 'locations.id', '=', 'assignments.location_id')
-                        ->whereColumn('assignments.employment_id', 'employments.id')
-                        ->whereDate('assignments.effective_from', '<=', $day)
-                        ->where(function ($inner) use ($day) {
-                            $inner->whereNull('assignments.effective_to')
-                                ->orWhereDate('assignments.effective_to', '>=', $day);
-                        })
-                        ->where(function ($inner) {
-                            $inner->where('org_units.is_active', false)
-                                ->orWhere('designations.is_active', false)
-                                ->orWhere('grades.is_active', false)
-                                ->orWhere('locations.is_active', false);
-                        });
+                ->where(function ($outer) use ($day) {
+                    $outer->whereExists(function ($q) use ($day) {
+                        $q->selectRaw('1')
+                            ->from('assignments')
+                            ->join('org_units', 'org_units.id', '=', 'assignments.org_unit_id')
+                            ->join('designations', 'designations.id', '=', 'assignments.designation_id')
+                            ->join('locations', 'locations.id', '=', 'assignments.location_id')
+                            ->whereColumn('assignments.employment_id', 'employments.id')
+                            ->whereDate('assignments.effective_from', '<=', $day)
+                            ->where(function ($inner) use ($day) {
+                                $inner->whereNull('assignments.effective_to')
+                                    ->orWhereDate('assignments.effective_to', '>=', $day);
+                            })
+                            ->where(function ($inner) {
+                                $inner->where('org_units.is_active', false)
+                                    ->orWhere('designations.is_active', false)
+                                    ->orWhere('locations.is_active', false);
+                            });
+                    })->orWhereExists(function ($q) {
+                        $q->selectRaw('1')
+                            ->from('employee_categories')
+                            ->whereColumn('employee_categories.id', 'employments.employee_category_id')
+                            ->where('employee_categories.is_active', false);
+                    });
                 })
         );
     }

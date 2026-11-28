@@ -22,7 +22,7 @@ use Modules\CoreHr\Services\BankAccountService;
 use Modules\CoreHr\Services\DocumentService;
 use Modules\CoreHr\Services\EmploymentService;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Payroll\Database\Seeders\PayComponentSeeder;
 use Modules\Payroll\Database\Seeders\PayRuleSeeder;
 use Modules\Payroll\Enums\OtRateMode;
@@ -119,10 +119,11 @@ class ReadinessChecksTest extends TestCase
         $this->assertContains('HR001', $this->codes($e));
     }
 
-    public function test_hr002_fails_when_the_grade_was_deactivated(): void
+    public function test_hr002_fails_when_the_category_was_deactivated(): void
     {
         $e = $this->ready($this->company());
-        Grade::whereKey($e->currentAssignment()->grade_id)->update(['is_active' => false]);
+        $category = $this->categoryFor($e);
+        EmployeeCategory::whereKey($category->id)->update(['is_active' => false]);
         $this->assertSame(['HR002'], $this->codes($e));
     }
 

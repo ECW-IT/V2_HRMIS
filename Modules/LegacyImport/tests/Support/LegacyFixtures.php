@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Schema;
 use Modules\CoreHr\Support\Nic;
 use Modules\LegacyImport\Services\MappingRepository;
 use Modules\Organisation\Models\Company;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\Location;
 
 trait LegacyFixtures
@@ -258,9 +258,13 @@ trait LegacyFixtures
             ]);
         }
 
-        foreach (['G1', 'G2', 'G3', 'G4'] as $code) {
-            if (! Grade::query()->where('code', $code)->exists()) {
-                Grade::factory()->create(['code' => $code, 'name' => "Grade {$code}"]);
+        foreach (['G1', 'G2', 'G3', 'G4'] as $i => $code) {
+            if (! EmployeeCategory::query()->where('code', $code)->exists()) {
+                EmployeeCategory::factory()->create([
+                    'code' => $code,
+                    'name' => "Category {$code}",
+                    'level' => $i + 1,
+                ]);
             }
         }
 

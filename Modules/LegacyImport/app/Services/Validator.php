@@ -10,7 +10,7 @@ use Modules\CoreHr\Support\Nic;
 use Modules\LegacyImport\Models\ImportRun;
 use Modules\LegacyImport\Models\StgEmployee;
 use Modules\LegacyImport\Models\StgIssue;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 
 final class Validator
 {
@@ -186,9 +186,9 @@ final class Validator
             $out[] = $this->issue($runId, $legacyId, 'IMP010', 'ERROR', 'No job_map row for job title.');
         }
 
-        $gradeCode = $this->maps->gradeCodeForEmployee($legacyId);
-        if ($gradeCode === null || ! Grade::query()->where('code', $gradeCode)->exists()) {
-            $out[] = $this->issue($runId, $legacyId, 'IMP011', 'ERROR', 'Missing or unknown grade assignment.');
+        $categoryCode = $this->maps->gradeCodeForEmployee($legacyId);
+        if ($categoryCode === null || ! EmployeeCategory::query()->where('code', $categoryCode)->where('is_active', true)->exists()) {
+            $out[] = $this->issue($runId, $legacyId, 'IMP011', 'ERROR', 'Missing or unknown category assignment.');
         }
 
         $fp = (int) ($raw['emp_fp_id'] ?? 0);

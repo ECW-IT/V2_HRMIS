@@ -4,7 +4,6 @@ use Illuminate\Support\Facades\Route;
 use Modules\Organisation\Livewire\CompaniesIndex;
 use Modules\Organisation\Livewire\DesignationsIndex;
 use Modules\Organisation\Livewire\EmployeeCategoriesIndex;
-use Modules\Organisation\Livewire\GradesIndex;
 use Modules\Organisation\Livewire\LocationsIndex;
 use Modules\Organisation\Livewire\OrgTree;
 use Modules\Organisation\Livewire\StaffWorkCategoriesIndex;
@@ -22,5 +21,4 @@ Route::middleware(['auth', 'password.changed', 'can:org.view'])
         Route::get('/designations', DesignationsIndex::class)->name('designations.index');
         Route::get('/categories', EmployeeCategoriesIndex::class)->name('categories.index');
         Route::get('/staff-work-categories', StaffWorkCategoriesIndex::class)->name('staff-work-categories.index');
-        Route::get('/grades', GradesIndex::class)->name('grades.index');
     });

@@ -23,7 +23,7 @@ use Modules\CoreHr\Services\EmploymentService;
 use Modules\CoreHr\Services\PersonService;
 use Modules\Organisation\Models\Company;
 use Modules\Organisation\Models\Designation;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\EmployeeCategory;
 use Modules\Organisation\Models\Location;
 use Modules\Organisation\Models\OrgUnit;
 use Modules\Payroll\Database\Seeders\PayComponentSeeder;
@@ -75,15 +75,27 @@ trait HrFixtures
         ], $attrs));
     }
 
-    /** @return array{org_unit_id: int, designation_id: int, grade_id: int, location_id: int} */
+    /** @return array{org_unit_id: int, designation_id: int, location_id: int} */
     protected function asg(Company $c, array $overrides = []): array
     {
         return array_merge([
             'org_unit_id' => OrgUnit::factory()->create(['company_id' => $c->id])->id,
             'designation_id' => Designation::factory()->create()->id,
-            'grade_id' => Grade::factory()->create()->id,
             'location_id' => Location::factory()->create()->id,
         ], $overrides);
+    }
+
+    protected function categoryFor(Employment $e, ?EmployeeCategory $category = null): EmployeeCategory
+    {
+        $category ??= $e->employee_category_id !== null
+            ? EmployeeCategory::query()->find($e->employee_category_id)
+            : null;
+        $category ??= EmployeeCategory::factory()->create();
+        if ((int) $e->employee_category_id !== (int) $category->id) {
+            $e->update(['employee_category_id' => $category->id]);
+        }
+
+        return $category;
     }
 
     /** @return array{type: string, hire_date: string, epf_liable: bool, epf_no: string} */
@@ -219,9 +231,9 @@ trait HrFixtures
         $p = $periods->ensure($c, $year, $mon);
 
         $expected = app(ExpectedDaysService::class);
-        foreach (Grade::query()->where('is_active', true)->get() as $grade) {
+        foreach (EmployeeCategory::query()->where('is_active', true)->get() as $category) {
             try {
-                $expected->set($p, $grade, 25.0);
+                $expected->set($p, $category, 25.0);
             } catch (\Throwable) {
                 // already set or inactive
             }
@@ -238,9 +250,9 @@ trait HrFixtures
 
         foreach ($chain as $period) {
             if ($period->status === PeriodStatus::OPEN) {
-                foreach (Grade::query()->where('is_active', true)->get() as $grade) {
+                foreach (EmployeeCategory::query()->where('is_active', true)->get() as $category) {
                     try {
-                        $expected->set($period, $grade, 25.0);
+                        $expected->set($period, $category, 25.0);
                     } catch (\Throwable) {
                     }
                 }
@@ -263,7 +275,7 @@ trait HrFixtures
             'pay_period_id' => $p->id,
             'employment_id' => $e->id,
             'version' => $version,
-            'grade_id' => $assignment?->grade_id ?? Grade::factory()->create()->id,
+            'employee_category_id' => $this->categoryFor($e)->id,
             'attendance_mode' => AttendanceMode::PUNCH,
             'employed_days' => 31,
             'expected_days' => 25,

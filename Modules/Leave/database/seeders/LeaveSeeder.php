@@ -27,7 +27,7 @@ class LeaveSeeder extends Seeder
             [
                 'leave_type_id' => $type->id,
                 'company_id' => null,
-                'grade_id' => null,
+                'employee_category_id' => null,
                 'employment_type' => null,
                 'effective_from' => '2026-01-01',
             ],

@@ -153,17 +153,10 @@ UI label: **Designations** (nav and screens). Model `Designation`; assignments a
 | is_active | |
 | created_at, updated_at | |
 
-### `grades`
-| Field | Notes |
-|-------|-------|
-| id | PK |
-| code | unique |
-| name | unique |
-| rank | unique |
-| is_active | |
-| created_at, updated_at | |
-
 ### `employee_categories`
+
+Employee category is the ladder for expected working days, leave policy matching, and extra-day pay (`category_pay_rules`). The `grades` table has been removed.
+
 | Field | Notes |
 |-------|-------|
 | id | PK |
@@ -329,7 +322,6 @@ UI label: **Designations** (nav and screens). Model `Designation`; assignments a
 | effective_from, effective_to | unique `(employment_id, effective_from)` |
 | org_unit_id | FK → `org_units.id` (restrict) |
 | designation_id | FK → `designations.id` (restrict) |
-| grade_id | FK → `grades.id` (restrict) |
 | location_id | FK → `locations.id` (restrict) |
 | manager_employment_id | FK → `employments.id` (restrict) |
 | change_reason | |
@@ -562,7 +554,7 @@ UI label: **Designations** (nav and screens). Model `Designation`; assignments a
 | id | PK |
 | leave_type_id | FK → `leave_types.id` (restrict) |
 | company_id | FK → `companies.id` (restrict) |
-| grade_id | FK → `grades.id` (restrict) |
+| employee_category_id | FK → `employee_categories.id` (restrict), null = any category |
 | employment_type | |
 | days_per_period | |
 | effective_from, effective_to | |
@@ -629,11 +621,11 @@ UI label: **Designations** (nav and screens). Model `Designation`; assignments a
 |-------|-------|
 | id | PK |
 | pay_period_id | FK → `pay_periods.id` (cascade) |
-| grade_id | FK → `grades.id` (restrict) |
+| employee_category_id | FK → `employee_categories.id` (restrict) |
 | days | |
 | set_by | FK → `users.id` (restrict) |
 | created_at, updated_at | |
-| | unique `(pay_period_id, grade_id)` |
+| | unique `(pay_period_id, employee_category_id)` |
 
 ---
 
@@ -758,7 +750,6 @@ UI label: **Designations** (nav and screens). Model `Designation`; assignments a
 | assignments.employment_id | employments.id | restrict |
 | assignments.org_unit_id | org_units.id | restrict |
 | assignments.designation_id | designations.id | restrict |
-| assignments.grade_id | grades.id | restrict |
 | assignments.location_id | locations.id | restrict |
 | assignments.manager_employment_id | employments.id | restrict |
 | employment_events.employment_id | employments.id | restrict |
@@ -798,7 +789,7 @@ UI label: **Designations** (nav and screens). Model `Designation`; assignments a
 | timecard_decision_logs.user_id | users.id | null |
 | leave_policies.leave_type_id | leave_types.id | restrict |
 | leave_policies.company_id | companies.id | restrict |
-| leave_policies.grade_id | grades.id | restrict |
+| leave_policies.employee_category_id | employee_categories.id | restrict |
 | leave_requests.company_id | companies.id | restrict |
 | leave_requests.employment_id | employments.id | restrict |
 | leave_requests.leave_type_id | leave_types.id | restrict |
@@ -814,7 +805,7 @@ UI label: **Designations** (nav and screens). Model `Designation`; assignments a
 | pay_periods.company_id | companies.id | restrict |
 | pay_periods.closed_by | users.id | restrict |
 | period_expected_days.pay_period_id | pay_periods.id | cascade |
-| period_expected_days.grade_id | grades.id | restrict |
+| period_expected_days.employee_category_id | employee_categories.id | restrict |
 | period_expected_days.set_by | users.id | restrict |
 | approval_definition_steps.approval_definition_id | approval_definitions.id | cascade |
 | approval_requests.approval_definition_id | approval_definitions.id | restrict |

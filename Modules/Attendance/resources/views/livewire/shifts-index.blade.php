@@ -44,7 +44,11 @@
                         <td class="px-3 py-2">{{ substr((string) $shift->half_day_from, 0, 5) }}</td>
                         <td class="px-3 py-2">{{ substr((string) $shift->early_leave_from, 0, 5) }}</td>
                         <td class="px-3 py-2">{{ $shift->breaks->pluck('name')->join(', ') ?: '—' }}</td>
-                        <td class="px-3 py-2">{{ $row['employees_now'] }}</td>
+                        <td class="px-3 py-2">
+                            <button type="button" wire:click="openRoster({{ $shift->id }})" class="text-[var(--color-erp-accent)] hover:underline">
+                                {{ $row['employees_now'] }}
+                            </button>
+                        </td>
                         <td class="px-3 py-2">{{ $shift->is_active ? 'Yes' : 'No' }}</td>
                         <td class="whitespace-nowrap px-3 py-2 text-right">
                             @can('shift.manage')
@@ -124,6 +128,41 @@
                     <button type="button" wire:click="closeForm" class="rounded border px-3 py-1.5 text-sm">Cancel</button>
                     <button type="button" wire:click="save" class="rounded bg-[var(--color-erp-accent)] px-3 py-1.5 text-sm text-white">Save</button>
                 </div>
+            </div>
+        </div>
+    @endif
+
+    @if ($roster !== null)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-4 shadow-xl">
+                <div class="flex items-center justify-between gap-3">
+                    <h2 class="text-base font-semibold text-slate-800">{{ $roster['code'] }} — Employees now</h2>
+                    <button type="button" wire:click="closeRoster" class="rounded border px-3 py-1.5 text-sm">Close</button>
+                </div>
+                @if ($roster['employees'] === [])
+                    <p class="mt-4 text-sm text-slate-500">No employees on this shift.</p>
+                @else
+                    <div class="mt-4 overflow-x-auto rounded border">
+                        <table class="min-w-full text-left text-sm">
+                            <thead class="bg-slate-50 text-xs uppercase text-slate-500">
+                                <tr>
+                                    <th class="px-3 py-2">Employee no</th>
+                                    <th class="px-3 py-2">Name</th>
+                                    <th class="px-3 py-2">Assigned unit</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach ($roster['employees'] as $employee)
+                                    <tr class="border-t" wire:key="roster-{{ $employee['employee_no'] }}">
+                                        <td class="px-3 py-2">{{ $employee['employee_no'] }}</td>
+                                        <td class="px-3 py-2">{{ $employee['name'] }}</td>
+                                        <td class="px-3 py-2">{{ $employee['unit'] }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             </div>
         </div>
     @endif

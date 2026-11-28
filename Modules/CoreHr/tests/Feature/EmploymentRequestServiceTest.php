@@ -10,7 +10,7 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Modules\CoreHr\Enums\EmploymentStatus;
 use Modules\CoreHr\Models\Employment;
 use Modules\CoreHr\Services\EmploymentRequestService;
-use Modules\Organisation\Models\Grade;
+use Modules\Organisation\Models\Designation;
 use Modules\Workflow\Enums\ApprovalStatus;
 use Modules\Workflow\Services\ApprovalService;
 use Tests\Support\HrFixtures;
@@ -45,38 +45,38 @@ class EmploymentRequestServiceTest extends TestCase
     public function test_hr_manager_change_creates_a_pending_request(): void
     {
         $e = $this->hired('2026-06-01');
-        $g1 = $e->currentAssignment()->grade_id;
-        $g2 = Grade::factory()->create()->id;
-        $res = $this->req->request($this->user('hr-manager', $e), 'CHANGE_ASSIGNMENT', $e, ['from' => '2026-09-01', 'changes' => ['grade_id' => $g2], 'reason' => 'Promotion']);
+        $d1 = $e->currentAssignment()->designation_id;
+        $d2 = Designation::factory()->create()->id;
+        $res = $this->req->request($this->user('hr-manager', $e), 'CHANGE_ASSIGNMENT', $e, ['from' => '2026-09-01', 'changes' => ['designation_id' => $d2], 'reason' => 'Promotion']);
 
         $this->assertSame(ApprovalStatus::PENDING, $res->status);
         $this->assertSame('EMPLOYEE_CHANGE', $res->definition->code);
         $this->assertSame(1, $e->assignments()->count());
-        $this->assertSame($g1, $e->assignmentOn('2026-09-01')->grade_id);
+        $this->assertSame($d1, $e->assignmentOn('2026-09-01')->designation_id);
     }
 
     public function test_hr_officer_change_creates_a_pending_request_and_changes_nothing(): void
     {
         $e = $this->hired('2026-06-01');
-        $g1 = $e->currentAssignment()->grade_id;
-        $g2 = Grade::factory()->create()->id;
-        $res = $this->req->request($this->user('hr-officer', $e), 'CHANGE_ASSIGNMENT', $e, ['from' => '2026-09-01', 'changes' => ['grade_id' => $g2], 'reason' => 'Promotion']);
+        $d1 = $e->currentAssignment()->designation_id;
+        $d2 = Designation::factory()->create()->id;
+        $res = $this->req->request($this->user('hr-officer', $e), 'CHANGE_ASSIGNMENT', $e, ['from' => '2026-09-01', 'changes' => ['designation_id' => $d2], 'reason' => 'Promotion']);
 
         $this->assertSame(ApprovalStatus::PENDING, $res->status);
         $this->assertSame('CHANGE_ASSIGNMENT', $res->payload['operation']);
         $this->assertSame(1, $e->assignments()->count());
-        $this->assertSame($g1, $e->assignmentOn('2026-09-01')->grade_id);
+        $this->assertSame($d1, $e->assignmentOn('2026-09-01')->designation_id);
     }
 
     public function test_approval_applies_the_change_with_the_requested_date_and_links_the_event(): void
     {
         $e = $this->hired('2026-06-01');
-        $g2 = Grade::factory()->create()->id;
-        $res = $this->req->request($this->user('hr-officer', $e), 'CHANGE_ASSIGNMENT', $e, ['from' => '2026-09-01', 'changes' => ['grade_id' => $g2], 'reason' => 'Promotion']);
+        $d2 = Designation::factory()->create()->id;
+        $res = $this->req->request($this->user('hr-officer', $e), 'CHANGE_ASSIGNMENT', $e, ['from' => '2026-09-01', 'changes' => ['designation_id' => $d2], 'reason' => 'Promotion']);
 
         app(ApprovalService::class)->approve($res, $this->user('hr-manager', $e));
 
-        $this->assertSame($g2, $e->assignmentOn('2026-09-01')->grade_id);
+        $this->assertSame($d2, $e->assignmentOn('2026-09-01')->designation_id);
         $this->assertSame($res->id, $e->events()->where('type', 'ASSIGNMENT_CHANGE')->sole()->approval_request_id);
     }
 
