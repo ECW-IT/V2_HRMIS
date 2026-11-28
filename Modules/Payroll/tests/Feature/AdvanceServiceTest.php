@@ -141,6 +141,25 @@ class AdvanceServiceTest extends TestCase
         $this->assertSame('2026-12-10', $paid->paid_on->toDateString());
     }
 
+    public function test_mark_paid_requires_a_payment_date(): void
+    {
+        $e = $this->paid();
+        $p = $this->december($e);
+        $manager = $this->user('hr-manager', $e);
+        $payer = $this->user('payroll-officer', $e);
+        $a = $this->svc->request($e, $p, '5000.00', null, $manager);
+        $this->approve($a, $e);
+
+        try {
+            $this->svc->markPaid($a->fresh(), '', null, $payer);
+            $this->fail();
+        } catch (InvalidAdvance $ex) {
+            $this->assertSame('A payment date is required.', $ex->getMessage());
+        }
+
+        $this->assertSame(AdvanceStatus::APPROVED, $a->fresh()->status);
+    }
+
     public function test_due_for_returns_paid_advances_of_this_and_earlier_periods(): void
     {
         $e = $this->paid();

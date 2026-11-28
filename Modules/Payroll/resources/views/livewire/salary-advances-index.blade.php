@@ -58,6 +58,9 @@
             <div>
                 <label class="mb-1 block text-xs font-medium text-gray-600">Paid on</label>
                 <input type="date" wire:model="paidOn" class="w-full rounded border px-2 py-1.5 text-sm">
+                @error('paidOn')
+                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                @enderror
             </div>
             <div>
                 <label class="mb-1 block text-xs font-medium text-gray-600">Payment reference</label>

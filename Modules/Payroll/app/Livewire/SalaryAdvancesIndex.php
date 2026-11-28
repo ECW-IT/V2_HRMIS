@@ -83,6 +83,10 @@ class SalaryAdvancesIndex extends Component
         $this->authorize('advance.pay');
         $this->formError = null;
 
+        $this->validate([
+            'paidOn' => ['required', 'date'],
+        ]);
+
         try {
             $advances->markPaid(
                 SalaryAdvance::query()->findOrFail($advanceId),

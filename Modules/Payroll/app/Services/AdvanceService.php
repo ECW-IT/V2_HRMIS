@@ -84,7 +84,22 @@ final class AdvanceService
             throw new InvalidAdvance('Only an approved advance can be marked paid.');
         }
 
-        $paidOn = $this->dateString($paidOn);
+        $paidOn = trim($this->dateString($paidOn));
+        if ($paidOn === '') {
+            throw new InvalidAdvance('A payment date is required.');
+        }
+
+        try {
+            $parsed = CarbonImmutable::createFromFormat('!Y-m-d', $paidOn, config('app.timezone'));
+        } catch (\Throwable) {
+            throw new InvalidAdvance('A payment date is required.');
+        }
+
+        if ($parsed === false || $parsed->format('Y-m-d') !== $paidOn) {
+            throw new InvalidAdvance('A payment date is required.');
+        }
+
+        $paidOn = $parsed->toDateString();
         $today = CarbonImmutable::now(config('app.timezone'))->toDateString();
         if ($paidOn > $today) {
             throw new InvalidAdvance('Payment date cannot be in the future.');
